@@ -56,6 +56,12 @@ class OcalMobileApp {
         if (isWeb) {
           document.body.classList.add('is-web-page');
           document.body.classList.remove('is-internal-page');
+          if (activeTab.thumbnail) {
+            this.updateWebBgSnapshot(activeTab.thumbnail);
+          } else if (window.OcalNative) {
+            const lastThumb = window.OcalNative.getLastTabThumbnail();
+            if (lastThumb) this.updateWebBgSnapshot(lastThumb);
+          }
         } else {
           document.body.classList.remove('is-web-page');
           document.body.classList.add('is-internal-page');
@@ -145,11 +151,15 @@ class OcalMobileApp {
 
     const enterSearchMode = () => {
       document.body.classList.add('search-active');
+      const activeTab = this.tabManager.getActiveTab();
+      const thumb = (activeTab && activeTab.thumbnail) || (window.OcalNative ? window.OcalNative.getLastTabThumbnail() : '') || '';
+      if (thumb) {
+        this.updateWebBgSnapshot(thumb);
+      }
       if (window.OcalNative) window.OcalNative.setWebVisible(false);
       resetScroll();
       requestAnimationFrame(resetScroll);
       updateKeyboardLayout();
-      const activeTab = this.tabManager.getActiveTab();
       if (activeTab && activeTab.url !== 'ocal://home') {
         omniboxInput.value = this.formatOmniboxUrl(activeTab.url);
       }
@@ -1339,6 +1349,7 @@ class OcalMobileApp {
       } else if (event.type === 'TAB_THUMBNAIL_CAPTURED') {
         if (event.thumbnail) {
           this.tabManager?.setTabThumbnail(event.tabId, event.url, event.thumbnail);
+          this.updateWebBgSnapshot(event.thumbnail);
         }
       } else if (event.type === 'PROGRESS') {
         const bar = document.getElementById('progress-bar');
@@ -1369,6 +1380,14 @@ class OcalMobileApp {
       window.OcalNative.setWebVisible(true);
     } else {
       window.OcalNative.setWebVisible(false);
+    }
+  }
+
+  updateWebBgSnapshot(dataUrl) {
+    if (!dataUrl) return;
+    const snapEl = document.getElementById('web-page-bg-snapshot');
+    if (snapEl) {
+      snapEl.style.backgroundImage = `url("${dataUrl}")`;
     }
   }
 
@@ -1869,6 +1888,9 @@ class OcalMobileApp {
       } else {
         bgPreview.classList.remove('visible');
       }
+    }
+    if (snapshot) {
+      this.updateWebBgSnapshot(snapshot);
     }
 
     if (window.OcalNative) window.OcalNative.setWebVisible(false);

@@ -33,7 +33,11 @@ export class DownloadProgressIndicator {
   bindEvents() {
     this.ballBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.togglePopover();
+      this.closePopover();
+      this.hideBall();
+      if (this.app?.tabManager) {
+        this.app.tabManager.navigateTab(this.app.tabManager.activeTabId, 'ocal://downloads');
+      }
     });
 
     this.popoverCloseBtn?.addEventListener('click', (e) => {
@@ -89,7 +93,7 @@ export class DownloadProgressIndicator {
         this.lastActiveCount = 0;
         this.renderProgress(100, true);
         this.ballBtn?.classList.add('is-completed');
-        this.startHideTimer(14000); // Keep ball visible for 14s so user can tap
+        this.startHideTimer(3500); // Auto-hide completed ball cleanly after 3.5s
       } else {
         // No active downloads and no recent completion
         if (!this.hideTimer && !this.popover?.classList.contains('visible')) {

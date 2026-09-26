@@ -299,16 +299,16 @@ body.search-active .bottom-dock {
   transform: none !important;
   transition: none !important;
   animation: none !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.6) 24%, rgba(255, 255, 255, 0.88) 100%);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   padding: 10px 0 calc(10px + max(var(--safe-bottom), 6px));
 }
 
 [data-theme="dark"] body.search-active .bottom-dock {
-  background: linear-gradient(180deg, rgba(14, 14, 18, 0) 0%, rgba(18, 18, 22, 0.65) 24%, rgba(18, 18, 22, 0.92) 100%);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Frosted Glass Expanded URL Capsule Bar - No resize jump */
@@ -319,19 +319,19 @@ body.search-active .url-capsule-bar {
   height: 46px !important;
   margin: 0 12px 10px !important;
   padding: 0 14px;
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(32px) saturate(200%);
-  -webkit-backdrop-filter: blur(32px) saturate(200%);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(32px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
   border-radius: var(--radius-full);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="dark"] body.search-active .url-capsule-bar {
-  background-color: rgba(32, 32, 38, 0.85);
-  backdrop-filter: blur(32px) saturate(200%);
-  -webkit-backdrop-filter: blur(32px) saturate(200%);
-  border-color: rgba(255, 255, 255, 0.16);
+  background-color: rgba(28, 28, 34, 0.75) !important;
+  backdrop-filter: blur(32px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
 }
 
@@ -670,14 +670,38 @@ body.is-internal-page:not(.search-active) .capsule-url-input {
   transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
-/* Translucent Footer on External Web Pages */
+/* Translucent Footer & Seamless Web Page Snapshot */
+.web-page-bg-snapshot {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  background-size: cover;
+  background-position: top center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+body.is-web-page .web-page-bg-snapshot {
+  display: block;
+  opacity: 1;
+}
+
 body.is-web-page {
-  background-color: var(--bg-main) !important;
+  background-color: transparent !important;
 }
 
 body.is-web-page #app-root,
 body.is-web-page .viewport-container {
-  background-color: var(--bg-main) !important;
+  background-color: transparent !important;
+}
+
+body.is-web-page .internal-page-container {
+  display: none !important;
 }
 
 body.is-web-page .bottom-dock {
@@ -702,16 +726,16 @@ body.is-web-page .bottom-nav-bar {
 
 body.is-web-page .url-capsule-bar {
   background-color: rgba(255, 255, 255, 0.68) !important;
-  backdrop-filter: blur(24px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
   border: 1px solid rgba(0, 0, 0, 0.10) !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
 }
 
 [data-theme="dark"] body.is-web-page .url-capsule-bar {
   background-color: rgba(28, 28, 34, 0.72) !important;
-  backdrop-filter: blur(24px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   box-shadow: 0 4px 22px rgba(0, 0, 0, 0.45) !important;
 }

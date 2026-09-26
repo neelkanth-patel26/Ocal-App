@@ -385,6 +385,9 @@ public class MainActivity extends BridgeActivity {
     private void captureWithPixelCopy(final String tabId, final int thumbW, final int thumbH) {
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) return;
         try {
+            if (nativeWebBrowser == null || nativeWebBrowser.getVisibility() != View.VISIBLE || !nativeWebBrowser.isAttachedToWindow()) {
+                return;
+            }
             int[] location = new int[2];
             nativeWebBrowser.getLocationInWindow(location);
             int w = nativeWebBrowser.getWidth();
@@ -396,6 +399,10 @@ public class MainActivity extends BridgeActivity {
             android.view.PixelCopy.request(getWindow(), rect, copyBmp, (result) -> {
                 if (result == android.view.PixelCopy.SUCCESS) {
                     try {
+                        if (nativeWebBrowser == null || nativeWebBrowser.getVisibility() != View.VISIBLE || !nativeWebBrowser.isAttachedToWindow()) {
+                            copyBmp.recycle();
+                            return;
+                        }
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
                         copyBmp.compress(Bitmap.CompressFormat.JPEG, 80, baos);
                         byte[] bytes = baos.toByteArray();
@@ -416,6 +423,10 @@ public class MainActivity extends BridgeActivity {
                     } catch (Throwable t) {
                         android.util.Log.e("OcalBrowser", "PixelCopy post process error", t);
                     }
+                } else {
+                    try {
+                        copyBmp.recycle();
+                    } catch (Throwable ignored) {}
                 }
             }, new android.os.Handler(android.os.Looper.getMainLooper()));
         } catch (Throwable t) {
@@ -1213,9 +1224,6 @@ public class MainActivity extends BridgeActivity {
                             nativeWebBrowser.setVisibility(View.VISIBLE);
                         }
                     } else {
-                        if (nativeWebBrowser != null && nativeWebBrowser.getVisibility() == View.VISIBLE && nativeWebBrowser.getWidth() > 0) {
-                            captureActiveTabThumbnailNow("");
-                        }
                         if (browserSlideContainer != null) {
                             browserSlideContainer.setVisibility(View.GONE);
                         }
