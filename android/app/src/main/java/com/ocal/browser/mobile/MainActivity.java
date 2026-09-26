@@ -454,23 +454,6 @@ public class MainActivity extends BridgeActivity {
                         v.setPadding(0, statusBar.top, 0, ime.bottom);
                         return WindowInsetsCompat.CONSUMED;
                     });
-
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                        ViewCompat.setWindowInsetsAnimationCallback(contentView,
-                            new androidx.core.view.WindowInsetsAnimationCompat.Callback(
-                                androidx.core.view.WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_STOP) {
-                                @NonNull
-                                @Override
-                                public WindowInsetsCompat onProgress(
-                                    @NonNull WindowInsetsCompat insets,
-                                    @NonNull java.util.List<androidx.core.view.WindowInsetsAnimationCompat> runningAnimations) {
-                                    Insets statusBar = insets.getInsets(WindowInsetsCompat.Type.statusBars());
-                                    Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
-                                    contentView.setPadding(0, statusBar.top, 0, ime.bottom);
-                                    return insets;
-                                }
-                            });
-                    }
                     contentView.requestApplyInsets();
                 }
             } catch (Throwable t) {

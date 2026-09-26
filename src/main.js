@@ -138,10 +138,14 @@ class OcalMobileApp {
 
     let _kbRafId = null;
     const updateKeyboardLayout = () => {
+      if (window.innerWidth >= 768) {
+        document.documentElement.style.removeProperty('--keyboard-offset');
+        return;
+      }
       if (_kbRafId) return; // already queued
       _kbRafId = requestAnimationFrame(() => {
         _kbRafId = null;
-        if (!document.body.classList.contains('search-active')) {
+        if (!document.body.classList.contains('search-active') || window.innerWidth >= 768) {
           document.documentElement.style.removeProperty('--keyboard-offset');
           return;
         }

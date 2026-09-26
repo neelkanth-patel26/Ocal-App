@@ -282,9 +282,9 @@ iframe.tab-web-frame {
   border: 1px solid var(--capsule-border);
   border-radius: var(--radius-full);
   box-shadow: var(--capsule-shadow);
-  transition: background-color 0.2s ease,
-              border-color 0.2s ease,
-              box-shadow 0.2s ease;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
   position: relative;
   z-index: 75;
 }
@@ -298,6 +298,7 @@ body.search-active .bottom-dock {
   z-index: 90 !important;
   transform: none !important;
   transition: none !important;
+  animation: none !important;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.6) 24%, rgba(255, 255, 255, 0.88) 100%);
   backdrop-filter: blur(24px) saturate(190%);
   -webkit-backdrop-filter: blur(24px) saturate(190%);
@@ -310,12 +311,13 @@ body.search-active .bottom-dock {
   -webkit-backdrop-filter: blur(24px) saturate(190%);
 }
 
-/* Frosted Glass Expanded URL Capsule Bar */
+/* Frosted Glass Expanded URL Capsule Bar - No resize jump */
 body.search-active .url-capsule-bar {
   transform: none !important;
   transition: none !important;
-  height: 50px;
-  margin: 0 12px 6px;
+  animation: none !important;
+  height: 46px !important;
+  margin: 0 12px 10px !important;
   padding: 0 14px;
   background-color: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(32px) saturate(200%);
@@ -3857,7 +3859,8 @@ input:checked + .toggle-slider:before {
     background-color: var(--capsule-bg);
     border: 1px solid var(--capsule-border);
     box-shadow: none;
-    transition: max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+    transition: none !important;
+    animation: none !important;
   }
 
   /* Hide URL bar when tabs tray is open on tablet — not needed in tab switcher view */
@@ -3870,11 +3873,44 @@ input:checked + .toggle-slider:before {
     margin: 0;
   }
 
+  /* In Tablet Mode, keep dock at the TOP even in search-active mode */
+  body.search-active .bottom-dock {
+    position: relative !important;
+    top: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    order: -1 !important;
+    width: 100% !important;
+    height: 54px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 16px !important;
+    gap: 16px !important;
+    background-color: var(--nav-bar-bg) !important;
+    backdrop-filter: blur(28px) saturate(190%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+    border-bottom: 1px solid var(--glass-border) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    z-index: 80 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  body.search-active .bottom-nav-bar {
+    display: flex !important;
+  }
+
   /* Omnibox Active / Typing Mode on Tablet */
   body.search-active .url-capsule-bar {
     transform: none !important;
+    transition: none !important;
+    animation: none !important;
     max-width: 720px;
-    height: 40px;
+    height: 38px !important;
     padding: 0 12px;
     border-color: var(--accent-primary);
     box-shadow: 0 0 0 2px var(--accent-subtle);
