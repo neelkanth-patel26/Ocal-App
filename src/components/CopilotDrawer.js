@@ -58,7 +58,7 @@ export class CopilotDrawer {
       <div class="sheet-handle-bar"><div class="sheet-handle"></div></div>
       <div class="sheet-header">
         <div class="sheet-title" style="display:flex; align-items:center; gap:8px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg>
           <span>${hasExistingKey ? 'Configure AI Key' : 'Activate Ocal Copilot'}</span>
         </div>
         <button class="icon-btn" id="copilot-close-btn"><i class="fas fa-times"></i></button>
@@ -147,7 +147,7 @@ export class CopilotDrawer {
       <div class="sheet-handle-bar"><div class="sheet-handle"></div></div>
       <div class="sheet-header">
         <div class="sheet-title" style="display:flex; align-items:center; gap:8px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg>
           <span>Ocal Copilot</span>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
@@ -166,7 +166,7 @@ export class CopilotDrawer {
 
         <div id="copilot-feed" class="copilot-feed-box">
           <div class="copilot-response-box">
-            <h4><i class="fas fa-sparkles" style="color:var(--accent-primary);"></i> Ready to assist</h4>
+            <h4><i class="fas fa-sparkles"></i> Ready to assist</h4>
             <p>I can summarize <strong>${this.escapeHtml(currentTitle)}</strong>, extract main takeaways, or answer questions about this page.</p>
           </div>
         </div>
@@ -384,10 +384,10 @@ Answer the user clearly, concisely, and helpfully using information from the pag
 
       if (pendingEl) {
         pendingEl.id = '';
-        const titleIcon = actionType === 'summarize' ? '<i class="fas fa-file-alt" style="color:var(--accent-primary);"></i> Summary' :
-                          actionType === 'key_points' ? '<i class="fas fa-list-check" style="color:var(--accent-primary);"></i> Key Takeaways' :
-                          actionType === 'simplify' ? '<i class="fas fa-wand-magic-sparkles" style="color:var(--accent-primary);"></i> Simplified' :
-                          '<i class="fas fa-sparkles" style="color:var(--accent-primary);"></i> Copilot Answer';
+        const titleIcon = actionType === 'summarize' ? '<i class="fas fa-file-alt"></i> Summary' :
+                          actionType === 'key_points' ? '<i class="fas fa-list-check"></i> Key Takeaways' :
+                          actionType === 'simplify' ? '<i class="fas fa-wand-magic-sparkles"></i> Simplified' :
+                          '<i class="fas fa-sparkles"></i> Copilot Answer';
 
         pendingEl.innerHTML = `
           <h4>${titleIcon}</h4>
