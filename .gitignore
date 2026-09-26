@@ -1,11 +1,45 @@
-﻿node_modules/
+﻿# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build Outputs & APKs
 dist/
+dist-apk/
+*.apk
+*.aab
 build/
+.cache/
+
+# Local IDE & Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Android Build & Private Keystores
 android/.gradle/
 android/app/build/
 android/build/
 android/local.properties
 android/.idea/
+android/*.iml
+android/app/*.iml
+*.keystore
+*.jks
+
+# Temporary Scripts & Scratch
+scratch/
+desktop-sync-files/
+
+# Environment & Logs
 .env
+.env.*
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Files
 .DS_Store
 Thumbs.db
