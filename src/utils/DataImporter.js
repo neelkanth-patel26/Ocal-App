@@ -1,6 +1,8 @@
 // Ocal Browser - Data Importer & Password Manager
 // Handles importing Bookmarks (HTML/JSON) and Passwords (CSV/JSON) from Chrome, Firefox, Edge, Safari, Brave, Opera, etc.
 
+import { DownloadsManager } from '../components/DownloadsManager.js';
+
 export class PasswordManager {
   static STORAGE_KEY = 'ocal-passwords';
 
@@ -405,5 +407,16 @@ export class DataImporter {
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    try {
+      DownloadsManager.addDownload({
+        filename,
+        filePath: 'Download/' + filename,
+        totalBytes: typeof content === 'string' ? content.length : 1024,
+        downloadedBytes: typeof content === 'string' ? content.length : 1024,
+        progress: 100,
+        status: 'completed',
+        mimetype: mimeType
+      });
+    } catch {}
   }
 }

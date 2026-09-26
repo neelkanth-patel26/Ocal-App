@@ -77,6 +77,28 @@
         </div>
       </div>
 
+      <!-- Downloads Quick Popover Card (Matches Apple Safari / Chrome download bubble) -->
+      <div class="dl-quick-popover" id="dl-quick-popover">
+        <div class="dl-quick-popover-header">
+          <div class="dl-quick-popover-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Downloads</span>
+          </div>
+          <button class="dl-quick-popover-close" id="dl-popover-close-btn" title="Close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="dl-quick-popover-body" id="dl-quick-popover-body">
+          <!-- Populated dynamically with active / recent downloads -->
+        </div>
+        <div class="dl-quick-popover-footer">
+          <button class="dl-quick-view-all-btn" id="dl-quick-view-all-btn">
+            <span>All Downloads</span>
+            <i class="fas fa-arrow-right" style="font-size:11px;"></i>
+          </button>
+        </div>
+      </div>
+
       <!-- Autocomplete Suggestions Overlay -->
       <div class="suggestions-dropdown" id="suggestions-dropdown"></div>
 
@@ -114,6 +136,15 @@
         </button>
         <button class="capsule-icon-btn" id="capsule-mic-btn" title="Voice Search">
           <i class="fas fa-microphone"></i>
+        </button>
+        <!-- Circular Download Progress Ball (Safari/Chrome style % circle) -->
+        <button class="capsule-download-btn" id="capsule-download-btn" title="Downloads" style="display: none;" aria-label="Downloads">
+          <svg class="dl-ball-svg" viewBox="0 0 28 28" width="28" height="28">
+            <circle class="dl-ball-track" cx="14" cy="14" r="11" />
+            <circle class="dl-ball-fill" id="dl-ball-fill" cx="14" cy="14" r="11" stroke-dasharray="69.115" stroke-dashoffset="69.115" transform="rotate(-90 14 14)" />
+            <text class="dl-ball-text" id="dl-ball-text" x="14" y="14.2" text-anchor="middle" dominant-baseline="central">0%</text>
+            <path class="dl-ball-check" id="dl-ball-check" d="M9.5 14.2l3 3 6-6" style="display:none;" />
+          </svg>
         </button>
         <button class="capsule-shield-btn" id="capsule-shield-btn" title="CyberShield Ad Blocker">
           <div class="shield-badge-dot" id="shield-badge-dot">

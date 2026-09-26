@@ -3,6 +3,7 @@ import { TabManager } from './components/TabManager.js';
 import { CyberShield } from './components/CyberShield.js';
 import { CopilotDrawer } from './components/CopilotDrawer.js';
 import { DownloadsManager } from './components/DownloadsManager.js';
+import { DownloadProgressIndicator } from './components/DownloadProgressIndicator.js';
 import { syncClient } from './utils/SyncClient.js';
 
 // Anti-nesting guard: Never render duplicate browser chrome inside an iframe
@@ -17,6 +18,7 @@ class OcalMobileApp {
     this.cyberShield = null;
     this.copilotDrawer = null;
     this.downloadsManager = null;
+    this.downloadIndicator = null;
     this.suggestDebounceTimer = null;
     this.adFilterEnabled = true;
     this.toastTimer = null;
@@ -100,8 +102,9 @@ class OcalMobileApp {
       getActiveTab: () => this.tabManager.getActiveTab()
     });
 
-    // 4.5 Initialize Downloads Manager
+    // 4.5 Initialize Downloads Manager & Live Progress Ball Indicator
     this.downloadsManager = new DownloadsManager();
+    this.downloadIndicator = new DownloadProgressIndicator(this);
 
     // 4.6 Initialize Ocal Connect & Device Sync
     syncClient.init();
@@ -898,6 +901,8 @@ class OcalMobileApp {
 
   closeAllSheets() {
     document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('visible'));
+    document.getElementById('shield-popover')?.classList.remove('visible');
+    document.getElementById('dl-quick-popover')?.classList.remove('visible');
     const backdrop = document.getElementById('drawer-backdrop');
     backdrop?.classList.remove('visible');
     backdrop?.classList.remove('context-menu-active');
@@ -943,10 +948,16 @@ class OcalMobileApp {
         return;
       }
 
-      // Priority 5: Shield popover
+      // Priority 5: Shield & Download popovers
       const shieldPopover = document.getElementById('shield-popover');
       if (shieldPopover && shieldPopover.classList.contains('visible')) {
         shieldPopover.classList.remove('visible');
+        this.syncNativeNavigationState();
+        return;
+      }
+      const dlPopover = document.getElementById('dl-quick-popover');
+      if (dlPopover && dlPopover.classList.contains('visible')) {
+        dlPopover.classList.remove('visible');
         this.syncNativeNavigationState();
         return;
       }
@@ -1873,6 +1884,16 @@ class OcalMobileApp {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      DownloadsManager.addDownload({
+        filename,
+        url,
+        filePath: 'Download/' + filename,
+        totalBytes: 524288,
+        downloadedBytes: 524288,
+        progress: 100,
+        status: 'completed',
+        mimetype: 'image/*'
+      });
       this.showToast('Image saved', 'download');
     }
   }

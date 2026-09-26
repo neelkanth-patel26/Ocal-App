@@ -338,7 +338,8 @@ body.search-active .url-capsule-bar {
 body.search-active .url-capsule-bar .capsule-nav-btn,
 body.search-active .url-capsule-bar .capsule-shield-btn,
 body.search-active .url-capsule-bar .capsule-heart-btn,
-body.search-active .url-capsule-bar #capsule-mic-btn {
+body.search-active .url-capsule-bar #capsule-mic-btn,
+body.search-active .url-capsule-bar #capsule-download-btn {
   display: none !important;
 }
 
@@ -567,6 +568,91 @@ body.is-internal-page:not(.search-active) .capsule-url-input {
 
 .shield-badge-dot.active {
   background: #0a84ff;
+}
+
+/* ==========================================================================
+   Circular Download Progress Ball Indicator (Safari / Chrome style % ball)
+   ========================================================================== */
+.capsule-download-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--capsule-text);
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: transform 0.15s ease, opacity 0.2s ease;
+  padding: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.capsule-download-btn.is-active {
+  display: flex !important;
+  animation: dl-ball-pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.capsule-download-btn:active {
+  transform: scale(0.9);
+}
+
+.capsule-download-btn.is-completed {
+  animation: dl-ball-celebrate 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dl-ball-svg {
+  width: 28px;
+  height: 28px;
+  overflow: visible;
+  display: block;
+}
+
+.dl-ball-track {
+  stroke: rgba(120, 120, 128, 0.24);
+  fill: none;
+  transition: stroke 0.2s ease;
+}
+
+.dl-ball-fill {
+  stroke: var(--text-main);
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.25s ease-out;
+}
+
+.dl-ball-text {
+  fill: var(--text-main);
+  font-size: 7.2px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+  pointer-events: none;
+}
+
+.dl-ball-check {
+  stroke: var(--text-main);
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
+@keyframes dl-ball-pop-in {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes dl-ball-celebrate {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.24); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
 }
 
 /* Layer 2: Fixed Bottom Nav Bar (Matches Reference Icons: Clock, Pushpin, Plus, Tab Badge, Ellipsis) */
@@ -867,6 +953,187 @@ body.is-internal-page .bottom-nav-bar {
 
 .shield-advanced-btn i {
   font-size: 10px;
+}
+
+/* ==========================================================================
+   Downloads Quick Popover Card (Glassmorphic Tray above Dock)
+   ========================================================================== */
+.dl-quick-popover {
+  position: absolute;
+  bottom: calc(100% + 58px);
+  right: 14px;
+  width: 310px;
+  max-width: calc(100vw - 28px);
+  background-color: var(--popover-bg);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid var(--popover-border);
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  z-index: 85;
+  overflow: hidden;
+  transform: translateY(14px) scale(0.96);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+
+.dl-quick-popover.visible {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dl-quick-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 0.5px solid var(--sheet-card-border);
+}
+
+.dl-quick-popover-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.dl-quick-popover-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.15s;
+}
+
+.dl-quick-popover-close:active {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.dl-quick-popover-body {
+  padding: 10px 12px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.dl-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  background: var(--sheet-card-bg);
+  margin-bottom: 8px;
+  border: 1px solid var(--sheet-card-border);
+}
+
+.dl-popover-item:last-child {
+  margin-bottom: 0;
+}
+
+.dl-popover-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(120, 120, 128, 0.12);
+  color: var(--text-main);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.dl-popover-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dl-popover-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dl-popover-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(120, 120, 128, 0.16);
+  border-radius: 9999px;
+  margin: 5px 0 3px;
+  overflow: hidden;
+}
+
+.dl-popover-progress-fill {
+  height: 100%;
+  background: var(--text-main);
+  border-radius: 9999px;
+  transition: width 0.25s ease;
+}
+
+.dl-popover-stats {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+}
+
+.dl-popover-open-btn {
+  padding: 4px 10px;
+  background: var(--text-main);
+  color: var(--bg-main);
+  border: none;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s ease;
+}
+
+.dl-popover-open-btn:active {
+  opacity: 0.8;
+}
+
+.dl-quick-popover-footer {
+  padding: 8px 12px 10px;
+  border-top: 0.5px solid var(--sheet-card-border);
+  text-align: center;
+}
+
+.dl-quick-view-all-btn {
+  width: 100%;
+  padding: 7px 12px;
+  background: transparent;
+  border: 1px solid var(--sheet-card-border);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.dl-quick-view-all-btn:active {
+  background-color: var(--bg-hover);
 }
 
 /* ==========================================================================
@@ -3979,6 +4246,21 @@ input:checked + .toggle-slider:before {
     left: 50%;
     transform: translateX(-50%);
     width: 360px;
+    max-width: 90vw;
+    margin: 0;
+    border-radius: 20px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+    z-index: 88;
+  }
+
+  /* Downloads Popover Card on Tablet */
+  .dl-quick-popover {
+    position: absolute;
+    top: 52px;
+    bottom: auto;
+    right: 20px;
+    left: auto;
+    width: 320px;
     max-width: 90vw;
     margin: 0;
     border-radius: 20px;
