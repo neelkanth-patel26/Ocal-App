@@ -1265,6 +1265,41 @@ class OcalMobileApp {
     this.syncDockLayout();
     window.addEventListener('resize', () => this.syncDockLayout && this.syncDockLayout());
 
+    // Auto-hide bottom-dock when virtual keyboard opens or when input inside modals/internal pages is focused
+    window.addEventListener('focusin', (e) => {
+      const target = e.target;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        if (!target.closest('.bottom-dock') && target.id !== 'omnibox-input') {
+          document.body.classList.add('keyboard-open');
+        }
+      }
+    });
+
+    window.addEventListener('focusout', (e) => {
+      setTimeout(() => {
+        const active = document.activeElement;
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA' && !active.isContentEditable) || active.closest('.bottom-dock') || active.id === 'omnibox-input') {
+          document.body.classList.remove('keyboard-open');
+        }
+      }, 120);
+    });
+
+    if (window.visualViewport) {
+      const initialH = window.visualViewport.height;
+      window.visualViewport.addEventListener('resize', () => {
+        const isShrunk = window.visualViewport.height < initialH * 0.78;
+        const isInputActive = document.activeElement && 
+          (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable) &&
+          !document.activeElement.closest('.bottom-dock') &&
+          document.activeElement.id !== 'omnibox-input';
+        if (isShrunk && isInputActive) {
+          document.body.classList.add('keyboard-open');
+        } else if (!isInputActive) {
+          document.body.classList.remove('keyboard-open');
+        }
+      });
+    }
+
     // Global listener for native WebView lifecycle events
     window.onNativeWebEvent = (event) => {
       const activeTab = this.tabManager?.getActiveTab();

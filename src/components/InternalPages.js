@@ -868,6 +868,11 @@ export class InternalPages {
 
     // Navigation back
     container.querySelector('#pwd-back-btn')?.addEventListener('click', () => {
+      if (typeof closeModal === 'function') closeModal();
+      const openM = document.getElementById('add-pwd-modal');
+      if (openM) openM.remove();
+      document.body.classList.remove('modal-open');
+      document.body.classList.remove('keyboard-open');
       if (onNavigate) onNavigate('ocal://settings');
     });
 
@@ -1013,21 +1018,34 @@ export class InternalPages {
     const modal = container.querySelector('#add-pwd-modal');
     const openModal = () => {
       if (modal) {
+        if (modal.parentElement !== document.body) {
+          document.body.appendChild(modal);
+        }
         modal.style.display = 'flex';
-        container.querySelector('#modal-pwd-url')?.focus();
+        document.body.classList.add('modal-open');
+        setTimeout(() => {
+          modal.querySelector('#modal-pwd-url')?.focus();
+        }, 80);
       }
     };
     const closeModal = () => {
-      if (modal) modal.style.display = 'none';
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        document.body.classList.remove('keyboard-open');
+      }
     };
 
     container.querySelector('#add-pwd-modal-btn')?.addEventListener('click', openModal);
     container.querySelector('#empty-add-pwd-btn')?.addEventListener('click', openModal);
-    container.querySelector('#close-pwd-modal')?.addEventListener('click', closeModal);
-    container.querySelector('#cancel-pwd-modal')?.addEventListener('click', closeModal);
+    modal?.querySelector('#close-pwd-modal')?.addEventListener('click', closeModal);
+    modal?.querySelector('#cancel-pwd-modal')?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
 
-    const modalEye = container.querySelector('#modal-pwd-eye');
-    const modalPassInput = container.querySelector('#modal-pwd-pass');
+    const modalEye = modal?.querySelector('#modal-pwd-eye');
+    const modalPassInput = modal?.querySelector('#modal-pwd-pass');
     modalEye?.addEventListener('click', () => {
       if (!modalPassInput) return;
       if (modalPassInput.type === 'password') {
@@ -1039,11 +1057,11 @@ export class InternalPages {
       }
     });
 
-    container.querySelector('#save-pwd-modal')?.addEventListener('click', () => {
-      const url = container.querySelector('#modal-pwd-url')?.value.trim() || '';
-      const username = container.querySelector('#modal-pwd-user')?.value.trim() || '';
-      const password = container.querySelector('#modal-pwd-pass')?.value || '';
-      const notes = container.querySelector('#modal-pwd-notes')?.value.trim() || '';
+    modal?.querySelector('#save-pwd-modal')?.addEventListener('click', () => {
+      const url = modal.querySelector('#modal-pwd-url')?.value.trim() || '';
+      const username = modal.querySelector('#modal-pwd-user')?.value.trim() || '';
+      const password = modal.querySelector('#modal-pwd-pass')?.value || '';
+      const notes = modal.querySelector('#modal-pwd-notes')?.value.trim() || '';
 
       if (!password) {
         alert('Please enter a password.');
@@ -1058,6 +1076,9 @@ export class InternalPages {
       });
 
       closeModal();
+      if (modal.parentElement === document.body) {
+        modal.remove();
+      }
       window.ocalApp?.showToast?.('Login saved to vault!', 'check');
       if (onNavigate) onNavigate('ocal://passwords');
     });

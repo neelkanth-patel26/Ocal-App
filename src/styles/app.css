@@ -238,6 +238,20 @@ iframe.tab-web-frame {
   transition: none !important;
 }
 
+body.modal-open .bottom-dock,
+body.keyboard-open .bottom-dock,
+body:has(.modal-overlay[style*="display: flex"]) .bottom-dock,
+body:has(.modal-overlay[style*="display:flex"]) .bottom-dock,
+body:has(.modal-overlay:not([style*="display: none"]):not([style*="display:none"])) .bottom-dock {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.modal-open .viewport-container {
+  z-index: 100000 !important;
+}
+
 .bottom-dock > * {
   pointer-events: auto;
 }
@@ -670,25 +684,15 @@ body.is-internal-page:not(.search-active) .capsule-url-input {
   transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
-/* Translucent Footer & Seamless Web Page Snapshot */
+/* Translucent Footer with Live Native WebView (No static image switching) */
 .web-page-bg-snapshot {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 0;
-  background-size: cover;
-  background-position: top center;
-  background-repeat: no-repeat;
-  pointer-events: none;
-  display: none;
-  opacity: 0;
-  transition: opacity 0.2s ease;
+  display: none !important;
+  visibility: hidden !important;
 }
 
 body.is-web-page .web-page-bg-snapshot {
-  display: block;
-  opacity: 1;
+  display: none !important;
+  visibility: hidden !important;
 }
 
 body.is-web-page {
@@ -5278,27 +5282,46 @@ input:checked + .toggle-slider:before {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
-  padding: 20px;
+  z-index: 200000 !important;
+  padding: 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+@media (max-height: 720px) {
+  .modal-overlay {
+    align-items: flex-start !important;
+    padding-top: 14px !important;
+    padding-bottom: 30px !important;
+  }
 }
 
 .modal-dialog-card {
   width: 100%;
-  max-width: 380px;
+  max-width: 390px;
   background: var(--bg-main, #fff);
   border-radius: 20px;
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  max-height: 90vh;
+  max-height: 90dvh;
   animation: modalPop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  z-index: 200001;
+  margin: auto 0;
 }
 
 @keyframes modalPop {
@@ -5318,6 +5341,7 @@ input:checked + .toggle-slider:before {
   justify-content: space-between;
   padding: 16px 18px 12px;
   border-bottom: 0.5px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -5343,6 +5367,8 @@ input:checked + .toggle-slider:before {
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-label {

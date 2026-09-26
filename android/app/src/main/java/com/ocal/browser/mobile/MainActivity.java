@@ -679,6 +679,10 @@ public class MainActivity extends BridgeActivity {
                             pageCommittedDuringSlide = true;
                         }
                         notifyWebEvent("PAGE_FINISHED", url, view.getTitle());
+                        view.evaluateJavascript(
+                            "(function() { if (!document.getElementById('ocal-dock-padding')) { var s = document.createElement('style'); s.id = 'ocal-dock-padding'; s.innerHTML = 'html, body { min-height: 100%; } body { padding-bottom: 130px !important; }'; (document.head || document.documentElement).appendChild(s); } })()",
+                            null
+                        );
                         view.postDelayed(() -> {
                             captureLastRenderedPage();
                             captureActiveTabThumbnail("");
@@ -816,7 +820,7 @@ public class MainActivity extends BridgeActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT
                 );
                 containerLp.topMargin = 0;
-                containerLp.bottomMargin = dockHeightPx;
+                containerLp.bottomMargin = 0;
                 browserSlideContainer.setLayoutParams(containerLp);
                 browserSlideContainer.setPadding(0, 0, 0, 0);
 
@@ -843,7 +847,7 @@ public class MainActivity extends BridgeActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT
                 );
                 peekLp.topMargin = 0;
-                peekLp.bottomMargin = dockHeightPx;
+                peekLp.bottomMargin = 0;
                 backPeekContainer.setLayoutParams(peekLp);
                 backPeekContainer.setPadding(0, 0, 0, 0);
                 backPeekContainer.setVisibility(View.GONE);
@@ -863,10 +867,52 @@ public class MainActivity extends BridgeActivity {
                     (ViewGroup) capWebView.getParent() : root;
 
                 if (backPeekContainer.getParent() == null) {
-                    parent.addView(backPeekContainer);
+                    parent.addView(backPeekContainer, 0);
                 }
                 if (browserSlideContainer.getParent() == null) {
-                    parent.addView(browserSlideContainer);
+                    parent.addView(browserSlideContainer, 0);
+                }
+                if (capWebView != null) {
+                    capWebView.bringToFront();
+                    capWebView.setOnTouchListener(new View.OnTouchListener() {
+                        private boolean isForwardingToWeb = false;
+
+                        @Override
+                        public boolean onTouch(View v, MotionEvent event) {
+                            if (nativeWebBrowser == null || nativeWebBrowser.getVisibility() != View.VISIBLE || hasWebOverlayOpen) {
+                                isForwardingToWeb = false;
+                                return false;
+                            }
+
+                            int action = event.getActionMasked();
+                            if (action == MotionEvent.ACTION_DOWN) {
+                                float y = event.getY();
+                                int h = v.getHeight();
+                                boolean inDock = false;
+                                if (isDockTop) {
+                                    inDock = (y <= dockHeightPx);
+                                } else {
+                                    inDock = (y >= (h - dockHeightPx));
+                                }
+
+                                if (!inDock) {
+                                    isForwardingToWeb = true;
+                                    return nativeWebBrowser.dispatchTouchEvent(event);
+                                } else {
+                                    isForwardingToWeb = false;
+                                    return false;
+                                }
+                            } else if (isForwardingToWeb) {
+                                boolean handled = nativeWebBrowser.dispatchTouchEvent(event);
+                                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                                    isForwardingToWeb = false;
+                                }
+                                return handled;
+                            }
+
+                            return false;
+                        }
+                    });
                 }
             } catch (Throwable t) {
                 android.util.Log.e("OcalBrowser", "Error in setupNativeBrowser", t);
@@ -881,13 +927,8 @@ public class MainActivity extends BridgeActivity {
                     ViewGroup.LayoutParams rawLp = browserSlideContainer.getLayoutParams();
                     if (rawLp instanceof ViewGroup.MarginLayoutParams) {
                         ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) rawLp;
-                        if (isDockTop) {
-                            lp.topMargin = dockHeightPx;
-                            lp.bottomMargin = 0;
-                        } else {
-                            lp.topMargin = 0;
-                            lp.bottomMargin = dockHeightPx;
-                        }
+                        lp.topMargin = 0;
+                        lp.bottomMargin = 0;
                         browserSlideContainer.setLayoutParams(lp);
                     }
                 }
@@ -895,13 +936,8 @@ public class MainActivity extends BridgeActivity {
                     ViewGroup.LayoutParams rawLp = backPeekContainer.getLayoutParams();
                     if (rawLp instanceof ViewGroup.MarginLayoutParams) {
                         ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) rawLp;
-                        if (isDockTop) {
-                            lp.topMargin = dockHeightPx;
-                            lp.bottomMargin = 0;
-                        } else {
-                            lp.topMargin = 0;
-                            lp.bottomMargin = dockHeightPx;
-                        }
+                        lp.topMargin = 0;
+                        lp.bottomMargin = 0;
                         backPeekContainer.setLayoutParams(lp);
                     }
                 }
@@ -1195,9 +1231,12 @@ public class MainActivity extends BridgeActivity {
                         if (browserSlideContainer != null) {
                             browserSlideContainer.setTranslationX(0);
                             browserSlideContainer.setVisibility(View.VISIBLE);
-                            browserSlideContainer.bringToFront();
                         }
                         nativeWebBrowser.setVisibility(View.VISIBLE);
+                        final WebView capWebView = bridge != null ? bridge.getWebView() : null;
+                        if (capWebView != null) {
+                            capWebView.bringToFront();
+                        }
 
                         String current = nativeWebBrowser.getUrl();
                         if (current != null && current.equalsIgnoreCase(target)) {
@@ -1218,10 +1257,13 @@ public class MainActivity extends BridgeActivity {
                         updateBrowserMargins();
                         if (browserSlideContainer != null) {
                             browserSlideContainer.setVisibility(View.VISIBLE);
-                            browserSlideContainer.bringToFront();
                         }
                         if (nativeWebBrowser != null) {
                             nativeWebBrowser.setVisibility(View.VISIBLE);
+                        }
+                        final WebView capWebView = bridge != null ? bridge.getWebView() : null;
+                        if (capWebView != null) {
+                            capWebView.bringToFront();
                         }
                     } else {
                         if (browserSlideContainer != null) {
