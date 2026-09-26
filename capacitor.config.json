@@ -1,0 +1,12 @@
+{
+  "appId": "com.ocal.browser.mobile",
+  "appName": "Ocal Browser",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true,
+    "allowNavigation": [
+      "*"
+    ]
+  }
+}

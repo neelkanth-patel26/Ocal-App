@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ocal Browser</string>
+    <string name="title_activity_main">Ocal Browser</string>
+    <string name="package_name">com.ocal.browser.mobile</string>
+    <string name="custom_url_scheme">com.ocal.browser.mobile</string>
+    <string name="developer_name">Ocal Gaming Network</string>
+    <string name="publisher_name">Ocal Technologies</string>
+    <string name="company_name">Ocal Technologies</string>
+</resources>

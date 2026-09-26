@@ -1,0 +1,25 @@
+{
+  "name": "ocal-mobile",
+  "version": "1.0.0",
+  "description": "Ocal Browser Mobile Edition - Fast, Private, and Full-Featured",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "cap-sync": "cap sync",
+    "electron": "electron ./electron/main.cjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.1",
+    "@capacitor/cli": "^7.0.1",
+    "@capacitor/core": "^7.0.1",
+    "@gorhill/ubo-core": "^0.1.30",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsqr": "^1.4.0"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0"
+  }
+}

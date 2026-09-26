@@ -1,0 +1,156 @@
+/* Ocal Mobile Design Tokens - Reference Mockup Precision (Pure Solids, No Gradients) */
+:root {
+  /* Default to Light Mode (matching the reference mockups) */
+  --bg-main: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f4f5f8;
+  --bg-secondary: #e5e8ee;
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --bg-active: rgba(0, 0, 0, 0.08);
+  --bg-input: #f2f3f7;
+
+  /* Glass & Card Surfaces */
+  --glass-bg: rgba(255, 255, 255, 0.96);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-border-subtle: rgba(0, 0, 0, 0.05);
+  --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --glass-blur: blur(24px);
+
+  /* URL Capsule Bar (Frosted Glass) */
+  --capsule-bg: rgba(255, 255, 255, 0.82);
+  --capsule-border: rgba(255, 255, 255, 0.65);
+  --capsule-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --capsule-text: #000000;
+  --capsule-muted: #8e8e93;
+
+  /* Bottom Nav Bar (Frosted Glass Footer) */
+  --nav-bar-bg: rgba(255, 255, 255, 0.78);
+  --nav-bar-border: rgba(0, 0, 0, 0.07);
+  --nav-icon-color: #000000;
+  --nav-icon-muted: #666666;
+
+  /* Shield Popover Card (Frosted Glass) */
+  --popover-bg: rgba(255, 255, 255, 0.90);
+  --popover-border: rgba(255, 255, 255, 0.75);
+  --popover-shadow: 0 16px 44px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --popover-text: #000000;
+  --popover-muted: #8e8e93;
+  --popover-inset-bg: rgba(244, 245, 248, 0.85);
+  --popover-inset-border: rgba(0, 0, 0, 0.05);
+
+  /* Tabs Tray Drawer (Frosted Glass) */
+  --tabs-tray-bg: rgba(255, 255, 255, 0.82);
+  --tabs-card-bg: rgba(255, 255, 255, 0.92);
+  --tabs-card-border: rgba(0, 0, 0, 0.08);
+  --tabs-card-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  --tabs-search-bg: rgba(0, 0, 0, 0.05);
+
+  /* Sheet Modals (Frosted Glass) */
+  --sheet-bg: rgba(255, 255, 255, 0.90);
+  --sheet-border: rgba(0, 0, 0, 0.07);
+  --sheet-card-bg: rgba(246, 247, 249, 0.85);
+  --sheet-card-border: rgba(0, 0, 0, 0.05);
+  --sheet-card-hover: rgba(240, 242, 246, 0.95);
+  --handle-color: rgba(0, 0, 0, 0.20);
+
+  /* Subpages (Apple Settings Inset Grouped Theme) */
+  --subpage-bg: #f2f2f7;
+  --subpage-card-bg: #ffffff;
+  --subpage-card-border: rgba(0, 0, 0, 0.04);
+
+  /* Typography */
+  --text-main: #000000;
+  --text-muted: #555555;
+  --text-subtle: #8e8e93;
+  --wordmark-color: #000000;
+
+  /* Accents */
+  --accent-primary: #0a84ff;
+  --accent-primary-hover: #0071e3;
+  --accent-subtle: rgba(10, 132, 255, 0.10);
+  --accent-border: rgba(10, 132, 255, 0.30);
+
+  --apple-blue: #0a84ff;
+  --apple-green: #34c759;
+  --apple-orange: #ff9500;
+  --apple-red: #ff3b30;
+  --apple-purple: #af52de;
+
+  --danger: #ff3b30;
+  --danger-subtle: rgba(255, 59, 48, 0.12);
+  --warning: #ff9500;
+  --info: #0a84ff;
+
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: "Space Mono", monospace;
+
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 26px;
+  --radius-full: 9999px;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --transition-fast: 0.15s cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-normal: 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+[data-theme="dark"] {
+  --bg-main: #121214;
+  --bg-surface: #1a1a1e;
+  --bg-elevated: #26262b;
+  --bg-secondary: #2c2c32;
+  --bg-hover: rgba(255, 255, 255, 0.08);
+  --bg-active: rgba(255, 255, 255, 0.12);
+  --bg-input: #202024;
+
+  --glass-bg: rgba(24, 24, 28, 0.94);
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --glass-border-subtle: rgba(255, 255, 255, 0.06);
+  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+
+  --capsule-bg: rgba(30, 30, 34, 0.84);
+  --capsule-border: rgba(255, 255, 255, 0.14);
+  --capsule-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  --capsule-text: #ffffff;
+  --capsule-muted: #9e9ea7;
+
+  --nav-bar-bg: rgba(20, 20, 24, 0.86);
+  --nav-bar-border: rgba(255, 255, 255, 0.08);
+  --nav-icon-color: #ffffff;
+  --nav-icon-muted: #9e9ea7;
+
+  --popover-bg: rgba(28, 28, 32, 0.92);
+  --popover-border: rgba(255, 255, 255, 0.12);
+  --popover-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+  --popover-text: #ffffff;
+  --popover-muted: #9e9ea7;
+  --popover-inset-bg: rgba(18, 18, 22, 0.88);
+  --popover-inset-border: rgba(255, 255, 255, 0.06);
+
+  --tabs-tray-bg: rgba(20, 20, 24, 0.88);
+  --tabs-card-bg: rgba(30, 30, 34, 0.94);
+  --tabs-card-border: rgba(255, 255, 255, 0.12);
+  --tabs-card-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  --tabs-search-bg: rgba(255, 255, 255, 0.08);
+
+  --sheet-bg: rgba(24, 24, 28, 0.92);
+  --sheet-border: rgba(255, 255, 255, 0.10);
+  --sheet-card-bg: rgba(255, 255, 255, 0.06);
+  --sheet-card-border: rgba(255, 255, 255, 0.08);
+  --sheet-card-hover: rgba(255, 255, 255, 0.10);
+  --handle-color: rgba(255, 255, 255, 0.25);
+
+  /* Subpages (Apple Settings Dark Inset Grouped) */
+  --subpage-bg: #121214;
+  --subpage-card-bg: #1c1c1e;
+  --subpage-card-border: rgba(255, 255, 255, 0.08);
+
+  --text-main: #ffffff;
+  --text-muted: #a1a1aa;
+  --text-subtle: #71717a;
+  --wordmark-color: #ffffff;
+}
