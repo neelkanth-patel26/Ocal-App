@@ -93,7 +93,7 @@ button {
   z-index: 68;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: none !important;
 }
 
 [data-theme="dark"] .search-backdrop {
@@ -110,7 +110,7 @@ body.search-active .search-backdrop {
 body.search-active .viewport-container {
   filter: blur(14px);
   pointer-events: none;
-  transition: filter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: none !important;
 }
 
 body.search-active .internal-page-container {
@@ -292,7 +292,7 @@ iframe.tab-web-frame {
 /* Expanded Frosted Glass Bottom Dock while in Search Mode - Pops up directly without vertical sliding bug */
 body.search-active .bottom-dock {
   position: fixed !important;
-  bottom: var(--keyboard-offset, 0px) !important;
+  bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
   z-index: 90 !important;
@@ -2327,7 +2327,8 @@ body.tabs-tray-open .bottom-dock {
   box-shadow: none;
   z-index: 76;
   display: none;
-  transition: opacity 0.15s ease;
+  transition: none !important;
+  animation: none !important;
 }
 
 .suggestions-dropdown.visible {

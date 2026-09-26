@@ -136,28 +136,8 @@ class OcalMobileApp {
       if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
     };
 
-    let _kbRafId = null;
     const updateKeyboardLayout = () => {
-      if (window.innerWidth >= 768) {
-        document.documentElement.style.removeProperty('--keyboard-offset');
-        return;
-      }
-      if (_kbRafId) return; // already queued
-      _kbRafId = requestAnimationFrame(() => {
-        _kbRafId = null;
-        if (!document.body.classList.contains('search-active') || window.innerWidth >= 768) {
-          document.documentElement.style.removeProperty('--keyboard-offset');
-          return;
-        }
-        if (window.visualViewport) {
-          const vv = window.visualViewport;
-          const offset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
-          document.documentElement.style.setProperty(
-            '--keyboard-offset',
-            offset > 30 ? `${Math.round(offset)}px` : '0px'
-          );
-        }
-      });
+      document.documentElement.style.removeProperty('--keyboard-offset');
     };
 
     const enterSearchMode = () => {
@@ -186,23 +166,9 @@ class OcalMobileApp {
       window.visualViewport.addEventListener('resize', () => {
         if (document.body.classList.contains('search-active')) {
           resetScroll();
-          updateKeyboardLayout();
-        }
-      });
-      window.visualViewport.addEventListener('scroll', () => {
-        if (document.body.classList.contains('search-active')) {
-          resetScroll();
-          updateKeyboardLayout();
         }
       });
     }
-
-    window.addEventListener('scroll', () => {
-      if (document.body.classList.contains('search-active')) {
-        resetScroll();
-        updateKeyboardLayout();
-      }
-    }, { passive: true });
 
     let recognitionInstance = null;
     let isVoiceListening = false;
