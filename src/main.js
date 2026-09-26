@@ -903,6 +903,11 @@ class OcalMobileApp {
     document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('visible'));
     document.getElementById('shield-popover')?.classList.remove('visible');
     document.getElementById('dl-quick-popover')?.classList.remove('visible');
+    const bgPreview = document.getElementById('context-menu-bg-preview');
+    if (bgPreview) {
+      bgPreview.classList.remove('visible');
+      bgPreview.style.backgroundImage = '';
+    }
     const backdrop = document.getElementById('drawer-backdrop');
     backdrop?.classList.remove('visible');
     backdrop?.classList.remove('context-menu-active');
@@ -1418,6 +1423,23 @@ class OcalMobileApp {
         clearTimer();
         return;
       }
+
+      // Check if user is tapping/holding plain text or selecting text
+      const anchor = e.target.closest('a');
+      const img = e.target.closest('img');
+      if (!anchor && !img) {
+        // Plain text or background: do NOT start context menu timer!
+        // This allows browser and Android native text selection and drag selection handles!
+        clearTimer();
+        return;
+      }
+
+      const currentSel = window.getSelection() ? window.getSelection().toString().trim() : '';
+      if (currentSel.length > 0) {
+        clearTimer();
+        return;
+      }
+
       const touch = e.touches[0];
       startX = touch.clientX;
       startY = touch.clientY;
@@ -1442,10 +1464,20 @@ class OcalMobileApp {
 
     document.addEventListener('touchend', clearTimer, { passive: true });
     document.addEventListener('touchcancel', clearTimer, { passive: true });
+    document.addEventListener('selectionchange', clearTimer, { passive: true });
 
     document.addEventListener('contextmenu', (e) => {
       if (e.target.closest('.bottom-dock') || e.target.closest('.bottom-sheet') || e.target.closest('.tabs-tray-container')) {
         return;
+      }
+      const currentSel = window.getSelection() ? window.getSelection().toString().trim() : '';
+      if (currentSel.length > 0) {
+        return; // Allow native text selection / copy menu
+      }
+      const anchor = e.target.closest('a');
+      const img = e.target.closest('img');
+      if (!anchor && !img) {
+        return; // Don't intercept plain text selection
       }
       e.preventDefault();
       this.inspectAndShowContextMenu(e.target);
@@ -1454,8 +1486,13 @@ class OcalMobileApp {
 
   inspectAndShowContextMenu(target) {
     if (!target) return;
+    const currentSel = window.getSelection() ? window.getSelection().toString().trim() : '';
+    if (currentSel.length > 0) return;
+
     const anchor = target.closest('a');
     const img = target.closest('img');
+    if (!anchor && !img) return;
+
     const activeTab = this.tabManager?.getActiveTab();
     const pageUrl = activeTab?.url || window.location.href;
     const pageTitle = activeTab?.title || document.title || 'Page';
@@ -1479,8 +1516,7 @@ class OcalMobileApp {
       imageUrl = img.src || '';
       title = img.alt || '';
     } else {
-      hitType = 'page';
-      title = pageTitle;
+      return;
     }
 
     this.openContextMenu({
@@ -1823,6 +1859,17 @@ class OcalMobileApp {
     sheet.querySelector('#ctx-cancel-btn')?.addEventListener('click', () => {
       this.closeAllSheets();
     });
+
+    const bgPreview = document.getElementById('context-menu-bg-preview');
+    const snapshot = data?.snapshot || activeTab?.thumbnail || (window.OcalNative ? window.OcalNative.getLastTabThumbnail() : '') || '';
+    if (bgPreview) {
+      if (snapshot) {
+        bgPreview.style.backgroundImage = `url("${snapshot}")`;
+        bgPreview.classList.add('visible');
+      } else {
+        bgPreview.classList.remove('visible');
+      }
+    }
 
     if (window.OcalNative) window.OcalNative.setWebVisible(false);
     sheet.classList.add('visible');

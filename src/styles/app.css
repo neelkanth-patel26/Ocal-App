@@ -4962,41 +4962,67 @@ input:checked + .toggle-slider:before {
 }
 
 /* ==========================================================================
-   Context Menu (Press & Hold): Translucent Blue Glass Aesthetic
+   Context Menu (Press & Hold): Monochrome Frosted Glass Aesthetic
    ========================================================================== */
+.context-menu-bg-preview {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 145;
+  background-size: cover;
+  background-position: top center;
+  background-repeat: no-repeat;
+  filter: blur(28px) brightness(0.85);
+  -webkit-filter: blur(28px) brightness(0.85);
+  transform: scale(1.08);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+[data-theme="light"] .context-menu-bg-preview {
+  filter: blur(24px) brightness(0.92);
+  -webkit-filter: blur(24px) brightness(0.92);
+}
+
+.context-menu-bg-preview.visible {
+  opacity: 1;
+}
+
 .drawer-backdrop.context-menu-active {
-  background: radial-gradient(circle at center, rgba(37, 99, 235, 0.42) 0%, rgba(15, 23, 42, 0.72) 100%) !important;
-  backdrop-filter: blur(20px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(190%) !important;
+  background: rgba(0, 0, 0, 0.52) !important;
+  backdrop-filter: blur(24px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(130%) !important;
   opacity: 1 !important;
 }
 
 [data-theme="light"] .drawer-backdrop.context-menu-active {
-  background: radial-gradient(circle at center, rgba(59, 130, 246, 0.32) 0%, rgba(30, 58, 138, 0.48) 100%) !important;
-  backdrop-filter: blur(18px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(180%) !important;
+  background: rgba(0, 0, 0, 0.22) !important;
+  backdrop-filter: blur(20px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(120%) !important;
   opacity: 1 !important;
 }
 
 #context-menu-sheet {
-  background: rgba(15, 23, 42, 0.82) !important;
-  backdrop-filter: blur(30px) saturate(210%) !important;
-  -webkit-backdrop-filter: blur(30px) saturate(210%) !important;
-  border-top: 1.5px solid rgba(96, 165, 250, 0.35) !important;
-  box-shadow: 0 -16px 50px rgba(37, 99, 235, 0.28), 0 -4px 18px rgba(0, 0, 0, 0.4) !important;
+  background: rgba(18, 18, 22, 0.88) !important;
+  backdrop-filter: blur(35px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(35px) saturate(140%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 -16px 45px rgba(0, 0, 0, 0.65), 0 -4px 18px rgba(0, 0, 0, 0.4) !important;
 }
 
 [data-theme="light"] #context-menu-sheet {
-  background: rgba(238, 246, 255, 0.88) !important;
-  backdrop-filter: blur(30px) saturate(210%) !important;
-  -webkit-backdrop-filter: blur(30px) saturate(210%) !important;
-  border-top: 1.5px solid rgba(59, 130, 246, 0.38) !important;
-  box-shadow: 0 -16px 50px rgba(37, 99, 235, 0.2), 0 -4px 18px rgba(0, 0, 0, 0.12) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(35px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(35px) saturate(140%) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 -16px 45px rgba(0, 0, 0, 0.15), 0 -4px 18px rgba(0, 0, 0, 0.08) !important;
 }
 
 #context-menu-sheet .apple-grouped-table {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(96, 165, 250, 0.22) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
   border-radius: 18px;
   overflow: hidden;
   backdrop-filter: blur(14px);
@@ -5004,37 +5030,64 @@ input:checked + .toggle-slider:before {
 }
 
 [data-theme="light"] #context-menu-sheet .apple-grouped-table {
-  background: rgba(255, 255, 255, 0.78) !important;
-  border: 1px solid rgba(59, 130, 246, 0.22) !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
-#context-menu-sheet .apple-table-row:active {
-  background: rgba(59, 130, 246, 0.25) !important;
+#context-menu-sheet .apple-grouped-row:active {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="light"] #context-menu-sheet .apple-grouped-row:active {
+  background: rgba(0, 0, 0, 0.06) !important;
 }
 
 #context-menu-sheet .context-preview-card {
-  background: rgba(59, 130, 246, 0.14) !important;
-  border: 1px solid rgba(96, 165, 250, 0.28) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="light"] #context-menu-sheet .context-preview-card {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
 #context-menu-sheet .context-menu-cancel-btn {
-  background: rgba(59, 130, 246, 0.16) !important;
-  border: 1px solid rgba(96, 165, 250, 0.35) !important;
-  color: var(--accent-primary, #3b82f6) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: var(--text-main, #ffffff) !important;
+}
+
+[data-theme="light"] #context-menu-sheet .context-menu-cancel-btn {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: var(--text-main, #111827) !important;
 }
 
 #context-menu-sheet .context-menu-cancel-btn:active {
-  background: rgba(59, 130, 246, 0.32) !important;
+  background: rgba(255, 255, 255, 0.16) !important;
 }
 
-/* Press & Hold active feedback: translucent blue highlight */
+[data-theme="light"] #context-menu-sheet .context-menu-cancel-btn:active {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Press & Hold active feedback: Clean Monochrome Tactile Highlight */
 .is-holding-press,
 .top-site-tile:active,
 .recent-history-row:active,
 .bm-item-row:active {
-  background-color: rgba(59, 130, 246, 0.18) !important;
-  border-color: rgba(96, 165, 250, 0.35) !important;
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
   transition: background-color 0.1s ease;
+}
+
+[data-theme="light"] .is-holding-press,
+[data-theme="light"] .top-site-tile:active,
+[data-theme="light"] .recent-history-row:active,
+[data-theme="light"] .bm-item-row:active {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(0, 0, 0, 0.18) !important;
 }
 
 /* ==========================================================================

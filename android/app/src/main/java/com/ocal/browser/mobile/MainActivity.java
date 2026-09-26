@@ -716,8 +716,7 @@ public class MainActivity extends BridgeActivity {
                 nativeWebBrowser.setOnLongClickListener(new View.OnLongClickListener() {
                     @Override
                     public boolean onLongClick(View v) {
-                        handleNativeLongClick();
-                        return true;
+                        return handleNativeLongClick();
                     }
                 });
 
@@ -1057,16 +1056,28 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
-    private void handleNativeLongClick() {
-        if (nativeWebBrowser == null) return;
+    private boolean handleNativeLongClick() {
+        if (nativeWebBrowser == null) return false;
         try {
             WebView.HitTestResult result = nativeWebBrowser.getHitTestResult();
-            if (result == null) return;
+            if (result == null) return false;
 
             int type = result.getType();
             String extra = result.getExtra();
             String currentUrl = nativeWebBrowser.getUrl();
             String currentTitle = nativeWebBrowser.getTitle();
+
+            // Only intercept for links and media.
+            // For plain text, text boxes, and unknown types, return false so the Android WebView
+            // can show native text selection handles and allow the user to drag to select more text!
+            if (type != WebView.HitTestResult.SRC_ANCHOR_TYPE &&
+                type != WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE &&
+                type != WebView.HitTestResult.IMAGE_TYPE &&
+                type != WebView.HitTestResult.PHONE_TYPE &&
+                type != WebView.HitTestResult.EMAIL_TYPE &&
+                type != WebView.HitTestResult.GEO_TYPE) {
+                return false;
+            }
 
             try {
                 nativeWebBrowser.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
@@ -1092,24 +1103,42 @@ public class MainActivity extends BridgeActivity {
                     }
                 });
                 nativeWebBrowser.requestFocusNodeHref(msg);
+                return true;
             } else if (type == WebView.HitTestResult.IMAGE_TYPE) {
                 notifyContextMenu("image", null, extra, null, currentUrl, currentTitle);
+                return true;
             } else if (type == WebView.HitTestResult.PHONE_TYPE) {
                 notifyContextMenu("phone", extra, null, null, currentUrl, currentTitle);
+                return true;
             } else if (type == WebView.HitTestResult.EMAIL_TYPE) {
                 notifyContextMenu("email", extra, null, null, currentUrl, currentTitle);
+                return true;
             } else if (type == WebView.HitTestResult.GEO_TYPE) {
                 notifyContextMenu("geo", extra, null, null, currentUrl, currentTitle);
-            } else {
-                notifyContextMenu("page", null, null, null, currentUrl, currentTitle);
+                return true;
             }
+            return false;
         } catch (Throwable t) {
             android.util.Log.e("OcalBrowser", "Error in handleNativeLongClick", t);
+            return false;
         }
     }
 
     private void notifyContextMenu(String hitType, String linkUrl, String imageUrl, String title, String pageUrl, String pageTitle) {
         if (bridge == null || bridge.getWebView() == null) return;
+
+        // Synchronously capture a snapshot of the actual web page before opening context menu
+        String snapshot = "";
+        try {
+            if (nativeWebBrowser != null && nativeWebBrowser.getVisibility() == View.VISIBLE && nativeWebBrowser.getWidth() > 0) {
+                snapshot = captureActiveTabThumbnailNow("");
+            }
+        } catch (Throwable ignored) {}
+        if ((snapshot == null || snapshot.isEmpty()) && lastActiveTabThumbnail != null) {
+            snapshot = lastActiveTabThumbnail;
+        }
+        final String finalSnapshot = snapshot != null ? snapshot : "";
+
         bridge.getWebView().post(() -> {
             try {
                 JSONObject obj = new JSONObject();
@@ -1120,6 +1149,7 @@ public class MainActivity extends BridgeActivity {
                 obj.put("title", title != null ? title : "");
                 obj.put("pageUrl", pageUrl != null ? pageUrl : "");
                 obj.put("pageTitle", pageTitle != null ? pageTitle : "");
+                obj.put("snapshot", finalSnapshot);
                 String js = "window.onNativeWebEvent && window.onNativeWebEvent(" + obj.toString() + ");";
                 bridge.getWebView().evaluateJavascript(js, null);
             } catch (Exception ignored) {}
