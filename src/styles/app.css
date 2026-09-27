@@ -695,15 +695,30 @@ body.is-web-page .web-page-bg-snapshot {
   visibility: hidden !important;
 }
 
+html.is-web-page,
 body.is-web-page {
+  background: transparent !important;
   background-color: transparent !important;
 }
 
 body.is-web-page #app-root,
-body.is-web-page .viewport-container {
+body.is-web-page .viewport-container,
+body.is-web-page .tab-frame-wrapper {
+  background: transparent !important;
   background-color: transparent !important;
+  pointer-events: none !important;
 }
 
+body.is-web-page .viewport-container > * {
+  display: none !important;
+}
+
+body.is-web-page .tab-frame-wrapper {
+  display: none !important;
+}
+
+body.is-web-page .startpage-container,
+body.is-web-page .subpage-container,
 body.is-web-page .internal-page-container {
   display: none !important;
 }

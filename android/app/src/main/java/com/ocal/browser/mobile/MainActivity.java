@@ -1235,11 +1235,13 @@ public class MainActivity extends BridgeActivity {
                         nativeWebBrowser.setVisibility(View.VISIBLE);
                         final WebView capWebView = bridge != null ? bridge.getWebView() : null;
                         if (capWebView != null) {
+                            capWebView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                             capWebView.bringToFront();
                         }
 
                         String current = nativeWebBrowser.getUrl();
                         if (current != null && current.equalsIgnoreCase(target)) {
+                            nativeWebBrowser.reload();
                             return;
                         }
                         clearSnapshotStack();
@@ -1263,6 +1265,7 @@ public class MainActivity extends BridgeActivity {
                         }
                         final WebView capWebView = bridge != null ? bridge.getWebView() : null;
                         if (capWebView != null) {
+                            capWebView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                             capWebView.bringToFront();
                         }
                     } else {
@@ -1274,6 +1277,30 @@ public class MainActivity extends BridgeActivity {
                         }
                         if (backPeekContainer != null) {
                             backPeekContainer.setVisibility(View.GONE);
+                        }
+                    }
+                } catch (Throwable ignored) {}
+            });
+        }
+
+        @JavascriptInterface
+        public void hideKeyboard() {
+            runOnUiThread(() -> {
+                try {
+                    android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                    if (imm != null) {
+                        View currentFocus = getCurrentFocus();
+                        if (currentFocus != null) {
+                            imm.hideSoftInputFromWindow(currentFocus.getWindowToken(), 0);
+                            currentFocus.clearFocus();
+                        }
+                        if (bridge != null && bridge.getWebView() != null) {
+                            imm.hideSoftInputFromWindow(bridge.getWebView().getWindowToken(), 0);
+                            bridge.getWebView().clearFocus();
+                        }
+                        if (nativeWebBrowser != null) {
+                            imm.hideSoftInputFromWindow(nativeWebBrowser.getWindowToken(), 0);
+                            nativeWebBrowser.clearFocus();
                         }
                     }
                 } catch (Throwable ignored) {}

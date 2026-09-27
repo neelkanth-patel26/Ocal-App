@@ -1029,10 +1029,16 @@ export class InternalPages {
       }
     };
     const closeModal = () => {
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
       if (modal) {
         modal.style.display = 'none';
         document.body.classList.remove('modal-open');
         document.body.classList.remove('keyboard-open');
+      }
+      if (window.OcalNative && typeof window.OcalNative.hideKeyboard === 'function') {
+        window.OcalNative.hideKeyboard();
       }
     };
 

@@ -54,6 +54,7 @@ class OcalMobileApp {
         if (!activeTab) return;
         const isWeb = activeTab.url && !activeTab.url.startsWith('ocal://');
         if (isWeb) {
+          document.documentElement.classList.add('is-web-page');
           document.body.classList.add('is-web-page');
           document.body.classList.remove('is-internal-page');
           if (activeTab.thumbnail) {
@@ -63,6 +64,7 @@ class OcalMobileApp {
             if (lastThumb) this.updateWebBgSnapshot(lastThumb);
           }
         } else {
+          document.documentElement.classList.remove('is-web-page');
           document.body.classList.remove('is-web-page');
           document.body.classList.add('is-internal-page');
         }
@@ -292,10 +294,17 @@ class OcalMobileApp {
     const exitSearchMode = (revert = true) => {
       stopVoiceRecognition();
       document.body.classList.remove('search-active');
+      document.body.classList.remove('keyboard-open');
       document.documentElement.style.removeProperty('--keyboard-offset');
       suggestionsDropdown.classList.remove('visible');
       clearBtn?.classList.remove('visible');
       resetScroll();
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
+      if (window.OcalNative && typeof window.OcalNative.hideKeyboard === 'function') {
+        window.OcalNative.hideKeyboard();
+      }
       if (revert) {
         const activeTab = this.tabManager.getActiveTab();
         if (activeTab) {
@@ -322,6 +331,9 @@ class OcalMobileApp {
       this.animateProgressBar();
       exitSearchMode(false);
       omniboxInput.blur();
+      if (window.OcalNative && typeof window.OcalNative.hideKeyboard === 'function') {
+        window.OcalNative.hideKeyboard();
+      }
       this.tabManager.navigateTab(this.tabManager.activeTabId, q);
     };
 
@@ -1322,9 +1334,11 @@ class OcalMobileApp {
           activeTab.url = event.url;
           const isWeb = !event.url.startsWith('ocal://');
           if (isWeb) {
+            document.documentElement.classList.add('is-web-page');
             document.body.classList.add('is-web-page');
             document.body.classList.remove('is-internal-page');
           } else {
+            document.documentElement.classList.remove('is-web-page');
             document.body.classList.remove('is-web-page');
             document.body.classList.add('is-internal-page');
             this.tabManager.navigateTab(activeTab.id, event.url, false);
@@ -1347,9 +1361,11 @@ class OcalMobileApp {
           activeTab.url = event.url;
           const isWeb = !event.url.startsWith('ocal://');
           if (isWeb) {
+            document.documentElement.classList.add('is-web-page');
             document.body.classList.add('is-web-page');
             document.body.classList.remove('is-internal-page');
           } else {
+            document.documentElement.classList.remove('is-web-page');
             document.body.classList.remove('is-web-page');
             document.body.classList.add('is-internal-page');
             if (!activeTab.frameWrapperEl?.hasChildNodes()) {

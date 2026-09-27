@@ -189,6 +189,9 @@ export class TabManager {
 
     if (targetUrl.startsWith('ocal://')) {
       // Internal page
+      document.documentElement.classList.remove('is-web-page');
+      document.body.classList.remove('is-web-page');
+      document.body.classList.add('is-internal-page');
       tab.frameWrapperEl.innerHTML = '';
       tab.frameEl = null;
       if (window.OcalNative && tab.id === this.activeTabId) {
@@ -218,18 +221,11 @@ export class TabManager {
       if (window.OcalNative) {
         tab.frameEl = null;
         tab.title = host;
-        // Keep the underlying start page or internal page rendered so back swipe peek has the exact home page visible!
-        if (!tab.frameWrapperEl.hasChildNodes() || tab.frameWrapperEl.innerHTML.trim() === '') {
-          const homeView = InternalPages.render('ocal://home', (dest) => {
-            this.navigateTab(tabId, dest, true);
-          });
-          if (typeof homeView === 'string') {
-            tab.frameWrapperEl.innerHTML = homeView;
-          } else {
-            tab.frameWrapperEl.appendChild(homeView);
-          }
-        }
+        tab.frameWrapperEl.innerHTML = '';
         if (tab.id === this.activeTabId) {
+          document.documentElement.classList.add('is-web-page');
+          document.body.classList.add('is-web-page');
+          document.body.classList.remove('is-internal-page');
           window.OcalNative.setWebVisible(true);
           window.OcalNative.openUrl(targetUrl);
         }
