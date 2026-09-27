@@ -72,7 +72,8 @@ export class InternalPages {
         <!-- Minimal Brand Logo & Wordmark -->
         <div class="opera-hero-container">
           <div class="opera-logo-badge">
-            <img src="/assets/ocal_logo.png" alt="Ocal Logo" class="opera-brand-logo-img" />
+            <img src="/assets/Light.png" alt="Ocal Logo" class="opera-brand-logo-img light-logo" />
+            <img src="/assets/Dark.png" alt="Ocal Logo" class="opera-brand-logo-img dark-logo" />
           </div>
           <h1 class="opera-wordmark">Ocal</h1>
         </div>

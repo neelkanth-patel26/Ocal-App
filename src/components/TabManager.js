@@ -57,7 +57,7 @@ export class TabManager {
       frameEl: null,
       history: [initialUrl],
       historyIdx: 0,
-      isDesktop: false
+      isDesktop: localStorage.getItem('ocal-desktop-default') === 'true'
     };
 
     this.tabs.push(tab);
@@ -123,6 +123,9 @@ export class TabManager {
       if (tab.url.startsWith('ocal://')) {
         window.OcalNative.setWebVisible(false);
       } else {
+        if (typeof window.OcalNative.setDesktopMode === 'function') {
+          window.OcalNative.setDesktopMode(!!tab.isDesktop, false);
+        }
         window.OcalNative.setWebVisible(true);
         window.OcalNative.openUrl(tab.url);
       }
@@ -226,6 +229,9 @@ export class TabManager {
           document.documentElement.classList.add('is-web-page');
           document.body.classList.add('is-web-page');
           document.body.classList.remove('is-internal-page');
+          if (typeof window.OcalNative.setDesktopMode === 'function') {
+            window.OcalNative.setDesktopMode(!!tab.isDesktop, false);
+          }
           window.OcalNative.setWebVisible(true);
           window.OcalNative.openUrl(targetUrl);
         }
@@ -418,7 +424,15 @@ export class TabManager {
     const tab = this.tabs.find(t => t.id === tabId);
     if (!tab) return false;
     tab.isDesktop = !tab.isDesktop;
-    this.navigateTab(tabId, tab.url, false);
+    if (window.OcalNative && tab.id === this.activeTabId && !tab.url.startsWith('ocal://')) {
+      if (typeof window.OcalNative.setDesktopMode === 'function') {
+        window.OcalNative.setDesktopMode(tab.isDesktop, true);
+      } else {
+        this.navigateTab(tabId, tab.url, false);
+      }
+    } else {
+      this.navigateTab(tabId, tab.url, false);
+    }
     return tab.isDesktop;
   }
 

@@ -108,6 +108,9 @@ public class MainActivity extends BridgeActivity {
     private int dockHeightPx = 0;
     private boolean isDockTop = false;
     private String lastActiveTabThumbnail = null;
+    private String mobileUserAgent = "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36";
+    private static final String DESKTOP_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
+    private boolean isDesktopModeEnabled = false;
 
     public void captureLastRenderedPage() {
         try {
@@ -613,7 +616,8 @@ public class MainActivity extends BridgeActivity {
                 String defaultUa = s.getUserAgentString();
                 if (defaultUa != null) {
                     String cleanUa = defaultUa.replace("; wv", "").replaceAll("Version/\\d+\\.\\d+\\s*", "");
-                    s.setUserAgentString(cleanUa);
+                    mobileUserAgent = cleanUa;
+                    s.setUserAgentString(isDesktopModeEnabled ? DESKTOP_USER_AGENT : cleanUa);
                 }
 
                 CookieManager cookieManager = CookieManager.getInstance();
@@ -1401,6 +1405,42 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public boolean canGoForward() {
             return cachedCanGoForward || (nativeWebBrowser != null && nativeWebBrowser.canGoForward());
+        }
+
+        @JavascriptInterface
+        public void setDesktopMode(boolean enable) {
+            setDesktopMode(enable, true);
+        }
+
+        @JavascriptInterface
+        public void setDesktopMode(boolean enable, boolean reload) {
+            runOnUiThread(() -> {
+                try {
+                    isDesktopModeEnabled = enable;
+                    if (nativeWebBrowser != null) {
+                        WebSettings settings = nativeWebBrowser.getSettings();
+                        if (enable) {
+                            settings.setUserAgentString(DESKTOP_USER_AGENT);
+                        } else {
+                            settings.setUserAgentString(mobileUserAgent != null ? mobileUserAgent : WebSettings.getDefaultUserAgent(MainActivity.this));
+                        }
+                        settings.setUseWideViewPort(true);
+                        settings.setLoadWithOverviewMode(true);
+                        settings.setSupportZoom(true);
+                        settings.setBuiltInZoomControls(true);
+                        settings.setDisplayZoomControls(false);
+
+                        if (reload && nativeWebBrowser.getUrl() != null && !nativeWebBrowser.getUrl().isEmpty()) {
+                            nativeWebBrowser.reload();
+                        }
+                    }
+                } catch (Throwable ignored) {}
+            });
+        }
+
+        @JavascriptInterface
+        public boolean isDesktopMode() {
+            return isDesktopModeEnabled;
         }
 
         @JavascriptInterface

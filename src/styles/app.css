@@ -2748,11 +2748,22 @@ body.search-active .suggestions-dropdown {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.opera-brand-logo-img.dark-logo {
+  display: none;
+}
+
+.opera-brand-logo-img.light-logo {
   display: block;
 }
 
-[data-theme="dark"] .opera-brand-logo-img {
-  filter: invert(1);
+[data-theme="dark"] .opera-brand-logo-img.dark-logo {
+  display: block;
+}
+
+[data-theme="dark"] .opera-brand-logo-img.light-logo {
+  display: none;
 }
 
 .opera-wordmark {
