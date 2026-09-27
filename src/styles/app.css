@@ -759,12 +759,33 @@ body.is-web-page .url-capsule-bar {
   box-shadow: 0 4px 22px rgba(0, 0, 0, 0.45) !important;
 }
 
-/* Crisp & Solid Footer for Built-in Pages (Home, Bookmarks, History, Settings) */
+/* Frosted Glass Blurred Footer for Internal Pages (Home, Bookmarks, History, Settings) */
 body.is-internal-page .bottom-nav-bar {
-  background-color: var(--nav-bar-bg) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  background-color: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
   border-top: 1px solid var(--nav-bar-border) !important;
+}
+
+[data-theme="dark"] body.is-internal-page .bottom-nav-bar {
+  background-color: rgba(18, 18, 22, 0.75) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.is-internal-page .url-capsule-bar {
+  background-color: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="dark"] body.is-internal-page .url-capsule-bar {
+  background-color: rgba(28, 28, 34, 0.75) !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
 .nav-icon-btn {
@@ -3104,17 +3125,18 @@ body.search-active .suggestions-dropdown {
    Apple iOS Sheets & Modals
    ========================================================================== */
 .drawer-backdrop {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   background-color: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 150;
   opacity: 0;
   pointer-events: none;
+  cursor: pointer;
+  touch-action: manipulation;
   transition: opacity var(--transition-normal);
 }
 

@@ -1321,6 +1321,13 @@ public class MainActivity extends BridgeActivity {
         }
 
         @JavascriptInterface
+        public void setOverlayOpen(boolean open) {
+            runOnUiThread(() -> {
+                MainActivity.this.hasWebOverlayOpen = open;
+            });
+        }
+
+        @JavascriptInterface
         public void exitApp() {
             runOnUiThread(() -> {
                 moveTaskToBack(true);

@@ -513,7 +513,12 @@ class OcalMobileApp {
     });
 
     document.getElementById('nav-menu')?.addEventListener('click', () => {
-      this.openMoreMenuSheet();
+      const menuSheet = document.getElementById('menu-sheet');
+      if (menuSheet && menuSheet.classList.contains('visible')) {
+        this.closeAllSheets();
+      } else {
+        this.openMoreMenuSheet();
+      }
     });
 
     document.getElementById('dock-left-brand')?.addEventListener('click', () => {
@@ -659,11 +664,17 @@ class OcalMobileApp {
 
   bindDrawers() {
     const backdrop = document.getElementById('drawer-backdrop');
-    backdrop?.addEventListener('click', () => {
+    const dismissSheets = (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
       this.closeAllSheets();
-    });
+    };
+    backdrop?.addEventListener('click', dismissSheets);
+    backdrop?.addEventListener('touchstart', dismissSheets, { passive: false });
+    backdrop?.addEventListener('pointerdown', dismissSheets);
 
-    document.getElementById('shield-sheet-close')?.addEventListener('click', () => {
+    document.getElementById('shield-sheet-close')?.addEventListener('click', (e) => {
+      e.stopPropagation();
       this.closeAllSheets();
     });
 
@@ -689,15 +700,67 @@ class OcalMobileApp {
     });
   }
 
+  setupSheetDragDismiss(sheet) {
+    if (!sheet || sheet._dragDismissAttached) return;
+    sheet._dragDismissAttached = true;
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+
+    sheet.addEventListener('touchstart', (e) => {
+      if (!sheet.classList.contains('visible')) return;
+      const touch = e.touches[0];
+      const target = e.target;
+      if (target.closest('.sheet-handle-bar') || target.closest('.sheet-header') || (touch.clientY - sheet.getBoundingClientRect().top < 64)) {
+        startY = touch.clientY;
+        currentY = startY;
+        isDragging = true;
+        sheet.style.transition = 'none';
+      }
+    }, { passive: true });
+
+    sheet.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      const touch = e.touches[0];
+      const deltaY = touch.clientY - startY;
+      if (deltaY > 0) {
+        currentY = touch.clientY;
+        sheet.style.transform = `translateY(${deltaY}px)`;
+        if (e.cancelable) e.preventDefault();
+      }
+    }, { passive: false });
+
+    const handleEnd = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      const deltaY = currentY - startY;
+      sheet.style.transition = '';
+      if (deltaY > 60) {
+        sheet.style.transform = '';
+        this.closeAllSheets();
+      } else {
+        sheet.style.transform = '';
+      }
+    };
+
+    sheet.addEventListener('touchend', handleEnd);
+    sheet.addEventListener('touchcancel', handleEnd);
+  }
+
   openCyberShieldSheet() {
     this.closeAllSheets();
     const sheet = document.getElementById('shield-sheet');
     const content = document.getElementById('shield-sheet-content');
     if (sheet && content) {
-      if (window.OcalNative) window.OcalNative.setWebVisible(false);
       this.cyberShield.renderControlSheet(content);
       sheet.classList.add('visible');
       document.getElementById('drawer-backdrop')?.classList.add('visible');
+      this.setupSheetDragDismiss(sheet);
+      if (window.OcalNative) {
+        window.OcalNative.setOverlayOpen?.(true);
+        window.OcalNative.setWebVisible(false);
+      }
+      this.syncNativeNavigationState();
     }
   }
 
@@ -853,7 +916,16 @@ class OcalMobileApp {
         </div>
       `;
 
-      sheet.querySelector('#menu-close-btn')?.addEventListener('click', () => this.closeAllSheets());
+      const menuCloseBtn = sheet.querySelector('#menu-close-btn');
+      menuCloseBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeAllSheets();
+      });
+      menuCloseBtn?.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeAllSheets();
+      }, { passive: false });
       sheet.querySelector('#menu-bookmarks')?.addEventListener('click', () => {
         this.closeAllSheets();
         this.tabManager.navigateTab(this.tabManager.activeTabId, 'ocal://bookmarks');
@@ -915,14 +987,22 @@ class OcalMobileApp {
         }
       });
 
-      if (window.OcalNative) window.OcalNative.setWebVisible(false);
       sheet.classList.add('visible');
       document.getElementById('drawer-backdrop')?.classList.add('visible');
+      this.setupSheetDragDismiss(sheet);
+      if (window.OcalNative) {
+        window.OcalNative.setOverlayOpen?.(true);
+        window.OcalNative.setWebVisible(false);
+      }
+      this.syncNativeNavigationState();
     }
   }
 
   closeAllSheets() {
-    document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('visible'));
+    document.querySelectorAll('.bottom-sheet').forEach(s => {
+      s.classList.remove('visible');
+      s.style.transform = '';
+    });
     document.getElementById('shield-popover')?.classList.remove('visible');
     document.getElementById('dl-quick-popover')?.classList.remove('visible');
     const bgPreview = document.getElementById('context-menu-bg-preview');
@@ -934,6 +1014,9 @@ class OcalMobileApp {
     backdrop?.classList.remove('visible');
     backdrop?.classList.remove('context-menu-active');
     document.body.classList.remove('context-menu-open');
+    if (window.OcalNative) {
+      window.OcalNative.setOverlayOpen?.(false);
+    }
     this.syncNativeWebVisibility();
     this.syncNativeNavigationState();
   }
