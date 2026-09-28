@@ -57,7 +57,8 @@ export class TabManager {
       frameEl: null,
       history: [initialUrl],
       historyIdx: 0,
-      isDesktop: localStorage.getItem('ocal-desktop-default') === 'true'
+      isDesktop: localStorage.getItem('ocal-desktop-default') === 'true',
+      blockedAdsCount: 0
     };
 
     this.tabs.push(tab);
@@ -179,6 +180,7 @@ export class TabManager {
     }
 
     tab.url = targetUrl;
+    tab.blockedAdsCount = 0;
     if (pushHistory) {
       tab.history = tab.history.slice(0, tab.historyIdx + 1);
       tab.history.push(targetUrl);

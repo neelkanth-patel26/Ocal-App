@@ -3,9 +3,9 @@ export class CyberShield {
   constructor({ onStatsChange }) {
     this.onStatsChange = onStatsChange;
     this.stats = {
-      trackersBlocked: parseInt(localStorage.getItem('ocal-trackers-blocked') || '42', 10),
-      adsBlocked: parseInt(localStorage.getItem('ocal-ads-blocked') || '118', 10),
-      httpsUpgraded: parseInt(localStorage.getItem('ocal-https-upgrades') || '27', 10)
+      trackersBlocked: parseInt(localStorage.getItem('ocal-trackers-blocked') || '0', 10),
+      adsBlocked: parseInt(localStorage.getItem('ocal-ads-blocked') || '0', 10),
+      httpsUpgraded: parseInt(localStorage.getItem('ocal-https-upgrades') || '0', 10)
     };
 
     this.settings = {

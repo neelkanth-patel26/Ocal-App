@@ -32,11 +32,9 @@ class OcalMobileApp {
 
     // 2. Initialize CyberShield
     this.cyberShield = new CyberShield({
-      onStatsChange: (stats) => {
-        const popoverCount = document.getElementById('shield-popover-count');
-        if (popoverCount && this.adFilterEnabled) {
-          popoverCount.innerText = stats.adsBlocked || '27';
-        }
+      onStatsChange: () => {
+        const activeTab = this.tabManager?.getActiveTab();
+        this.updateShieldStats(activeTab?.blockedAdsCount || 0);
       }
     });
 
@@ -84,16 +82,22 @@ class OcalMobileApp {
         if (navBackBtn) navBackBtn.disabled = activeTab.historyIdx <= 0;
         if (navFwdBtn) navFwdBtn.disabled = activeTab.historyIdx >= activeTab.history.length - 1;
 
-        // Update shield popover domain
+        // Update shield popover domain and real blocked count
+        const isInternalTab = !activeTab.url || activeTab.url.startsWith('ocal://');
         const popoverDomain = document.getElementById('shield-popover-domain');
         if (popoverDomain) {
-          try {
-            const u = new URL(activeTab.url);
-            popoverDomain.innerText = u.hostname;
-          } catch {
-            popoverDomain.innerText = activeTab.url.replace('ocal://', '') || 'dineinstyle.com';
+          if (isInternalTab) {
+            popoverDomain.innerText = 'Internal Page';
+          } else {
+            try {
+              const u = new URL(activeTab.url);
+              popoverDomain.innerText = u.hostname;
+            } catch {
+              popoverDomain.innerText = activeTab.url.replace('ocal://', '') || 'Internal Page';
+            }
           }
         }
+        this.updateShieldStats(activeTab.blockedAdsCount || 0);
       },
       onTabsCountChanged: (count) => {
         if (tabCounterBadge) tabCounterBadge.innerText = count;
@@ -355,6 +359,7 @@ class OcalMobileApp {
 
     omniboxInput.addEventListener('focus', () => {
       enterSearchMode();
+      this.positionSuggestionsDropdown();
       requestAnimationFrame(resetScroll);
       setTimeout(resetScroll, 50);
       setTimeout(resetScroll, 200);
@@ -464,6 +469,7 @@ class OcalMobileApp {
           suggestionsDropdown.classList.remove('visible');
         }
       }, 180);
+      this.positionSuggestionsDropdown();
     });
 
     document.addEventListener('click', (e) => {
@@ -492,7 +498,81 @@ class OcalMobileApp {
       });
       dropdown.appendChild(div);
     });
+    this.positionSuggestionsDropdown();
     dropdown.classList.add('visible');
+  }
+
+  positionSuggestionsDropdown() {
+    const dropdown = document.getElementById('suggestions-dropdown');
+    const capsule = document.getElementById('url-capsule-bar');
+    if (!dropdown || !capsule) return;
+
+    if (window.innerWidth >= 768) {
+      const capsuleRect = capsule.getBoundingClientRect();
+      const dock = document.getElementById('bottom-dock');
+      const dockRect = dock ? dock.getBoundingClientRect() : { left: 0, top: 0 };
+
+      dropdown.style.position = 'absolute';
+      dropdown.style.left = `${capsuleRect.left - dockRect.left}px`;
+      dropdown.style.width = `${capsuleRect.width}px`;
+      dropdown.style.maxWidth = `${capsuleRect.width}px`;
+      dropdown.style.top = `${capsuleRect.bottom - dockRect.top + 6}px`;
+      dropdown.style.bottom = 'auto';
+      dropdown.style.transform = 'none';
+      dropdown.style.margin = '0';
+    } else {
+      dropdown.style.position = '';
+      dropdown.style.left = '';
+      dropdown.style.width = '';
+      dropdown.style.maxWidth = '';
+      dropdown.style.top = '';
+      dropdown.style.bottom = '';
+      dropdown.style.transform = '';
+      dropdown.style.margin = '';
+    }
+  }
+
+  positionShieldPopover() {
+    const popover = document.getElementById('shield-popover');
+    const shieldBtn = document.getElementById('capsule-shield-btn');
+    const dock = document.getElementById('bottom-dock');
+    if (!popover || !shieldBtn || !dock) return;
+
+    if (window.innerWidth >= 768) {
+      const btnRect = shieldBtn.getBoundingClientRect();
+      const dockRect = dock.getBoundingClientRect();
+      const popoverWidth = 360;
+      let left = (btnRect.right - popoverWidth) - dockRect.left + 24;
+      if (left < 12) left = 12;
+      popover.style.left = `${left}px`;
+      popover.style.top = `${btnRect.bottom - dockRect.top + 8}px`;
+      popover.style.transform = 'none';
+      popover.style.bottom = 'auto';
+    } else {
+      popover.style.left = '';
+      popover.style.top = '';
+      popover.style.transform = '';
+      popover.style.bottom = '';
+    }
+  }
+
+  updateShieldStats(count) {
+    const popoverCount = document.getElementById('shield-popover-count');
+    const badgeDot = document.getElementById('shield-badge-dot');
+    const activeTab = this.tabManager?.getActiveTab();
+    const isInternal = !activeTab || !activeTab.url || activeTab.url.startsWith('ocal://');
+    const displayCount = isInternal ? 0 : (typeof count === 'number' ? count : (activeTab?.blockedAdsCount || 0));
+
+    if (popoverCount) {
+      popoverCount.innerText = String(displayCount);
+    }
+    if (badgeDot) {
+      if (displayCount > 0 && this.adFilterEnabled) {
+        badgeDot.classList.add('active');
+      } else {
+        badgeDot.classList.remove('active');
+      }
+    }
   }
 
   bindBottomNavEvents() {
@@ -536,21 +616,41 @@ class OcalMobileApp {
 
     capsuleShieldBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
+      this.positionShieldPopover();
+      const activeTab = this.tabManager?.getActiveTab();
+      const isInternal = !activeTab || !activeTab.url || activeTab.url.startsWith('ocal://');
+      const popoverDomain = document.getElementById('shield-popover-domain');
+      if (popoverDomain) {
+        if (isInternal) {
+          popoverDomain.innerText = 'Internal Page';
+        } else {
+          try {
+            popoverDomain.innerText = new URL(activeTab.url).hostname;
+          } catch {
+            popoverDomain.innerText = activeTab.url;
+          }
+        }
+      }
+      this.updateShieldStats(activeTab?.blockedAdsCount || 0);
       popover.classList.toggle('visible');
     });
 
     powerToggle?.addEventListener('click', () => {
       this.adFilterEnabled = !this.adFilterEnabled;
+      if (window.OcalNative && typeof window.OcalNative.setAdBlockEnabled === 'function') {
+        window.OcalNative.setAdBlockEnabled(this.adFilterEnabled);
+      }
+      this.cyberShield?.updateSetting('adBlocker', this.adFilterEnabled);
+
       if (this.adFilterEnabled) {
         powerToggle.classList.remove('inactive');
         powerToggle.classList.add('active');
-        if (countEl) countEl.innerText = '27';
-        if (badgeDot) badgeDot.classList.add('active');
+        const activeTab = this.tabManager?.getActiveTab();
+        this.updateShieldStats(activeTab?.blockedAdsCount || 0);
       } else {
         powerToggle.classList.remove('active');
         powerToggle.classList.add('inactive');
-        if (countEl) countEl.innerText = '0';
-        if (badgeDot) badgeDot.classList.remove('active');
+        this.updateShieldStats(0);
       }
     });
 
@@ -1186,6 +1286,11 @@ class OcalMobileApp {
           this.cyberShield.recordBlockedTracker(e.data.domain);
         }
       } else if (e.data.type === 'OCAL_BLOCKED_TRACKER') {
+        const activeTab = this.tabManager?.getActiveTab();
+        if (activeTab) {
+          activeTab.blockedAdsCount = (activeTab.blockedAdsCount || 0) + 1;
+          this.updateShieldStats(activeTab.blockedAdsCount);
+        }
         this.cyberShield?.recordBlockedTracker(e.data.domain);
       } else if (e.data.type === 'OCAL_NAVIGATE') {
         if (e.data.url && this.tabManager.activeTabId) {
@@ -1358,7 +1463,13 @@ class OcalMobileApp {
       }
     };
     this.syncDockLayout();
-    window.addEventListener('resize', () => this.syncDockLayout && this.syncDockLayout());
+    window.addEventListener('resize', () => {
+      if (this.syncDockLayout) this.syncDockLayout();
+      this.positionSuggestionsDropdown();
+      if (document.getElementById('shield-popover')?.classList.contains('visible')) {
+        this.positionShieldPopover();
+      }
+    });
 
     // Auto-hide bottom-dock when virtual keyboard opens or when input inside modals/internal pages is focused
     window.addEventListener('focusin', (e) => {
@@ -1400,6 +1511,14 @@ class OcalMobileApp {
       const activeTab = this.tabManager?.getActiveTab();
       if (!activeTab) return;
 
+      if (event.type === 'AD_BLOCKED') {
+        const count = parseInt(event.title || '0', 10);
+        activeTab.blockedAdsCount = count;
+        this.updateShieldStats(count);
+        this.cyberShield?.recordBlockedTracker(event.url);
+        return;
+      }
+
       if (event.type === 'NAVIGATE_BACK_TO_INTERNAL') {
         if (activeTab.historyIdx > 0) {
           this.tabManager.goBack(activeTab.id);
@@ -1411,6 +1530,8 @@ class OcalMobileApp {
 
       if (event.type === 'PAGE_STARTED') {
         this.animateProgressBar();
+        activeTab.blockedAdsCount = 0;
+        this.updateShieldStats(0);
         if (typeof event.canGoBack === 'boolean') window.nativeCanGoBack = event.canGoBack;
         if (typeof event.canGoForward === 'boolean') window.nativeCanGoForward = event.canGoForward;
         if (event.url) {

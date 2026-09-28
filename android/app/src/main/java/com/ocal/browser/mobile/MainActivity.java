@@ -113,6 +113,45 @@ public class MainActivity extends BridgeActivity {
     private String mobileUserAgent = "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36";
     private static final String DESKTOP_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
     private boolean isDesktopModeEnabled = false;
+    private volatile boolean isAdBlockerEnabled = true;
+    private volatile int currentSiteBlockedCount = 0;
+
+    private static final java.util.Set<String> AD_DOMAINS = new java.util.HashSet<>(java.util.Arrays.asList(
+        "doubleclick.net", "googlesyndication.com", "googleadservices.com", "adservice.google.com",
+        "pagead2.googlesyndication.com", "adnxs.com", "criteo.com", "criteo.net",
+        "amazon-adsystem.com", "adsystem.com", "rubiconproject.com", "pubmatic.com",
+        "casalemedia.com", "openx.net", "appnexus.com", "smartadserver.com",
+        "serving-sys.com", "bidswitch.net", "yieldmo.com", "indexexchange.com",
+        "sovrn.com", "lijit.com", "undertone.com", "outbrain.com", "taboola.com",
+        "mgid.com", "revcontent.com", "adblade.com", "zergnet.com", "google-analytics.com",
+        "analytics.google.com", "hotjar.com", "clarity.ms", "scorecardresearch.com",
+        "quantserve.com", "moatads.com", "pixel.facebook.com", "ads.twitter.com",
+        "static.ads-twitter.com", "adroll.com", "advertising.com", "chartbeat.com",
+        "chartbeat.net", "yandex.ru/metrika", "mc.yandex.ru", "mouseflow.com",
+        "popads.net", "propellerads.com", "exoclick.com", "coinhive.com",
+        "adcolony.com", "unityads.unity3d.com", "vungle.com", "ironsrc.com",
+        "trafficjunky.com", "inmobi.com", "chartboost.com", "admob.com"
+    ));
+
+    private boolean isAdOrTracker(Uri uri) {
+        if (!isAdBlockerEnabled || uri == null) return false;
+        String host = uri.getHost();
+        if (host == null) return false;
+        host = host.toLowerCase();
+        for (String adDomain : AD_DOMAINS) {
+            if (host.equals(adDomain) || host.endsWith("." + adDomain)) {
+                return true;
+            }
+        }
+        String path = uri.getPath();
+        if (path != null) {
+            String p = path.toLowerCase();
+            if (p.contains("/pagead/") || p.contains("/adsbygoogle") || p.contains("/adservice/") || p.contains("/adserver/")) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public void captureLastRenderedPage() {
         try {
@@ -666,6 +705,8 @@ public class MainActivity extends BridgeActivity {
                                 lastRenderedPageUrl = null;
                             }
                         }
+                        currentSiteBlockedCount = 0;
+                        notifyWebEvent("AD_BLOCKED", url, "0");
                         notifyWebEvent("PAGE_STARTED", url, view.getTitle());
                     }
 
@@ -693,7 +734,18 @@ public class MainActivity extends BridgeActivity {
                         }
                         notifyWebEvent("PAGE_FINISHED", url, view.getTitle());
                         view.evaluateJavascript(
-                            "(function() { if (!document.getElementById('ocal-dock-padding')) { var s = document.createElement('style'); s.id = 'ocal-dock-padding'; s.innerHTML = 'html, body { min-height: 100%; } body { padding-bottom: 130px !important; }'; (document.head || document.documentElement).appendChild(s); } })()",
+                            "(function() { " +
+                            "  if (!document.getElementById('ocal-dock-padding')) { " +
+                            "    var s = document.createElement('style'); s.id = 'ocal-dock-padding'; " +
+                            "    s.innerHTML = 'html, body { min-height: 100%; } body { padding-bottom: 130px !important; }'; " +
+                            "    (document.head || document.documentElement).appendChild(s); " +
+                            "  } " +
+                            "  if (!document.getElementById('ocal-ad-killer')) { " +
+                            "    var adStyle = document.createElement('style'); adStyle.id = 'ocal-ad-killer'; " +
+                            "    adStyle.innerHTML = '.adsbygoogle, [id^=\"google_ads_\"], [id^=\"div-gpt-ad\"], .ad-banner, .advertisement, [data-ad-client], .taboola, .outbrain, .sponsor-badge { display: none !important; height: 0 !important; max-height: 0 !important; overflow: hidden !important; visibility: hidden !important; }'; " +
+                            "    (document.head || document.documentElement).appendChild(adStyle); " +
+                            "  } " +
+                            "})()",
                             null
                         );
                         view.postDelayed(() -> {
@@ -724,6 +776,23 @@ public class MainActivity extends BridgeActivity {
                         if (handler != null) {
                             handler.proceed();
                         }
+                    }
+
+                    @Override
+                    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                        if (isAdBlockerEnabled && request != null && request.getUrl() != null) {
+                            Uri uri = request.getUrl();
+                            if (isAdOrTracker(uri)) {
+                                currentSiteBlockedCount++;
+                                final int count = currentSiteBlockedCount;
+                                final String host = uri.getHost() != null ? uri.getHost() : "ad-network";
+                                runOnUiThread(() -> {
+                                    notifyWebEvent("AD_BLOCKED", host, String.valueOf(count));
+                                });
+                                return new WebResourceResponse("text/plain", "UTF-8", new ByteArrayInputStream(new byte[0]));
+                            }
+                        }
+                        return super.shouldInterceptRequest(view, request);
                     }
                 });
 
@@ -1224,6 +1293,16 @@ public class MainActivity extends BridgeActivity {
     }
 
     public class OcalNativeBridge {
+        @JavascriptInterface
+        public void setAdBlockEnabled(boolean enabled) {
+            isAdBlockerEnabled = enabled;
+        }
+
+        @JavascriptInterface
+        public int getBlockedAdsCount() {
+            return currentSiteBlockedCount;
+        }
+
         @JavascriptInterface
         public void openUrl(String url) {
             runOnUiThread(() -> {

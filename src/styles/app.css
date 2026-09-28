@@ -4280,10 +4280,6 @@ input:checked + .toggle-slider:before {
   .suggestions-dropdown {
     top: 50px;
     bottom: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 620px;
     max-height: 400px;
     margin: 0;
     border-radius: 18px;
@@ -4299,10 +4295,6 @@ input:checked + .toggle-slider:before {
     position: absolute;
     top: 50px;
     bottom: auto;
-    left: 50%;
-    transform: translateX(-50%) !important;
-    width: 100%;
-    max-width: 720px;
     max-height: 420px;
     margin: 0;
     border-radius: 18px;
