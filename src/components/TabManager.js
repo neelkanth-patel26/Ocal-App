@@ -144,9 +144,30 @@ export class TabManager {
 
     // Normalizing URL
     let targetUrl = url.trim();
-    if (!targetUrl.startsWith('ocal://') && !targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-      if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
-        targetUrl = 'https://' + targetUrl;
+    if (
+      !targetUrl.startsWith('ocal://') &&
+      !targetUrl.startsWith('http://') &&
+      !targetUrl.startsWith('https://') &&
+      !targetUrl.startsWith('file://') &&
+      !targetUrl.startsWith('about:')
+    ) {
+      const isIpOrLocal = /^(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:[0-9]+)?(\/.*)?$/i.test(targetUrl);
+      const isDomainLike = /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:[0-9]+)?(\/.*)?$/i.test(targetUrl);
+      const hasHostAndPort = /^[a-zA-Z0-9_.-]+:[0-9]+(\/.*)?$/i.test(targetUrl);
+
+      if (isIpOrLocal || isDomainLike || hasHostAndPort || (targetUrl.includes('.') && !targetUrl.includes(' '))) {
+        if (/^localhost(:[0-9]+)?(\/.*)?$/i.test(targetUrl) || /^127\.0\.0\.1(:[0-9]+)?(\/.*)?$/i.test(targetUrl)) {
+          targetUrl = 'http://' + targetUrl;
+        } else if (/^(\d{1,3}\.){3}\d{1,3}(:[0-9]+)?(\/.*)?$/i.test(targetUrl)) {
+          // If port is 8090, 8443, 443, captive portals or HTTPS appliances use https
+          if (/:8090(\/|$)/.test(targetUrl) || /:8443(\/|$)/.test(targetUrl) || /:443(\/|$)/.test(targetUrl)) {
+            targetUrl = 'https://' + targetUrl;
+          } else {
+            targetUrl = 'http://' + targetUrl;
+          }
+        } else {
+          targetUrl = 'https://' + targetUrl;
+        }
       } else {
         // Search query
         const engine = localStorage.getItem('ocal-engine') || 'Google';

@@ -1,4 +1,5 @@
 // Ocal Mobile - Real Web Proxy & Browser Engine Middleware
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 import http from 'http';
 import https from 'https';
 import { URL } from 'url';
@@ -24,7 +25,13 @@ export function createOcalProxyPlugin() {
 
         // Auto-fix protocol if missing
         if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-          targetUrl = 'https://' + targetUrl;
+          if (/:8090(\/|$)/.test(targetUrl) || /:8443(\/|$)/.test(targetUrl) || /:443(\/|$)/.test(targetUrl)) {
+            targetUrl = 'https://' + targetUrl;
+          } else if (/^localhost(:[0-9]+)?(\/.*)?$/i.test(targetUrl) || /^127\.0\.0\.1(:[0-9]+)?(\/.*)?$/i.test(targetUrl) || /^(\d{1,3}\.){3}\d{1,3}(:[0-9]+)?(\/.*)?$/i.test(targetUrl)) {
+            targetUrl = 'http://' + targetUrl;
+          } else {
+            targetUrl = 'https://' + targetUrl;
+          }
         }
 
         let targetHostname = '';

@@ -16,6 +16,8 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.net.http.SslError;
+import android.webkit.SslErrorHandler;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.animation.Animator;
@@ -564,6 +566,13 @@ public class MainActivity extends BridgeActivity {
                     }
                     return super.shouldOverrideUrlLoading(view, request);
                 }
+
+                @Override
+                public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                    if (handler != null) {
+                        handler.proceed();
+                    }
+                }
             });
 
             bridge.getWebView().setWebChromeClient(new com.getcapacitor.BridgeWebChromeClient(bridge) {
@@ -609,7 +618,7 @@ public class MainActivity extends BridgeActivity {
                 s.setUseWideViewPort(true);
                 s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
                 s.setCacheMode(WebSettings.LOAD_DEFAULT);
-                s.setAllowFileAccess(false);
+                s.setAllowFileAccess(true);
                 s.setAllowContentAccess(true);
                 s.setGeolocationEnabled(true);
 
@@ -699,7 +708,7 @@ public class MainActivity extends BridgeActivity {
                             Uri uri = request.getUrl();
                             if (uri != null) {
                                 String scheme = uri.getScheme();
-                                if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) {
+                                if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme) || "file".equalsIgnoreCase(scheme) || "about".equalsIgnoreCase(scheme)) {
                                     return false;
                                 }
                                 android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW, uri);
@@ -708,6 +717,13 @@ public class MainActivity extends BridgeActivity {
                             }
                         } catch (Throwable ignored) {}
                         return false;
+                    }
+
+                    @Override
+                    public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                        if (handler != null) {
+                            handler.proceed();
+                        }
                     }
                 });
 
