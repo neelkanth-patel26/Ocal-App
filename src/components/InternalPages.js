@@ -2228,7 +2228,7 @@ export class InternalPages {
               </div>
               <div class="apple-row-content">
                 <div class="apple-row-title">Glass Blur & Translucency</div>
-                <div class="apple-row-subtitle">Frosted glass on navigation, menus & drawers</div>
+                <div class="apple-row-subtitle" id="blur-mode-status-text">${currentBlur === 0 ? 'Disabled — Pure solid color surfaces active' : 'Enabled — Frosted glass across menus & navigation'}</div>
               </div>
               <label class="toggle-switch" style="margin-left: auto;">
                 <input type="checkbox" id="blur-master-toggle" ${currentBlur > 0 ? 'checked' : ''}>
@@ -2240,10 +2240,10 @@ export class InternalPages {
             <div class="blur-control-card" style="border-top: 0.5px solid var(--glass-border-subtle);">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
                 <div class="apple-row-title" style="font-size:13px; font-weight:600;">Blur Intensity</div>
-                <span class="blur-val-badge" id="blur-val-display">${currentBlur === 0 ? 'Off (0px)' : currentBlur + 'px'}</span>
+                <span class="blur-val-badge" id="blur-val-display">${currentBlur === 0 ? 'Solid Color' : currentBlur + 'px'}</span>
               </div>
               <div class="blur-preset-chips" id="blur-preset-chips">
-                <button class="blur-chip-btn ${currentBlur === 0 ? 'active' : ''}" data-blur="0">Off (0px)</button>
+                <button class="blur-chip-btn ${currentBlur === 0 ? 'active' : ''}" data-blur="0">Off (Solid)</button>
                 <button class="blur-chip-btn ${currentBlur === 12 ? 'active' : ''}" data-blur="12">Subtle (12px)</button>
                 <button class="blur-chip-btn ${currentBlur === 24 ? 'active' : ''}" data-blur="24">Standard (24px)</button>
                 <button class="blur-chip-btn ${currentBlur === 36 ? 'active' : ''}" data-blur="36">Deep (36px)</button>
@@ -2253,7 +2253,7 @@ export class InternalPages {
                 <input type="range" class="blur-range-input" id="blur-range-slider" min="0" max="48" step="2" value="${currentBlur}">
               </div>
               <div style="font-size: 11px; color: var(--text-subtle); margin-top: 8px; line-height: 1.4;">
-                Adjusts blur across URL capsule, bottom dock, menu drawers, tab tray, and dialogs. Turning off renders clean solid surfaces.
+                Adjusts blur across URL capsule, bottom dock, menu drawers, tab tray, and dialogs. When toggled off, all components render with high-contrast, pure solid colors.
               </div>
             </div>
           </div>
@@ -2617,7 +2617,12 @@ export class InternalPages {
 
       // Update UI in settings
       const display = container.querySelector('#blur-val-display');
-      if (display) display.textContent = num === 0 ? 'Off (0px)' : px;
+      if (display) display.textContent = num === 0 ? 'Solid Color' : px;
+
+      const statusText = container.querySelector('#blur-mode-status-text');
+      if (statusText) {
+        statusText.textContent = num === 0 ? 'Disabled — Pure solid color surfaces active' : 'Enabled — Frosted glass across menus & navigation';
+      }
 
       const slider = container.querySelector('#blur-range-slider');
       if (slider) slider.value = num;

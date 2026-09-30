@@ -6811,11 +6811,22 @@ input:checked + .toggle-slider:before {
   font-family: var(--font-mono);
 }
 
+/* Smooth transition between frosted glass and solid color modes */
+.url-capsule-bar,
+.bottom-nav-bar,
+.tabs-tray-sheet,
+#menu-sheet,
+.bottom-sheet,
+.shield-popover,
+.dl-quick-popover,
+.tab-card,
+.tab-list-row {
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
 /* ==========================================================================
-   Zero-Blur / Solid High-Performance Mode
-   Triggered when user disables blur in settings or sets blur slider to 0px.
-   Removes blur from ALL components (URL bar, navigation dock, menu drawers,
-   tabs tray, popovers, and sheets) and applies crisp, solid surfaces.
+   Solid Color High-End Mode (When Glass Blur is Toggled OFF)
+   Renders rich, clean, fully opaque surfaces with crisp borders and no bleed-through.
    ========================================================================== */
 html.glass-blur-disabled,
 html[data-blur="0"] {
@@ -6823,7 +6834,7 @@ html[data-blur="0"] {
   --capsule-bg: #ffffff !important;
   --nav-bar-bg: #ffffff !important;
   --sheet-bg: #ffffff !important;
-  --tabs-tray-bg: #f5f6f8 !important;
+  --tabs-tray-bg: #f2f3f7 !important;
   --tabs-card-bg: #ffffff !important;
   --popover-bg: #ffffff !important;
 }
@@ -6831,40 +6842,225 @@ html[data-blur="0"] {
 [data-theme="dark"].glass-blur-disabled,
 [data-theme="dark"][data-blur="0"] {
   --glass-blur: none !important;
-  --capsule-bg: #1c1c1f !important;
-  --nav-bar-bg: #141416 !important;
-  --sheet-bg: #1c1c20 !important;
-  --tabs-tray-bg: #121214 !important;
-  --tabs-card-bg: #222226 !important;
-  --popover-bg: #1e1e22 !important;
+  --capsule-bg: #1e1e24 !important;
+  --nav-bar-bg: #141418 !important;
+  --sheet-bg: #18181d !important;
+  --tabs-tray-bg: #111114 !important;
+  --tabs-card-bg: #1e1e24 !important;
+  --popover-bg: #1e1e24 !important;
 }
 
+/* Solid Mode: URL Capsule Bar */
 html.glass-blur-disabled .url-capsule-bar,
-html.glass-blur-disabled .bottom-nav-bar,
-html.glass-blur-disabled #menu-sheet,
-html.glass-blur-disabled #tabs-tray-sheet,
-html.glass-blur-disabled .bottom-sheet,
-html.glass-blur-disabled .shield-popover,
-html.glass-blur-disabled .dl-quick-popover,
-html.glass-blur-disabled .search-backdrop,
-html.glass-blur-disabled .tabs-tray-backdrop,
-html.glass-blur-disabled .tab-card,
-html.glass-blur-disabled .tab-list-row,
-html.glass-blur-disabled #context-menu-sheet,
-html.glass-blur-disabled .tab-screenshot-domain-pill,
+html.glass-blur-disabled body.is-web-page .url-capsule-bar,
+html.glass-blur-disabled body.is-internal-page .url-capsule-bar,
+html.glass-blur-disabled body.search-active .url-capsule-bar,
 html[data-blur="0"] .url-capsule-bar,
-html[data-blur="0"] .bottom-nav-bar,
-html[data-blur="0"] #menu-sheet,
-html[data-blur="0"] #tabs-tray-sheet,
-html[data-blur="0"] .bottom-sheet,
-html[data-blur="0"] .shield-popover,
-html[data-blur="0"] .dl-quick-popover,
-html[data-blur="0"] .search-backdrop,
-html[data-blur="0"] .tabs-tray-backdrop,
-html[data-blur="0"] .tab-card,
-html[data-blur="0"] .tab-list-row,
-html[data-blur="0"] #context-menu-sheet,
-html[data-blur="0"] .tab-screenshot-domain-pill {
+html[data-blur="0"] body.is-web-page .url-capsule-bar,
+html[data-blur="0"] body.is-internal-page .url-capsule-bar,
+html[data-blur="0"] body.search-active .url-capsule-bar {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="dark"].glass-blur-disabled .url-capsule-bar,
+[data-theme="dark"].glass-blur-disabled body.is-web-page .url-capsule-bar,
+[data-theme="dark"].glass-blur-disabled body.is-internal-page .url-capsule-bar,
+[data-theme="dark"].glass-blur-disabled body.search-active .url-capsule-bar,
+[data-theme="dark"][data-blur="0"] .url-capsule-bar,
+[data-theme="dark"][data-blur="0"] body.is-web-page .url-capsule-bar,
+[data-theme="dark"][data-blur="0"] body.is-internal-page .url-capsule-bar,
+[data-theme="dark"][data-blur="0"] body.search-active .url-capsule-bar {
+  background: #1e1e24 !important;
+  background-color: #1e1e24 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Solid Mode: Bottom Navigation Bar */
+html.glass-blur-disabled .bottom-nav-bar,
+html.glass-blur-disabled body.is-web-page .bottom-nav-bar,
+html.glass-blur-disabled body.is-internal-page .bottom-nav-bar,
+html.glass-blur-disabled .tabs-bottom-nav,
+html[data-blur="0"] .bottom-nav-bar,
+html[data-blur="0"] body.is-web-page .bottom-nav-bar,
+html[data-blur="0"] body.is-internal-page .bottom-nav-bar,
+html[data-blur="0"] .tabs-bottom-nav {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.09) !important;
+  box-shadow: 0 -2px 14px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="dark"].glass-blur-disabled .bottom-nav-bar,
+[data-theme="dark"].glass-blur-disabled body.is-web-page .bottom-nav-bar,
+[data-theme="dark"].glass-blur-disabled body.is-internal-page .bottom-nav-bar,
+[data-theme="dark"].glass-blur-disabled .tabs-bottom-nav,
+[data-theme="dark"][data-blur="0"] .bottom-nav-bar,
+[data-theme="dark"][data-blur="0"] body.is-web-page .bottom-nav-bar,
+[data-theme="dark"][data-blur="0"] body.is-internal-page .bottom-nav-bar,
+[data-theme="dark"][data-blur="0"] .tabs-bottom-nav {
+  background: #141418 !important;
+  background-color: #141418 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.09) !important;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Solid Mode: Bottom Sheets & Menu Drawers */
+html.glass-blur-disabled #menu-sheet,
+html.glass-blur-disabled .bottom-sheet,
+html.glass-blur-disabled #context-menu-sheet,
+html[data-blur="0"] #menu-sheet,
+html[data-blur="0"] .bottom-sheet,
+html[data-blur="0"] #context-menu-sheet {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 -10px 36px rgba(0, 0, 0, 0.18) !important;
+}
+
+[data-theme="dark"].glass-blur-disabled #menu-sheet,
+[data-theme="dark"].glass-blur-disabled .bottom-sheet,
+[data-theme="dark"].glass-blur-disabled #context-menu-sheet,
+[data-theme="dark"][data-blur="0"] #menu-sheet,
+[data-theme="dark"][data-blur="0"] .bottom-sheet,
+[data-theme="dark"][data-blur="0"] #context-menu-sheet {
+  background: #18181d !important;
+  background-color: #18181d !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 -12px 42px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Solid Mode: Tabs Tray Sheet & Cards */
+html.glass-blur-disabled #tabs-tray-sheet,
+html[data-blur="0"] #tabs-tray-sheet {
+  background: #f2f3f7 !important;
+  background-color: #f2f3f7 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="dark"].glass-blur-disabled #tabs-tray-sheet,
+[data-theme="dark"][data-blur="0"] #tabs-tray-sheet {
+  background: #111114 !important;
+  background-color: #111114 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 -12px 44px rgba(0, 0, 0, 0.65) !important;
+}
+
+html.glass-blur-disabled .tab-card,
+html[data-blur="0"] .tab-card {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"].glass-blur-disabled .tab-card,
+[data-theme="dark"][data-blur="0"] .tab-card {
+  background: #1e1e24 !important;
+  background-color: #1e1e24 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+html.glass-blur-disabled .tab-list-row,
+html[data-blur="0"] .tab-list-row {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.09) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"].glass-blur-disabled .tab-list-row,
+[data-theme="dark"][data-blur="0"] .tab-list-row {
+  background: #1e1e24 !important;
+  background-color: #1e1e24 !important;
+  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+/* Solid Mode: Shield & Quick Download Popovers */
+html.glass-blur-disabled .shield-popover,
+html.glass-blur-disabled .dl-quick-popover,
+html[data-blur="0"] .shield-popover,
+html[data-blur="0"] .dl-quick-popover {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="dark"].glass-blur-disabled .shield-popover,
+[data-theme="dark"].glass-blur-disabled .dl-quick-popover,
+[data-theme="dark"][data-blur="0"] .shield-popover,
+[data-theme="dark"][data-blur="0"] .dl-quick-popover {
+  background: #1e1e24 !important;
+  background-color: #1e1e24 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.65) !important;
+}
+
+/* Solid Mode: Backdrops & Scrims */
+html.glass-blur-disabled .search-backdrop,
+html[data-blur="0"] .search-backdrop {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(0, 0, 0, 0.42) !important;
+}
+
+[data-theme="dark"].glass-blur-disabled .search-backdrop,
+[data-theme="dark"][data-blur="0"] .search-backdrop {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(0, 0, 0, 0.72) !important;
+}
+
+html.glass-blur-disabled .tabs-tray-backdrop,
+html[data-blur="0"] .tabs-tray-backdrop {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(0, 0, 0, 0.42) !important;
+}
+
+[data-theme="dark"].glass-blur-disabled .tabs-tray-backdrop,
+[data-theme="dark"][data-blur="0"] .tabs-tray-backdrop {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(0, 0, 0, 0.72) !important;
+}
+
+html.glass-blur-disabled body.search-active .viewport-container,
+html[data-blur="0"] body.search-active .viewport-container {
+  filter: none !important;
 }
