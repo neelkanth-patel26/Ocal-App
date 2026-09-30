@@ -30,6 +30,31 @@ class OcalMobileApp {
     document.documentElement.setAttribute('data-theme', savedTheme);
     this.updateStatusBarTheme(savedTheme === 'dark');
 
+    // 1b. Load custom accent color & glass blur density
+    const savedAccent = localStorage.getItem('ocal-accent-color');
+    if (savedAccent) {
+      document.documentElement.style.setProperty('--user-accent-color', savedAccent);
+      document.documentElement.style.setProperty('--accent-primary', savedAccent);
+      const hex = savedAccent.replace('#', '');
+      const num = parseInt(hex.length === 3 ? hex.split('').map(x => x + x).join('') : hex, 16);
+      if (!isNaN(num)) {
+        const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+        const subtle = `rgba(${r}, ${g}, ${b}, 0.12)`;
+        const border = `rgba(${r}, ${g}, ${b}, 0.32)`;
+        document.documentElement.style.setProperty('--user-accent-subtle', subtle);
+        document.documentElement.style.setProperty('--user-accent-border', border);
+        document.documentElement.style.setProperty('--accent-subtle', subtle);
+        document.documentElement.style.setProperty('--accent-border', border);
+      }
+    }
+
+    const savedBlur = localStorage.getItem('ocal-blur-density');
+    if (savedBlur !== null && savedBlur !== undefined) {
+      const px = `${parseInt(savedBlur, 10)}px`;
+      document.documentElement.style.setProperty('--dock-blur-val', px);
+      document.documentElement.style.setProperty('--capsule-blur-val', px);
+    }
+
     // 2. Initialize CyberShield
     this.cyberShield = new CyberShield({
       onStatsChange: () => {
@@ -700,13 +725,32 @@ class OcalMobileApp {
       this.openMoreMenuSheet();
     });
 
-    // Search tabs filter
+    // Preset switcher buttons (Grid, Stack, List)
+    document.querySelectorAll('#tabs-preset-segmented .tabs-preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const preset = btn.getAttribute('data-preset');
+        if (preset) {
+          this.tabManager?.setPreset(preset);
+        }
+      });
+    });
+
+    // Close all tabs button
+    document.getElementById('tabs-close-all-btn')?.addEventListener('click', () => {
+      const count = this.tabManager?.tabs?.length || 0;
+      if (count <= 1 || confirm(`Close all ${count} tabs?`)) {
+        this.tabManager?.closeAllTabs();
+        this.closeTabsTray();
+      }
+    });
+
+    // Search tabs filter (supports both card and list rows)
     searchInput?.addEventListener('input', (e) => {
       const q = e.target.value.trim().toLowerCase();
       const carousel = document.getElementById('tabs-carousel');
       if (!carousel) return;
-      carousel.querySelectorAll('.tab-card').forEach(card => {
-        const title = card.querySelector('.tab-card-title')?.textContent?.toLowerCase() || '';
+      carousel.querySelectorAll('.tab-card, .tab-list-row').forEach(card => {
+        const title = (card.querySelector('.tab-card-title') || card.querySelector('.tab-list-title'))?.textContent?.toLowerCase() || '';
         const url = card.getAttribute('data-url')?.toLowerCase() || '';
         card.style.display = (!q || title.includes(q) || url.includes(q)) ? '' : 'none';
       });
@@ -745,7 +789,7 @@ class OcalMobileApp {
       if (mainTabBadge) mainTabBadge.classList.add('active');
 
       setTimeout(() => {
-        const activeCard = carousel.querySelector('.tab-card.active');
+        const activeCard = carousel.querySelector('.tab-card.active, .tab-list-row.active');
         if (activeCard) {
           activeCard.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
@@ -881,7 +925,7 @@ class OcalMobileApp {
       share: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`,
       incognito: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10s3-4 10-4 10 4 10 4"/><circle cx="7" cy="15" r="3"/><circle cx="17" cy="15" r="3"/><path d="m14 15-4 0"/></svg>`,
       download: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
-      key: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-1.5 1.5L16 7l4 4 1.5-1.5a4.95 4.95 0 0 0 0-7z"/><path d="M15 8 8.9 14.1a3 3 0 1 0 4.2 4.2L16 15l-3-3 2-2"/></svg>`,
+      key: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 2.5 2.5"/><path d="m18.5 4.5 2.5 2.5"/></svg>`,
       sync: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
       copilot: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg>`,
       desktop: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,

@@ -23,6 +23,31 @@ export class TabManager {
     this.activeTabId = null;
     this.tabCounter = 1;
     this.isIncognitoMode = false;
+    this.currentPreset = localStorage.getItem('ocal-tabs-preset') || 'grid';
+  }
+
+  setPreset(preset) {
+    if (!['grid', 'stack', 'list'].includes(preset)) return;
+    this.currentPreset = preset;
+    try { localStorage.setItem('ocal-tabs-preset', preset); } catch (_) {}
+    const carousel = document.getElementById('tabs-carousel');
+    if (carousel) {
+      this.renderTabsGrid(carousel, (tabId) => {
+        this.switchTab(tabId);
+        window.ocalApp?.closeTabsTray?.();
+      });
+    }
+  }
+
+  closeAllTabs() {
+    this.tabs.forEach(tab => {
+      try { sessionStorage.removeItem(`ocal_thumb_${tab.id}`); } catch (_) {}
+      if (tab.frameWrapperEl?.parentNode) {
+        tab.frameWrapperEl.parentNode.removeChild(tab.frameWrapperEl);
+      }
+    });
+    this.tabs = [];
+    this.createTab('ocal://home', false);
   }
 
   init() {
@@ -1026,55 +1051,140 @@ export class TabManager {
 
   renderTabsGrid(gridContainerEl, onSelect) {
     gridContainerEl.innerHTML = '';
-    this.tabs.forEach(tab => {
-      const card = document.createElement('div');
-      card.className = `tab-card ${tab.id === this.activeTabId ? 'active' : ''}`;
-      card.setAttribute('data-tab-id', tab.id);
-      card.setAttribute('data-url', tab.url);
 
-      const faviconHtml = this.getTabFaviconHtml(tab);
-      const previewHtml = this.renderTabPreviewHtml(tab);
+    // Update sheet class for layout styling
+    const sheet = document.getElementById('tabs-tray-sheet');
+    if (sheet) {
+      sheet.classList.remove('tabs-view-grid', 'tabs-view-stack', 'tabs-view-list');
+      sheet.classList.add(`tabs-view-${this.currentPreset}`);
+    }
 
-      card.innerHTML = `
-        <div class="tab-card-header">
-          <div class="tab-card-favicon">${faviconHtml}</div>
-          <span class="tab-card-title">${escapeHtml(tab.title || tab.url)}</span>
-          <button class="tab-card-close" data-id="${tab.id}" title="Close Tab"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="tab-card-preview">${previewHtml}</div>
-      `;
+    // Update preset segmented control active button
+    document.querySelectorAll('#tabs-preset-segmented .tabs-preset-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-preset') === this.currentPreset);
+    });
 
-      card.addEventListener('click', (e) => {
-        if (e.target.closest('.tab-card-close')) return;
-        if (onSelect) {
-          onSelect(tab.id);
-        } else {
-          this.switchTab(tab.id);
+    // Update count badge in header
+    const countEl = document.getElementById('tabs-tray-count');
+    if (countEl) {
+      const incognitoCount = this.tabs.filter(t => t.isIncognito).length;
+      countEl.textContent = incognitoCount > 0 
+        ? `${this.tabs.length} (${incognitoCount} Private)` 
+        : `${this.tabs.length} ${this.tabs.length === 1 ? 'Tab' : 'Tabs'}`;
+    }
+
+    if (this.currentPreset === 'list') {
+      // Compact Apple / Arc style list rows
+      this.tabs.forEach(tab => {
+        const row = document.createElement('div');
+        row.className = `tab-list-row ${tab.id === this.activeTabId ? 'active' : ''}`;
+        row.setAttribute('data-tab-id', tab.id);
+        row.setAttribute('data-url', tab.url);
+
+        const faviconHtml = this.getTabFaviconHtml(tab);
+        let domain = '';
+        try {
+          if (!tab.url.startsWith('ocal://')) {
+            domain = new URL(tab.url).hostname.replace(/^www\./i, '');
+          } else {
+            domain = tab.url;
+          }
+        } catch {
+          domain = tab.url;
         }
+
+        row.innerHTML = `
+          <div class="tab-list-favicon">
+            ${faviconHtml}
+            ${tab.id === this.activeTabId ? '<div class="tab-list-active-dot"></div>' : ''}
+          </div>
+          <div class="tab-list-info">
+            <div class="tab-list-title">${escapeHtml(tab.title || tab.url)}</div>
+            <div class="tab-list-meta">
+              ${tab.isIncognito ? '<span class="tab-incognito-pill"><i class="fas fa-user-secret" style="font-size:8px;"></i> Private</span>' : ''}
+              <span>${escapeHtml(domain)}</span>
+            </div>
+          </div>
+          <button class="tab-list-close" data-id="${tab.id}" title="Close Tab"><i class="fas fa-times"></i></button>
+        `;
+
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('.tab-list-close')) return;
+          if (onSelect) onSelect(tab.id);
+          else this.switchTab(tab.id);
+        });
+
+        row.querySelector('.tab-list-close')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.closeTab(tab.id);
+          this.renderTabsGrid(gridContainerEl, onSelect);
+        });
+
+        gridContainerEl.appendChild(row);
       });
 
-      card.querySelector('.tab-card-close')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.closeTab(tab.id);
-        this.renderTabsGrid(gridContainerEl, onSelect);
+      // List "+ New Tab" button
+      const addRow = document.createElement('div');
+      addRow.className = 'tab-list-add-row';
+      addRow.innerHTML = `<i class="fas fa-plus"></i><span>New Tab</span>`;
+      addRow.addEventListener('click', () => {
+        this.createTab('ocal://home', this.isIncognitoMode);
+        if (onSelect) onSelect(this.activeTabId);
+      });
+      gridContainerEl.appendChild(addRow);
+    } else {
+      // Grid or Stack Card views
+      this.tabs.forEach(tab => {
+        const card = document.createElement('div');
+        card.className = `tab-card ${tab.id === this.activeTabId ? 'active' : ''}`;
+        card.setAttribute('data-tab-id', tab.id);
+        card.setAttribute('data-url', tab.url);
+
+        const faviconHtml = this.getTabFaviconHtml(tab);
+        const previewHtml = this.renderTabPreviewHtml(tab);
+
+        card.innerHTML = `
+          ${tab.isIncognito ? '<div class="tab-card-incognito-badge"><i class="fas fa-user-secret" style="font-size:7px;"></i> Private</div>' : ''}
+          <div class="tab-card-header">
+            <div class="tab-card-favicon">${faviconHtml}</div>
+            <span class="tab-card-title">${escapeHtml(tab.title || tab.url)}</span>
+            <button class="tab-card-close" data-id="${tab.id}" title="Close Tab"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="tab-card-preview">${previewHtml}</div>
+        `;
+
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.tab-card-close')) return;
+          if (onSelect) {
+            onSelect(tab.id);
+          } else {
+            this.switchTab(tab.id);
+          }
+        });
+
+        card.querySelector('.tab-card-close')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.closeTab(tab.id);
+          this.renderTabsGrid(gridContainerEl, onSelect);
+        });
+
+        gridContainerEl.appendChild(card);
       });
 
-      gridContainerEl.appendChild(card);
-    });
-
-    // Dedicated "+ New Tab" Action Card
-    const addCard = document.createElement('div');
-    addCard.className = 'tab-card tab-card-add';
-    addCard.innerHTML = `
-      <div class="tab-add-content">
-        <div class="tab-add-icon"><i class="fas fa-plus"></i></div>
-        <span class="tab-add-label">New Tab</span>
-      </div>
-    `;
-    addCard.addEventListener('click', () => {
-      this.createTab('ocal://home');
-      if (onSelect) onSelect(this.activeTabId);
-    });
-    gridContainerEl.appendChild(addCard);
+      // Dedicated "+ New Tab" Action Card
+      const addCard = document.createElement('div');
+      addCard.className = 'tab-card tab-card-add';
+      addCard.innerHTML = `
+        <div class="tab-add-content">
+          <div class="tab-add-icon"><i class="fas fa-plus"></i></div>
+          <span class="tab-add-label">New Tab</span>
+        </div>
+      `;
+      addCard.addEventListener('click', () => {
+        this.createTab('ocal://home', this.isIncognitoMode);
+        if (onSelect) onSelect(this.activeTabId);
+      });
+      gridContainerEl.appendChild(addCard);
+    }
   }
 }

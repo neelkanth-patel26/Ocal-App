@@ -64,11 +64,16 @@
   --text-subtle: #8e8e93;
   --wordmark-color: #000000;
 
-  /* Accents */
-  --accent-primary: #0a84ff;
-  --accent-primary-hover: #0071e3;
-  --accent-subtle: rgba(10, 132, 255, 0.10);
-  --accent-border: rgba(10, 132, 255, 0.30);
+  /* Accents & Dynamic Customization */
+  --user-accent-color: #0a84ff;
+  --accent-primary: var(--user-accent-color, #0a84ff);
+  --accent-primary-hover: var(--user-accent-hover, #0071e3);
+  --accent-subtle: var(--user-accent-subtle, rgba(10, 132, 255, 0.12));
+  --accent-border: var(--user-accent-border, rgba(10, 132, 255, 0.32));
+
+  /* Glass Blur Density */
+  --dock-blur-val: 28px;
+  --capsule-blur-val: 24px;
 
   --apple-blue: #0a84ff;
   --apple-green: #34c759;

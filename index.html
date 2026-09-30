@@ -190,8 +190,33 @@
     <div class="tabs-tray-backdrop" id="tabs-tray-backdrop"></div>
     <div class="tabs-tray-sheet" id="tabs-tray-sheet">
       <div class="sheet-handle" style="margin:8px auto 2px;"></div>
-      <!-- Horizontal Tab Cards Carousel -->
-      <div class="tabs-carousel-wrapper">
+      <!-- Tab Manager Header with Title, Count & Preset Selector -->
+      <div class="tabs-tray-header">
+        <div class="tabs-tray-title-group">
+          <span class="tabs-tray-title">Tabs</span>
+          <span class="tabs-count-badge" id="tabs-tray-count">1</span>
+        </div>
+        <div class="tabs-preset-segmented" id="tabs-preset-segmented">
+          <button class="tabs-preset-btn active" data-preset="grid" title="2-Column Grid View">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Grid</span>
+          </button>
+          <button class="tabs-preset-btn" data-preset="stack" title="Card Stack Carousel View">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M6 3h12"/></svg>
+            <span>Stack</span>
+          </button>
+          <button class="tabs-preset-btn" data-preset="list" title="Compact List View">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span>List</span>
+          </button>
+        </div>
+        <button class="tabs-tray-close-all" id="tabs-close-all-btn" title="Close All Tabs">
+          <i class="fas fa-trash-can"></i>
+        </button>
+      </div>
+
+      <!-- Tab Cards Wrapper (dynamically styled for Grid, Stack, or List) -->
+      <div class="tabs-carousel-wrapper" id="tabs-carousel-wrapper">
         <div class="tabs-carousel" id="tabs-carousel"></div>
       </div>
 

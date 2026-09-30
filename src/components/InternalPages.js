@@ -1867,11 +1867,12 @@ export class InternalPages {
     return container;
   }
 
-  // 8. Browsing History
+  // 8. Browsing History Grouped by Date & Site
   static renderHistory(onNavigate) {
     const container = document.createElement('div');
     container.className = 'subpage-container';
     const history = JSON.parse(localStorage.getItem('ocal-history') || '[]');
+    let currentView = localStorage.getItem('ocal-history-view') || 'date';
 
     let contentHtml = '';
     if (history.length === 0) {
@@ -1885,39 +1886,136 @@ export class InternalPages {
         </div>
       `;
     } else {
+      // 1. Compute Date Grouping
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const startOfYesterday = startOfToday - 86400000;
+      const startOfWeek = startOfToday - 6 * 86400000;
+
+      const dateGroups = [
+        { id: 'today', title: 'Today', items: [] },
+        { id: 'yesterday', title: 'Yesterday', items: [] },
+        { id: 'week', title: 'Previous 7 Days', items: [] },
+        { id: 'older', title: 'Older', items: [] }
+      ];
+
+      history.forEach((item, index) => {
+        const ts = item.timestamp || 0;
+        if (ts >= startOfToday) {
+          dateGroups[0].items.push({ item, index });
+        } else if (ts >= startOfYesterday) {
+          dateGroups[1].items.push({ item, index });
+        } else if (ts >= startOfWeek) {
+          dateGroups[2].items.push({ item, index });
+        } else {
+          dateGroups[3].items.push({ item, index });
+        }
+      });
+
+      // 2. Compute Site Grouping
+      const siteMap = new Map();
+      history.forEach((item, index) => {
+        let domain = 'other';
+        try {
+          domain = new URL(item.url).hostname.replace(/^(www\.|html\.)/i, '');
+        } catch {
+          domain = item.url.replace(/^https?:\/\//i, '').split('/')[0] || 'other';
+        }
+        if (!siteMap.has(domain)) {
+          siteMap.set(domain, []);
+        }
+        siteMap.get(domain).push({ item, index });
+      });
+
+      const siteGroups = Array.from(siteMap.entries()).sort((a, b) => b[1].length - a[1].length);
+
+      // Render helper for an individual history row
+      const renderRow = (item, index) => {
+        const formatted = formatSmartHistoryItem(item);
+        const initial = (formatted.domain || 'W')[0].toUpperCase();
+        return `
+          <div class="history-item-row" data-url="${escapeHtml(item.url)}" data-index="${index}" data-title="${escapeHtml(formatted.title.toLowerCase())}">
+            <div class="apple-row-icon ${formatted.isSearch ? 'mono-search' : 'mono-domain'}">
+              ${formatted.isSearch 
+                ? '<i class="fa-solid fa-magnifying-glass" style="font-size:13px;"></i>' 
+                : `<span style="font-size:13px; font-weight:700;">${escapeHtml(initial)}</span>`}
+            </div>
+            <div class="history-content">
+              <div class="history-title">${escapeHtml(formatted.title)}</div>
+              <div class="history-meta">
+                <span class="history-domain-pill">${escapeHtml(formatted.domain || 'web')}</span>
+                <span class="history-separator">•</span>
+                <span>${formatted.isSearch ? 'Search' : escapeHtml(formatted.url.replace(/^https?:\/\/(www\.)?/, '').substring(0, 36))}</span>
+                <span class="history-separator">•</span>
+                <span class="history-time-tag">${escapeHtml(formatted.timeStr)}</span>
+              </div>
+            </div>
+            <button class="history-delete-btn" data-url="${escapeHtml(item.url)}" title="Remove">
+              <i class="fa-solid fa-xmark" style="font-size:13px;"></i>
+            </button>
+          </div>
+        `;
+      };
+
       contentHtml = `
         <div class="history-search-container">
           <div class="history-search-bar">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" class="history-search-input" id="history-filter-input" placeholder="Search pages and links..." autocomplete="off" />
+            <input type="text" class="history-search-input" id="history-filter-input" placeholder="Search pages, domains and links..." autocomplete="off" />
           </div>
         </div>
 
-        <div class="subpage-section-title">Recent Pages</div>
-        <div class="apple-grouped-table" id="history-list">
-          ${history.map((item, index) => {
-            const formatted = formatSmartHistoryItem(item);
-            const initial = (formatted.domain || 'W')[0].toUpperCase();
+        <!-- Segmented Switcher: By Date vs By Site -->
+        <div class="history-view-segmented" id="history-view-segmented">
+          <button class="history-segment-btn ${currentView === 'date' ? 'active' : ''}" data-view="date">
+            <i class="far fa-calendar"></i>
+            <span>By Date</span>
+          </button>
+          <button class="history-segment-btn ${currentView === 'site' ? 'active' : ''}" data-view="site">
+            <i class="fas fa-globe"></i>
+            <span>By Site</span>
+          </button>
+        </div>
+
+        <!-- 1. By Date Container -->
+        <div id="history-date-view-container" style="display: ${currentView === 'date' ? 'block' : 'none'};">
+          ${dateGroups.filter(g => g.items.length > 0).map(group => `
+            <div class="history-date-section" data-group="${group.id}">
+              <div class="history-date-header">
+                <span class="history-date-title">${group.title}</span>
+                <span class="history-date-badge">${group.items.length}</span>
+              </div>
+              <div class="apple-grouped-table">
+                ${group.items.map(entry => renderRow(entry.item, entry.index)).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- 2. By Site Container -->
+        <div id="history-site-view-container" style="display: ${currentView === 'site' ? 'block' : 'none'};">
+          ${siteGroups.map(([domain, items]) => {
+            const initial = domain[0].toUpperCase();
             return `
-              <div class="history-item-row" data-url="${escapeHtml(item.url)}" data-index="${index}" data-title="${escapeHtml(formatted.title.toLowerCase())}">
-                <div class="apple-row-icon ${formatted.isSearch ? 'mono-search' : 'mono-domain'}">
-                  ${formatted.isSearch 
-                    ? '<i class="fa-solid fa-magnifying-glass" style="font-size:13px;"></i>' 
-                    : `<span style="font-size:13px; font-weight:700;">${escapeHtml(initial)}</span>`}
-                </div>
-                <div class="history-content">
-                  <div class="history-title">${escapeHtml(formatted.title)}</div>
-                  <div class="history-meta">
-                    <span class="history-domain-pill">${escapeHtml(formatted.domain || 'web')}</span>
-                    <span class="history-separator">•</span>
-                    <span>${formatted.isSearch ? 'Search' : escapeHtml(formatted.url.replace(/^https?:\/\/(www\.)?/, '').substring(0, 36))}</span>
-                    <span class="history-separator">•</span>
-                    <span class="history-time-tag">${escapeHtml(formatted.timeStr)}</span>
+              <div class="history-site-card" data-domain="${escapeHtml(domain.toLowerCase())}">
+                <div class="history-site-header">
+                  <div class="history-site-icon">${escapeHtml(initial)}</div>
+                  <div class="history-site-info">
+                    <div class="history-site-domain">${escapeHtml(domain)}</div>
+                    <div class="history-site-count">${items.length} ${items.length === 1 ? 'visit' : 'visits'}</div>
+                  </div>
+                  <div class="history-site-actions">
+                    <button class="history-site-delete-btn" data-domain="${escapeHtml(domain)}" title="Clear all for this site">
+                      <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                    <div class="history-site-chevron"><i class="fas fa-chevron-right"></i></div>
                   </div>
                 </div>
-                <button class="history-delete-btn" data-url="${escapeHtml(item.url)}" title="Remove">
-                  <i class="fa-solid fa-xmark" style="font-size:13px;"></i>
-                </button>
+                <div class="history-site-items">
+                  <div class="apple-grouped-table" style="border:none; border-radius:0;">
+                    ${items.map(entry => renderRow(entry.item, entry.index)).join('')}
+                  </div>
+                </div>
               </div>
             `;
           }).join('')}
@@ -1929,7 +2027,7 @@ export class InternalPages {
       <div class="subpage-header">
         <button class="subpage-back-btn" id="history-back-btn"><i class="fas fa-chevron-left"></i></button>
         <div class="subpage-header-title">Browsing History</div>
-        ${history.length > 0 ? '<button class="subpage-action-btn danger" id="clear-history-btn">Clear</button>' : '<div style="width:36px;"></div>'}
+        ${history.length > 0 ? '<button class="subpage-action-btn danger" id="clear-history-btn">Clear All</button>' : '<div style="width:36px;"></div>'}
       </div>
 
       <div class="subpage-content">
@@ -1939,6 +2037,51 @@ export class InternalPages {
 
     container.querySelector('#history-back-btn')?.addEventListener('click', () => {
       if (onNavigate) onNavigate('ocal://home');
+    });
+
+    // View switcher (By Date vs By Site)
+    container.querySelectorAll('.history-segment-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.getAttribute('data-view');
+        currentView = view;
+        try { localStorage.setItem('ocal-history-view', view); } catch (_) {}
+        container.querySelectorAll('.history-segment-btn').forEach(b => b.classList.toggle('active', b === btn));
+        const dateContainer = container.querySelector('#history-date-view-container');
+        const siteContainer = container.querySelector('#history-site-view-container');
+        if (dateContainer) dateContainer.style.display = view === 'date' ? 'block' : 'none';
+        if (siteContainer) siteContainer.style.display = view === 'site' ? 'block' : 'none';
+      });
+    });
+
+    // Site card accordion toggle
+    container.querySelectorAll('.history-site-header').forEach(header => {
+      header.addEventListener('click', (e) => {
+        if (e.target.closest('.history-site-delete-btn')) return;
+        const card = header.closest('.history-site-card');
+        card?.classList.toggle('expanded');
+      });
+    });
+
+    // Clear whole site history
+    container.querySelectorAll('.history-site-delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const targetDomain = btn.getAttribute('data-domain');
+        if (!targetDomain) return;
+        if (confirm(`Remove all history entries for "${targetDomain}"?`)) {
+          const curHistory = JSON.parse(localStorage.getItem('ocal-history') || '[]');
+          const updated = curHistory.filter(h => {
+            try {
+              const d = new URL(h.url).hostname.replace(/^(www\.|html\.)/i, '');
+              return d.toLowerCase() !== targetDomain.toLowerCase();
+            } catch {
+              return true;
+            }
+          });
+          localStorage.setItem('ocal-history', JSON.stringify(updated));
+          if (onNavigate) onNavigate('ocal://history');
+        }
+      });
     });
 
     // Row clicks
@@ -1962,18 +2105,44 @@ export class InternalPages {
       });
     });
 
-    // History filter input
+    // Search filter input
     const filterInput = container.querySelector('#history-filter-input');
     if (filterInput) {
       filterInput.addEventListener('input', (e) => {
         const val = e.target.value.trim().toLowerCase();
-        container.querySelectorAll('.history-item-row').forEach(row => {
+
+        // 1. Date View Filter
+        container.querySelectorAll('#history-date-view-container .history-item-row').forEach(row => {
           const rowTitle = row.getAttribute('data-title') || '';
           const rowUrl = (row.getAttribute('data-url') || '').toLowerCase();
-          if (!val || rowTitle.includes(val) || rowUrl.includes(val)) {
-            row.style.display = 'flex';
+          const match = !val || rowTitle.includes(val) || rowUrl.includes(val);
+          row.style.display = match ? 'flex' : 'none';
+        });
+
+        container.querySelectorAll('#history-date-view-container .history-date-section').forEach(sec => {
+          const hasVisible = Array.from(sec.querySelectorAll('.history-item-row')).some(r => r.style.display !== 'none');
+          sec.style.display = hasVisible ? 'block' : 'none';
+        });
+
+        // 2. Site View Filter
+        container.querySelectorAll('#history-site-view-container .history-site-card').forEach(card => {
+          const domain = (card.getAttribute('data-domain') || '').toLowerCase();
+          let hasMatchingChild = false;
+          card.querySelectorAll('.history-item-row').forEach(row => {
+            const rowTitle = row.getAttribute('data-title') || '';
+            const rowUrl = (row.getAttribute('data-url') || '').toLowerCase();
+            const match = !val || rowTitle.includes(val) || rowUrl.includes(val);
+            row.style.display = match ? 'flex' : 'none';
+            if (match) hasMatchingChild = true;
+          });
+
+          if (!val) {
+            card.style.display = 'block';
+          } else if (domain.includes(val) || hasMatchingChild) {
+            card.style.display = 'block';
+            card.classList.add('expanded'); // Auto-expand matching site
           } else {
-            row.style.display = 'none';
+            card.style.display = 'none';
           }
         });
       });
@@ -2002,6 +2171,20 @@ export class InternalPages {
     const passwordsCount = PasswordManager.getPasswords().length;
     const aiKey = localStorage.getItem('ocal_ai_api_key') || '';
 
+    const ACCENT_COLORS = [
+      { name: 'Apple Blue', hex: '#0a84ff' },
+      { name: 'Emerald', hex: '#34c759' },
+      { name: 'Purple', hex: '#af52de' },
+      { name: 'Orange', hex: '#ff9500' },
+      { name: 'Rose', hex: '#ff2d55' },
+      { name: 'Cyan', hex: '#00c7be' },
+      { name: 'Indigo', hex: '#5856d6' },
+      { name: 'Gold', hex: '#f59e0b' },
+      { name: 'Midnight', hex: '#18181b' }
+    ];
+    const currentAccent = localStorage.getItem('ocal-accent-color') || '#0a84ff';
+    const currentBlur = parseInt(localStorage.getItem('ocal-blur-density') ?? '24', 10);
+
     const SETTINGS_ICONS = {
       back: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`,
       sparkles: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>`,
@@ -2016,7 +2199,7 @@ export class InternalPages {
       suggest: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>`,
       desktop: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
       compass: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`,
-      key: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-1.5 1.5L16 7l4 4 1.5-1.5a4.95 4.95 0 0 0 0-7z"/><path d="M15 8 8.9 14.1a3 3 0 1 0 4.2 4.2L16 15l-3-3 2-2"/></svg>`,
+      key: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 2.5 2.5"/><path d="m18.5 4.5 2.5 2.5"/></svg>`,
       bookmark: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
       import: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
       export: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
@@ -2032,9 +2215,9 @@ export class InternalPages {
       </div>
 
       <div class="subpage-content">
-        <!-- Appearance Section -->
+        <!-- Appearance & Customization Section -->
         <div>
-          <div class="subpage-section-title">Appearance</div>
+          <div class="subpage-section-title">Appearance & Customization</div>
           <div class="apple-grouped-table">
             <div class="apple-grouped-row" style="cursor:default;">
               <div class="apple-row-icon mono-item">
@@ -2048,6 +2231,49 @@ export class InternalPages {
                 <input type="checkbox" id="theme-toggle" ${currentTheme === 'dark' ? 'checked' : ''}>
                 <span class="toggle-slider"></span>
               </label>
+            </div>
+
+            <!-- Theme Accent Color Customizer -->
+            <div style="padding: 12px 14px 10px; border-top: 0.5px solid var(--glass-border-subtle);">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div class="apple-row-title" style="font-size:13.5px;">Theme Accent Color</div>
+                  <div class="apple-row-subtitle" style="font-size:11.5px; margin-top:1px;">Custom accent for buttons, badges & active tabs</div>
+                </div>
+                <div id="current-accent-indicator" style="width:16px; height:16px; border-radius:50%; background:${escapeHtml(currentAccent)}; box-shadow:0 0 8px ${escapeHtml(currentAccent)};"></div>
+              </div>
+              <div class="accent-swatches-grid" id="accent-swatches-container">
+                ${ACCENT_COLORS.map(c => `
+                  <button class="accent-swatch-btn ${currentAccent.toLowerCase() === c.hex.toLowerCase() ? 'active' : ''}" 
+                          data-color="${c.hex}" 
+                          style="background-color: ${c.hex};" 
+                          title="${c.name}"></button>
+                `).join('')}
+                <div class="accent-color-picker-wrap ${!ACCENT_COLORS.some(c => c.hex.toLowerCase() === currentAccent.toLowerCase()) ? 'active' : ''}" title="Custom Color">
+                  <input type="color" class="accent-color-picker-input" id="accent-custom-picker" value="${currentAccent.startsWith('#') ? currentAccent : '#0a84ff'}">
+                </div>
+              </div>
+            </div>
+
+            <!-- URL Capsule & Bottom Dock Blur Density -->
+            <div style="padding: 12px 14px 14px; border-top: 0.5px solid var(--glass-border-subtle);">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div class="apple-row-title" style="font-size:13.5px;">Dock & Capsule Glass Blur</div>
+                  <div class="apple-row-subtitle" style="font-size:11.5px; margin-top:1px;">Adjust frosted transparency on URL and footer</div>
+                </div>
+                <span class="blur-val-badge" id="blur-val-display">${currentBlur}px</span>
+              </div>
+              <div class="blur-preset-chips" id="blur-preset-chips">
+                <button class="blur-chip-btn ${currentBlur === 0 ? 'active' : ''}" data-blur="0">Off (0px)</button>
+                <button class="blur-chip-btn ${currentBlur === 12 ? 'active' : ''}" data-blur="12">Subtle (12px)</button>
+                <button class="blur-chip-btn ${currentBlur === 24 ? 'active' : ''}" data-blur="24">Standard (24px)</button>
+                <button class="blur-chip-btn ${currentBlur === 36 ? 'active' : ''}" data-blur="36">Deep (36px)</button>
+                <button class="blur-chip-btn ${currentBlur === 48 ? 'active' : ''}" data-blur="48">Ultra (48px)</button>
+              </div>
+              <div class="blur-slider-row">
+                <input type="range" class="blur-range-input" id="blur-range-slider" min="0" max="50" step="2" value="${currentBlur}">
+              </div>
             </div>
           </div>
         </div>
@@ -2382,6 +2608,86 @@ export class InternalPages {
       if (window.ocalApp?.updateStatusBarTheme) {
         window.ocalApp.updateStatusBarTheme(t === 'dark');
       }
+    });
+
+    // Helper to calculate rgba
+    const hexToRgba = (hex, alpha = 1) => {
+      let c = (hex || '').replace('#', '');
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      const num = parseInt(c, 16);
+      if (isNaN(num)) return `rgba(10, 132, 255, ${alpha})`;
+      const r = (num >> 16) & 255;
+      const g = (num >> 8) & 255;
+      const b = num & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    // Live Accent Theme Color updates
+    const applyAccent = (hex) => {
+      if (!hex) return;
+      localStorage.setItem('ocal-accent-color', hex);
+      document.documentElement.style.setProperty('--user-accent-color', hex);
+      document.documentElement.style.setProperty('--accent-primary', hex);
+      const subtle = hexToRgba(hex, 0.12);
+      const border = hexToRgba(hex, 0.32);
+      document.documentElement.style.setProperty('--user-accent-subtle', subtle);
+      document.documentElement.style.setProperty('--user-accent-border', border);
+      document.documentElement.style.setProperty('--accent-subtle', subtle);
+      document.documentElement.style.setProperty('--accent-border', border);
+
+      const indicator = container.querySelector('#current-accent-indicator');
+      if (indicator) {
+        indicator.style.background = hex;
+        indicator.style.boxShadow = `0 0 8px ${hex}`;
+      }
+      container.querySelectorAll('.accent-swatch-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-color').toLowerCase() === hex.toLowerCase());
+      });
+      const pickerWrap = container.querySelector('.accent-color-picker-wrap');
+      if (pickerWrap) {
+        pickerWrap.classList.toggle('active', !ACCENT_COLORS.some(c => c.hex.toLowerCase() === hex.toLowerCase()));
+      }
+    };
+
+    container.querySelectorAll('.accent-swatch-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const hex = btn.getAttribute('data-color');
+        if (hex) applyAccent(hex);
+      });
+    });
+
+    container.querySelector('#accent-custom-picker')?.addEventListener('input', (e) => {
+      applyAccent(e.target.value);
+    });
+
+    // Live Blur Density updates
+    const applyBlur = (val) => {
+      const num = parseInt(val, 10);
+      const px = `${num}px`;
+      localStorage.setItem('ocal-blur-density', num);
+      document.documentElement.style.setProperty('--dock-blur-val', px);
+      document.documentElement.style.setProperty('--capsule-blur-val', px);
+
+      const display = container.querySelector('#blur-val-display');
+      if (display) display.textContent = px;
+
+      const slider = container.querySelector('#blur-range-slider');
+      if (slider) slider.value = num;
+
+      container.querySelectorAll('#blur-preset-chips .blur-chip-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.getAttribute('data-blur'), 10) === num);
+      });
+    };
+
+    container.querySelectorAll('.blur-chip-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const blur = btn.getAttribute('data-blur');
+        if (blur !== null) applyBlur(blur);
+      });
+    });
+
+    container.querySelector('#blur-range-slider')?.addEventListener('input', (e) => {
+      applyBlur(e.target.value);
     });
 
     container.querySelector('#toggle-shield-adblock')?.addEventListener('change', (e) => {
