@@ -2171,18 +2171,6 @@ export class InternalPages {
     const passwordsCount = PasswordManager.getPasswords().length;
     const aiKey = localStorage.getItem('ocal_ai_api_key') || '';
 
-    const ACCENT_COLORS = [
-      { name: 'Apple Blue', hex: '#0a84ff' },
-      { name: 'Emerald', hex: '#34c759' },
-      { name: 'Purple', hex: '#af52de' },
-      { name: 'Orange', hex: '#ff9500' },
-      { name: 'Rose', hex: '#ff2d55' },
-      { name: 'Cyan', hex: '#00c7be' },
-      { name: 'Indigo', hex: '#5856d6' },
-      { name: 'Gold', hex: '#f59e0b' },
-      { name: 'Midnight', hex: '#18181b' }
-    ];
-    const currentAccent = localStorage.getItem('ocal-accent-color') || '#0a84ff';
     const currentBlur = parseInt(localStorage.getItem('ocal-blur-density') ?? '24', 10);
 
     const SETTINGS_ICONS = {
@@ -2233,36 +2221,26 @@ export class InternalPages {
               </label>
             </div>
 
-            <!-- Theme Accent Color Customizer -->
-            <div style="padding: 12px 14px 10px; border-top: 0.5px solid var(--glass-border-subtle);">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <div class="apple-row-title" style="font-size:13.5px;">Theme Accent Color</div>
-                  <div class="apple-row-subtitle" style="font-size:11.5px; margin-top:1px;">Custom accent for buttons, badges & active tabs</div>
-                </div>
-                <div id="current-accent-indicator" style="width:16px; height:16px; border-radius:50%; background:${escapeHtml(currentAccent)}; box-shadow:0 0 8px ${escapeHtml(currentAccent)};"></div>
+            <!-- Glass Blur Master Toggle -->
+            <div class="apple-grouped-row" style="cursor:default; border-top: 0.5px solid var(--glass-border-subtle);">
+              <div class="apple-row-icon mono-item">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
               </div>
-              <div class="accent-swatches-grid" id="accent-swatches-container">
-                ${ACCENT_COLORS.map(c => `
-                  <button class="accent-swatch-btn ${currentAccent.toLowerCase() === c.hex.toLowerCase() ? 'active' : ''}" 
-                          data-color="${c.hex}" 
-                          style="background-color: ${c.hex};" 
-                          title="${c.name}"></button>
-                `).join('')}
-                <div class="accent-color-picker-wrap ${!ACCENT_COLORS.some(c => c.hex.toLowerCase() === currentAccent.toLowerCase()) ? 'active' : ''}" title="Custom Color">
-                  <input type="color" class="accent-color-picker-input" id="accent-custom-picker" value="${currentAccent.startsWith('#') ? currentAccent : '#0a84ff'}">
-                </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title">Glass Blur & Translucency</div>
+                <div class="apple-row-subtitle">Frosted glass on navigation, menus & drawers</div>
               </div>
+              <label class="toggle-switch" style="margin-left: auto;">
+                <input type="checkbox" id="blur-master-toggle" ${currentBlur > 0 ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
             </div>
 
-            <!-- URL Capsule & Bottom Dock Blur Density -->
-            <div style="padding: 12px 14px 14px; border-top: 0.5px solid var(--glass-border-subtle);">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <div class="apple-row-title" style="font-size:13.5px;">Dock & Capsule Glass Blur</div>
-                  <div class="apple-row-subtitle" style="font-size:11.5px; margin-top:1px;">Adjust frosted transparency on URL and footer</div>
-                </div>
-                <span class="blur-val-badge" id="blur-val-display">${currentBlur}px</span>
+            <!-- Glass Blur Density Presets & Slider -->
+            <div class="blur-control-card" style="border-top: 0.5px solid var(--glass-border-subtle);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+                <div class="apple-row-title" style="font-size:13px; font-weight:600;">Blur Intensity</div>
+                <span class="blur-val-badge" id="blur-val-display">${currentBlur === 0 ? 'Off (0px)' : currentBlur + 'px'}</span>
               </div>
               <div class="blur-preset-chips" id="blur-preset-chips">
                 <button class="blur-chip-btn ${currentBlur === 0 ? 'active' : ''}" data-blur="0">Off (0px)</button>
@@ -2272,7 +2250,10 @@ export class InternalPages {
                 <button class="blur-chip-btn ${currentBlur === 48 ? 'active' : ''}" data-blur="48">Ultra (48px)</button>
               </div>
               <div class="blur-slider-row">
-                <input type="range" class="blur-range-input" id="blur-range-slider" min="0" max="50" step="2" value="${currentBlur}">
+                <input type="range" class="blur-range-input" id="blur-range-slider" min="0" max="48" step="2" value="${currentBlur}">
+              </div>
+              <div style="font-size: 11px; color: var(--text-subtle); margin-top: 8px; line-height: 1.4;">
+                Adjusts blur across URL capsule, bottom dock, menu drawers, tab tray, and dialogs. Turning off renders clean solid surfaces.
               </div>
             </div>
           </div>
@@ -2611,73 +2592,51 @@ export class InternalPages {
     });
 
     // Helper to calculate rgba
-    const hexToRgba = (hex, alpha = 1) => {
-      let c = (hex || '').replace('#', '');
-      if (c.length === 3) c = c.split('').map(x => x + x).join('');
-      const num = parseInt(c, 16);
-      if (isNaN(num)) return `rgba(10, 132, 255, ${alpha})`;
-      const r = (num >> 16) & 255;
-      const g = (num >> 8) & 255;
-      const b = num & 255;
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    };
-
-    // Live Accent Theme Color updates
-    const applyAccent = (hex) => {
-      if (!hex) return;
-      localStorage.setItem('ocal-accent-color', hex);
-      document.documentElement.style.setProperty('--user-accent-color', hex);
-      document.documentElement.style.setProperty('--accent-primary', hex);
-      const subtle = hexToRgba(hex, 0.12);
-      const border = hexToRgba(hex, 0.32);
-      document.documentElement.style.setProperty('--user-accent-subtle', subtle);
-      document.documentElement.style.setProperty('--user-accent-border', border);
-      document.documentElement.style.setProperty('--accent-subtle', subtle);
-      document.documentElement.style.setProperty('--accent-border', border);
-
-      const indicator = container.querySelector('#current-accent-indicator');
-      if (indicator) {
-        indicator.style.background = hex;
-        indicator.style.boxShadow = `0 0 8px ${hex}`;
-      }
-      container.querySelectorAll('.accent-swatch-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-color').toLowerCase() === hex.toLowerCase());
-      });
-      const pickerWrap = container.querySelector('.accent-color-picker-wrap');
-      if (pickerWrap) {
-        pickerWrap.classList.toggle('active', !ACCENT_COLORS.some(c => c.hex.toLowerCase() === hex.toLowerCase()));
-      }
-    };
-
-    container.querySelectorAll('.accent-swatch-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const hex = btn.getAttribute('data-color');
-        if (hex) applyAccent(hex);
-      });
-    });
-
-    container.querySelector('#accent-custom-picker')?.addEventListener('input', (e) => {
-      applyAccent(e.target.value);
-    });
-
-    // Live Blur Density updates
+    // Live Blur Density & Global Glass Blur updates
     const applyBlur = (val) => {
-      const num = parseInt(val, 10);
+      const num = Math.max(0, parseInt(val, 10) || 0);
       const px = `${num}px`;
       localStorage.setItem('ocal-blur-density', num);
+      localStorage.setItem('ocal-blur-enabled', num > 0 ? 'true' : 'false');
+
+      // Update global CSS variables on :root
+      document.documentElement.style.setProperty('--app-blur-val', px);
       document.documentElement.style.setProperty('--dock-blur-val', px);
       document.documentElement.style.setProperty('--capsule-blur-val', px);
+      document.documentElement.style.setProperty('--sheet-blur-val', px);
+      document.documentElement.style.setProperty('--popover-blur-val', px);
 
+      // Toggle solid mode vs glass blur mode across whole app
+      if (num === 0) {
+        document.documentElement.classList.add('glass-blur-disabled');
+        document.documentElement.setAttribute('data-blur', '0');
+      } else {
+        document.documentElement.classList.remove('glass-blur-disabled');
+        document.documentElement.removeAttribute('data-blur');
+      }
+
+      // Update UI in settings
       const display = container.querySelector('#blur-val-display');
-      if (display) display.textContent = px;
+      if (display) display.textContent = num === 0 ? 'Off (0px)' : px;
 
       const slider = container.querySelector('#blur-range-slider');
       if (slider) slider.value = num;
+
+      const masterToggle = container.querySelector('#blur-master-toggle');
+      if (masterToggle) masterToggle.checked = num > 0;
 
       container.querySelectorAll('#blur-preset-chips .blur-chip-btn').forEach(btn => {
         btn.classList.toggle('active', parseInt(btn.getAttribute('data-blur'), 10) === num);
       });
     };
+
+    container.querySelector('#blur-master-toggle')?.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        applyBlur(24);
+      } else {
+        applyBlur(0);
+      }
+    });
 
     container.querySelectorAll('.blur-chip-btn').forEach(btn => {
       btn.addEventListener('click', () => {

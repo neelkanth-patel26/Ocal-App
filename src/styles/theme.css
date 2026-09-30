@@ -42,7 +42,7 @@
   --tabs-tray-bg: rgba(255, 255, 255, 0.82);
   --tabs-card-bg: rgba(255, 255, 255, 0.92);
   --tabs-card-border: rgba(0, 0, 0, 0.08);
-  --tabs-card-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  --tabs-card-shadow: none;
   --tabs-search-bg: rgba(0, 0, 0, 0.05);
 
   /* Sheet Modals (Frosted Glass) */
@@ -64,16 +64,18 @@
   --text-subtle: #8e8e93;
   --wordmark-color: #000000;
 
-  /* Accents & Dynamic Customization */
-  --user-accent-color: #0a84ff;
-  --accent-primary: var(--user-accent-color, #0a84ff);
-  --accent-primary-hover: var(--user-accent-hover, #0071e3);
-  --accent-subtle: var(--user-accent-subtle, rgba(10, 132, 255, 0.12));
-  --accent-border: var(--user-accent-border, rgba(10, 132, 255, 0.32));
+  /* Accent Colors */
+  --accent-primary: #0a84ff;
+  --accent-primary-hover: #0071e3;
+  --accent-subtle: rgba(10, 132, 255, 0.12);
+  --accent-border: rgba(10, 132, 255, 0.32);
 
-  /* Glass Blur Density */
-  --dock-blur-val: 28px;
-  --capsule-blur-val: 24px;
+  /* Global Glass Blur Density */
+  --app-blur-val: 24px;
+  --dock-blur-val: var(--app-blur-val, 28px);
+  --capsule-blur-val: var(--app-blur-val, 24px);
+  --sheet-blur-val: var(--app-blur-val, 28px);
+  --popover-blur-val: var(--app-blur-val, 28px);
 
   --apple-blue: #0a84ff;
   --apple-green: #34c759;
@@ -139,7 +141,7 @@
   --tabs-tray-bg: rgba(20, 20, 24, 0.88);
   --tabs-card-bg: rgba(30, 30, 34, 0.94);
   --tabs-card-border: rgba(255, 255, 255, 0.12);
-  --tabs-card-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  --tabs-card-shadow: none;
   --tabs-search-bg: rgba(255, 255, 255, 0.08);
 
   --sheet-bg: rgba(24, 24, 28, 0.92);

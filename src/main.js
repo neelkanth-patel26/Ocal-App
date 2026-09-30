@@ -30,29 +30,23 @@ class OcalMobileApp {
     document.documentElement.setAttribute('data-theme', savedTheme);
     this.updateStatusBarTheme(savedTheme === 'dark');
 
-    // 1b. Load custom accent color & glass blur density
-    const savedAccent = localStorage.getItem('ocal-accent-color');
-    if (savedAccent) {
-      document.documentElement.style.setProperty('--user-accent-color', savedAccent);
-      document.documentElement.style.setProperty('--accent-primary', savedAccent);
-      const hex = savedAccent.replace('#', '');
-      const num = parseInt(hex.length === 3 ? hex.split('').map(x => x + x).join('') : hex, 16);
-      if (!isNaN(num)) {
-        const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
-        const subtle = `rgba(${r}, ${g}, ${b}, 0.12)`;
-        const border = `rgba(${r}, ${g}, ${b}, 0.32)`;
-        document.documentElement.style.setProperty('--user-accent-subtle', subtle);
-        document.documentElement.style.setProperty('--user-accent-border', border);
-        document.documentElement.style.setProperty('--accent-subtle', subtle);
-        document.documentElement.style.setProperty('--accent-border', border);
-      }
-    }
-
+    // 1b. Load glass blur density & global translucency
+    localStorage.removeItem('ocal-accent-color');
     const savedBlur = localStorage.getItem('ocal-blur-density');
-    if (savedBlur !== null && savedBlur !== undefined) {
-      const px = `${parseInt(savedBlur, 10)}px`;
-      document.documentElement.style.setProperty('--dock-blur-val', px);
-      document.documentElement.style.setProperty('--capsule-blur-val', px);
+    const blurNum = savedBlur !== null ? Math.max(0, parseInt(savedBlur, 10)) : 24;
+    const px = `${blurNum}px`;
+    document.documentElement.style.setProperty('--app-blur-val', px);
+    document.documentElement.style.setProperty('--dock-blur-val', px);
+    document.documentElement.style.setProperty('--capsule-blur-val', px);
+    document.documentElement.style.setProperty('--sheet-blur-val', px);
+    document.documentElement.style.setProperty('--popover-blur-val', px);
+
+    if (blurNum === 0) {
+      document.documentElement.classList.add('glass-blur-disabled');
+      document.documentElement.setAttribute('data-blur', '0');
+    } else {
+      document.documentElement.classList.remove('glass-blur-disabled');
+      document.documentElement.removeAttribute('data-blur');
     }
 
     // 2. Initialize CyberShield
