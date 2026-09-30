@@ -870,17 +870,20 @@ class OcalMobileApp {
     const activeTab = this.tabManager.getActiveTab();
     const isDesktop = activeTab ? activeTab.isDesktop : false;
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const currentUrl = activeTab?.url || '';
+    const isInternal = currentUrl.startsWith('ocal://');
 
     const MENU_ICONS = {
       bookmark: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
       history: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
       games: `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="4"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="15" cy="11" r="1" fill="currentColor"/><circle cx="18" cy="13" r="1" fill="currentColor"/></svg>`,
       shield: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>`,
+      share: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`,
+      incognito: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10s3-4 10-4 10 4 10 4"/><circle cx="7" cy="15" r="3"/><circle cx="17" cy="15" r="3"/><path d="m14 15-4 0"/></svg>`,
       download: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
       key: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-1.5 1.5L16 7l4 4 1.5-1.5a4.95 4.95 0 0 0 0-7z"/><path d="M15 8 8.9 14.1a3 3 0 1 0 4.2 4.2L16 15l-3-3 2-2"/></svg>`,
       sync: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
       copilot: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg>`,
-      dine: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`,
       desktop: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
       theme: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>`,
       reload: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>`,
@@ -927,8 +930,55 @@ class OcalMobileApp {
             </div>
           </div>
 
-          <!-- Unified Inset Grouped Section (Monochrome Styling) -->
-          <div class="apple-grouped-table" style="margin-top: 6px;">
+          <!-- Section 1: Page & Navigation Actions -->
+          <div class="apple-grouped-table" style="margin-top: 4px;">
+            <div class="apple-grouped-row" id="menu-share-row">
+              <div class="apple-row-icon mono-item">
+                ${MENU_ICONS.share}
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title">Share Page</div>
+                <div class="apple-row-subtitle">${isInternal ? 'Share Ocal Browser' : (activeTab?.title || 'Send or copy link')}</div>
+              </div>
+              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
+            </div>
+            <div class="apple-grouped-row" id="menu-incognito-row">
+              <div class="apple-row-icon mono-item">
+                ${MENU_ICONS.incognito}
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title">New Private Tab</div>
+                <div class="apple-row-subtitle">Private browsing with zero history</div>
+              </div>
+              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
+            </div>
+            <div class="apple-grouped-row" id="menu-reload-row">
+              <div class="apple-row-icon mono-item">
+                ${MENU_ICONS.reload}
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title">Reload Page</div>
+                <div class="apple-row-subtitle">Refresh current web page</div>
+              </div>
+              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
+            </div>
+            <div class="apple-grouped-row" style="cursor: default;">
+              <div class="apple-row-icon mono-item">
+                ${MENU_ICONS.desktop}
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title">Desktop Website</div>
+                <div class="apple-row-subtitle">Request desktop version of site</div>
+              </div>
+              <label class="toggle-switch" style="margin-left: auto;">
+                <input type="checkbox" id="toggle-desktop-site" ${isDesktop ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Section 2: Tools & Storage -->
+          <div class="apple-grouped-table" style="margin-top: 10px;">
             <div class="apple-grouped-row" id="menu-copilot-row">
               <div class="apple-row-icon mono-copilot">
                 ${MENU_ICONS.copilot}
@@ -969,29 +1019,10 @@ class OcalMobileApp {
               </div>
               <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
             </div>
-            <div class="apple-grouped-row" id="menu-reload-row">
-              <div class="apple-row-icon mono-item">
-                ${MENU_ICONS.reload}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">Reload Page</div>
-                <div class="apple-row-subtitle">Refresh current web page</div>
-              </div>
-              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
-            </div>
-            <div class="apple-grouped-row" style="cursor: default;">
-              <div class="apple-row-icon mono-item">
-                ${MENU_ICONS.desktop}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">Desktop Website</div>
-                <div class="apple-row-subtitle">Request desktop version of site</div>
-              </div>
-              <label class="toggle-switch" style="margin-left: auto;">
-                <input type="checkbox" id="toggle-desktop-site" ${isDesktop ? 'checked' : ''}>
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
+          </div>
+
+          <!-- Section 3: Appearance & Preferences -->
+          <div class="apple-grouped-table" style="margin-top: 10px;">
             <div class="apple-grouped-row" id="menu-theme-row">
               <div class="apple-row-icon mono-item">
                 ${MENU_ICONS.theme}
@@ -1008,7 +1039,7 @@ class OcalMobileApp {
               </div>
               <div class="apple-row-content">
                 <div class="apple-row-title">Settings</div>
-                <div class="apple-row-subtitle">Search engine, privacy & data</div>
+                <div class="apple-row-subtitle">Search engine, privacy &amp; data</div>
               </div>
               <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
             </div>
@@ -1026,6 +1057,7 @@ class OcalMobileApp {
         e.stopPropagation();
         this.closeAllSheets();
       }, { passive: false });
+
       sheet.querySelector('#menu-bookmarks')?.addEventListener('click', () => {
         this.closeAllSheets();
         this.tabManager.navigateTab(this.tabManager.activeTabId, 'ocal://bookmarks');
@@ -1041,6 +1073,19 @@ class OcalMobileApp {
       sheet.querySelector('#menu-shield')?.addEventListener('click', () => {
         this.closeAllSheets();
         this.openCyberShieldSheet();
+      });
+
+      sheet.querySelector('#menu-share-row')?.addEventListener('click', () => {
+        this.closeAllSheets();
+        if (activeTab) {
+          const shareTitle = activeTab.title || 'Ocal Browser';
+          const shareUrl = activeTab.url && !activeTab.url.startsWith('ocal://') ? activeTab.url : 'https://ocal.dev';
+          this.shareContent(shareTitle, shareUrl);
+        }
+      });
+      sheet.querySelector('#menu-incognito-row')?.addEventListener('click', () => {
+        this.closeAllSheets();
+        this.tabManager.createTab('ocal://home', true);
       });
       sheet.querySelector('#menu-copilot-row')?.addEventListener('click', () => {
         this.closeAllSheets();
