@@ -115,6 +115,7 @@ public class MainActivity extends BridgeActivity {
     private boolean isDesktopModeEnabled = false;
     private volatile boolean isAdBlockerEnabled = true;
     private volatile int currentSiteBlockedCount = 0;
+    private volatile boolean isDarkModeEnabled = true;
 
     private static final java.util.Set<String> AD_DOMAINS = new java.util.HashSet<>(java.util.Arrays.asList(
         "doubleclick.net", "googlesyndication.com", "googleadservices.com", "adservice.google.com",
@@ -568,6 +569,110 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
+    public void updateSearchEngineThemeCookies(boolean isDark) {
+        try {
+            CookieManager cm = CookieManager.getInstance();
+            cm.setAcceptCookie(true);
+            if (nativeWebBrowser != null) {
+                cm.setAcceptThirdPartyCookies(nativeWebBrowser, true);
+            }
+            // Google Search PREF cookie (f6=400 enables dark theme on Google)
+            cm.setCookie("https://www.google.com", isDark ? "PREF=f6=400; path=/; domain=.google.com" : "PREF=f6=0; path=/; domain=.google.com");
+            cm.setCookie("https://google.com", isDark ? "PREF=f6=400; path=/; domain=.google.com" : "PREF=f6=0; path=/; domain=.google.com");
+            // DuckDuckGo kae cookie (kae=d enables dark theme, kae=-1 light)
+            cm.setCookie("https://duckduckgo.com", isDark ? "kae=d; path=/; domain=.duckduckgo.com" : "kae=-1; path=/; domain=.duckduckgo.com");
+            // Bing b_drk cookie (b_drk=1 enables dark theme)
+            cm.setCookie("https://www.bing.com", isDark ? "b_drk=1; path=/; domain=.bing.com" : "b_drk=0; path=/; domain=.bing.com");
+            // Twitter/X night_mode cookie
+            cm.setCookie("https://x.com", isDark ? "night_mode=1; path=/; domain=.x.com" : "night_mode=0; path=/; domain=.x.com");
+            cm.flush();
+        } catch (Throwable ignored) {}
+    }
+
+    public void evaluatePageThemeScript(WebView view, boolean isDark) {
+        if (view == null) return;
+        view.post(() -> {
+            try {
+                String js = 
+                    "(function() { " +
+                    "  try { " +
+                    "    var isDark = " + (isDark ? "true" : "false") + "; " +
+                    "    var docEl = document.documentElement; " +
+                    "    if (!docEl) return; " +
+                    "    var meta = document.querySelector('meta[name=\"color-scheme\"]'); " +
+                    "    if (!meta) { " +
+                    "      meta = document.createElement('meta'); " +
+                    "      meta.name = 'color-scheme'; " +
+                    "      (document.head || docEl).appendChild(meta); " +
+                    "    } " +
+                    "    meta.content = isDark ? 'dark light' : 'light dark'; " +
+                    "    var styleEl = document.getElementById('__ocal_theme_override'); " +
+                    "    if (!styleEl) { " +
+                    "      styleEl = document.createElement('style'); " +
+                    "      styleEl.id = '__ocal_theme_override'; " +
+                    "      (document.head || docEl).appendChild(styleEl); " +
+                    "    } " +
+                    "    styleEl.textContent = isDark ? ':root { color-scheme: dark !important; }' : ':root { color-scheme: light !important; }'; " +
+                    "    if (!window.__ocalMatchMediaOverridden) { " +
+                    "      window.__ocalMatchMediaOverridden = true; " +
+                    "      window.__ocalMediaListeners = new Set(); " +
+                    "      var origMM = window.matchMedia; " +
+                    "      window.matchMedia = function(q) { " +
+                    "        if (!q) return origMM.call(window, q); " +
+                    "        var qStr = String(q).toLowerCase(); " +
+                    "        if (qStr.indexOf('prefers-color-scheme') !== -1) { " +
+                    "          var match = qStr.indexOf('dark') !== -1 ? isDark : !isDark; " +
+                    "          return { " +
+                    "            matches: match, media: q, onchange: null, " +
+                    "            addListener: function(fn) { window.__ocalMediaListeners.add(fn); }, " +
+                    "            removeListener: function(fn) { window.__ocalMediaListeners.delete(fn); }, " +
+                    "            addEventListener: function(t, fn) { if (t === 'change') window.__ocalMediaListeners.add(fn); }, " +
+                    "            removeEventListener: function(t, fn) { if (t === 'change') window.__ocalMediaListeners.delete(fn); }, " +
+                    "            dispatchEvent: function() { return true; } " +
+                    "          }; " +
+                    "        } " +
+                    "        return origMM.call(window, q); " +
+                    "      }; " +
+                    "    } " +
+                    "    var host = (window.location && window.location.hostname) ? window.location.hostname.toLowerCase() : ''; " +
+                    "    if (host.indexOf('duckduckgo.com') !== -1) { " +
+                    "      try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch(e){} " +
+                    "      if (isDark) { docEl.classList.add('dark-bg', 'theme-dark'); if (document.body) document.body.classList.add('dark-bg', 'theme-dark'); } " +
+                    "      else { docEl.classList.remove('dark-bg', 'theme-dark'); if (document.body) document.body.classList.remove('dark-bg', 'theme-dark'); } " +
+                    "    } " +
+                    "    if (host.indexOf('google.') !== -1) { " +
+                    "      if (isDark) { docEl.classList.add('darkmode'); if (document.body) document.body.classList.add('darkmode'); docEl.setAttribute('data-darkmode', 'true'); } " +
+                    "      else { docEl.classList.remove('darkmode'); if (document.body) document.body.classList.remove('darkmode'); docEl.removeAttribute('data-darkmode'); } " +
+                    "    } " +
+                    "    if (host.indexOf('bing.com') !== -1) { " +
+                    "      if (isDark) { if (document.body) document.body.classList.add('b_dark'); } " +
+                    "      else { if (document.body) document.body.classList.remove('b_dark'); } " +
+                    "    } " +
+                    "    if (host.indexOf('wikipedia.org') !== -1) { " +
+                    "      try { localStorage.setItem('skin-client-pref-vector-night-mode', isDark ? 'night' : 'day'); } catch(e){} " +
+                    "      if (isDark) { docEl.classList.add('skin-theme-clientpref-night'); docEl.classList.remove('skin-theme-clientpref-day'); } " +
+                    "      else { docEl.classList.add('skin-theme-clientpref-day'); docEl.classList.remove('skin-theme-clientpref-night'); } " +
+                    "    } " +
+                    "    if (host.indexOf('github.com') !== -1) { " +
+                    "      docEl.setAttribute('data-color-mode', isDark ? 'dark' : 'light'); " +
+                    "      docEl.setAttribute('data-dark-theme', 'dark'); docEl.setAttribute('data-light-theme', 'light'); " +
+                    "    } " +
+                    "    if (host.indexOf('youtube.com') !== -1) { " +
+                    "      if (isDark) { docEl.setAttribute('dark', 'true'); } else { docEl.removeAttribute('dark'); } " +
+                    "    } " +
+                    "    if (docEl.hasAttribute('data-theme')) docEl.setAttribute('data-theme', isDark ? 'dark' : 'light'); " +
+                    "    if (docEl.hasAttribute('data-bs-theme')) docEl.setAttribute('data-bs-theme', isDark ? 'dark' : 'light'); " +
+                    "    if (docEl.hasAttribute('theme')) docEl.setAttribute('theme', isDark ? 'dark' : 'light'); " +
+                    "    if (window.__ocalMediaListeners && window.__ocalMediaListeners.size > 0) { " +
+                    "      window.__ocalMediaListeners.forEach(function(l) { try { l({ matches: isDark, media: '(prefers-color-scheme: dark)' }); } catch(e){} }); " +
+                    "    } " +
+                    "  } catch(err) {} " +
+                    "})()";
+                view.evaluateJavascript(js, null);
+            } catch (Throwable ignored) {}
+        });
+    }
+
     @Override
     protected void load() {
         super.load();
@@ -661,6 +766,18 @@ public class MainActivity extends BridgeActivity {
                 s.setAllowContentAccess(true);
                 s.setGeolocationEnabled(true);
 
+                if (android.os.Build.VERSION.SDK_INT >= 29) {
+                    try {
+                        s.setForceDark(isDarkModeEnabled ? WebSettings.FORCE_DARK_ON : WebSettings.FORCE_DARK_OFF);
+                    } catch (Throwable ignored) {}
+                }
+                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    try {
+                        s.setAlgorithmicDarkeningAllowed(isDarkModeEnabled);
+                    } catch (Throwable ignored) {}
+                }
+                updateSearchEngineThemeCookies(isDarkModeEnabled);
+
                 String defaultUa = s.getUserAgentString();
                 if (defaultUa != null) {
                     String cleanUa = defaultUa.replace("; wv", "").replaceAll("Version/\\d+\\.\\d+\\s*", "");
@@ -691,6 +808,8 @@ public class MainActivity extends BridgeActivity {
                         super.onPageStarted(view, url, favicon);
                         cachedCanGoBack = view.canGoBack();
                         cachedCanGoForward = view.canGoForward();
+                        updateSearchEngineThemeCookies(isDarkModeEnabled);
+                        evaluatePageThemeScript(view, isDarkModeEnabled);
                         if (!isNavigatingBack) {
                             if (lastRenderedPageSnapshot != null && !lastRenderedPageSnapshot.isRecycled()
                                 && lastRenderedPageUrl != null && !lastRenderedPageUrl.equals(url)) {
@@ -715,6 +834,7 @@ public class MainActivity extends BridgeActivity {
                         super.onPageCommitVisible(view, url);
                         cachedCanGoBack = view.canGoBack();
                         cachedCanGoForward = view.canGoForward();
+                        evaluatePageThemeScript(view, isDarkModeEnabled);
                         if (isCommitSlideAnimating) {
                             pageCommittedDuringSlide = true;
                         } else {
@@ -733,6 +853,7 @@ public class MainActivity extends BridgeActivity {
                             pageCommittedDuringSlide = true;
                         }
                         notifyWebEvent("PAGE_FINISHED", url, view.getTitle());
+                        evaluatePageThemeScript(view, isDarkModeEnabled);
                         view.evaluateJavascript(
                             "(function() { " +
                             "  if (!document.getElementById('ocal-dock-padding')) { " +
@@ -1304,11 +1425,41 @@ public class MainActivity extends BridgeActivity {
         }
 
         @JavascriptInterface
+        public void setDarkMode(boolean isDark) {
+            runOnUiThread(() -> {
+                try {
+                    isDarkModeEnabled = isDark;
+                    updateSearchEngineThemeCookies(isDark);
+                    if (nativeWebBrowser != null) {
+                        WebSettings s = nativeWebBrowser.getSettings();
+                        if (android.os.Build.VERSION.SDK_INT >= 29) {
+                            try {
+                                s.setForceDark(isDark ? WebSettings.FORCE_DARK_ON : WebSettings.FORCE_DARK_OFF);
+                            } catch (Throwable ignored) {}
+                        }
+                        if (android.os.Build.VERSION.SDK_INT >= 33) {
+                            try {
+                                s.setAlgorithmicDarkeningAllowed(isDark);
+                            } catch (Throwable ignored) {}
+                        }
+                        evaluatePageThemeScript(nativeWebBrowser, isDark);
+                    }
+                } catch (Throwable ignored) {}
+            });
+        }
+
+        @JavascriptInterface
         public void openUrl(String url) {
             runOnUiThread(() -> {
                 try {
                     if (nativeWebBrowser != null && url != null && !url.isEmpty()) {
                         String target = url.trim();
+                        if (target.contains("duckduckgo.com") && !target.contains("kae=")) {
+                            target = target + (target.contains("?") ? "&" : "?") + (isDarkModeEnabled ? "kae=d" : "kae=-1");
+                        } else if (target.contains("google.") && target.contains("/search") && !target.contains("cs=")) {
+                            target = target + "&cs=" + (isDarkModeEnabled ? "1" : "0");
+                        }
+                        updateSearchEngineThemeCookies(isDarkModeEnabled);
                         updateBrowserMargins();
                         if (bridge != null && bridge.getWebView() != null && bridge.getWebView().getWidth() > 0) {
                             try {

@@ -106,58 +106,61 @@
 }
 
 [data-theme="dark"] {
-  --bg-main: #121214;
-  --bg-surface: #1a1a1e;
-  --bg-elevated: #26262b;
-  --bg-secondary: #2c2c32;
-  --bg-hover: rgba(255, 255, 255, 0.08);
-  --bg-active: rgba(255, 255, 255, 0.12);
-  --bg-input: #202024;
+  --bg-main: #000000;
+  --bg-surface: #121214;
+  --bg-elevated: #18181b;
+  --bg-secondary: #222226;
+  --bg-hover: rgba(255, 255, 255, 0.06);
+  --bg-active: rgba(255, 255, 255, 0.10);
+  --bg-input: #161618;
 
-  --glass-bg: rgba(24, 24, 28, 0.94);
-  --glass-border: rgba(255, 255, 255, 0.10);
-  --glass-border-subtle: rgba(255, 255, 255, 0.06);
-  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  --glass-bg: rgba(16, 16, 18, 0.96);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-subtle: rgba(255, 255, 255, 0.05);
+  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.8);
 
-  --capsule-bg: rgba(30, 30, 34, 0.84);
-  --capsule-border: rgba(255, 255, 255, 0.14);
-  --capsule-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  --capsule-bg: #161618;
+  --capsule-border: rgba(255, 255, 255, 0.08);
+  --capsule-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
   --capsule-text: #ffffff;
-  --capsule-muted: #9e9ea7;
+  --capsule-muted: #8e8e93;
 
-  --nav-bar-bg: rgba(20, 20, 24, 0.86);
-  --nav-bar-border: rgba(255, 255, 255, 0.08);
+  --nav-bar-bg: #000000;
+  --nav-bar-border: rgba(255, 255, 255, 0.05);
   --nav-icon-color: #ffffff;
-  --nav-icon-muted: #9e9ea7;
+  --nav-icon-muted: #71717a;
 
-  --popover-bg: rgba(28, 28, 32, 0.92);
-  --popover-border: rgba(255, 255, 255, 0.12);
-  --popover-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+  --popover-bg: #121214;
+  --popover-border: rgba(255, 255, 255, 0.08);
+  --popover-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);
   --popover-text: #ffffff;
-  --popover-muted: #9e9ea7;
-  --popover-inset-bg: rgba(18, 18, 22, 0.88);
+  --popover-muted: #8e8e93;
+  --popover-inset-bg: #18181b;
   --popover-inset-border: rgba(255, 255, 255, 0.06);
 
-  --tabs-tray-bg: rgba(20, 20, 24, 0.88);
-  --tabs-card-bg: rgba(30, 30, 34, 0.94);
-  --tabs-card-border: rgba(255, 255, 255, 0.12);
+  --tabs-tray-bg: #000000;
+  --tabs-card-bg: #141416;
+  --tabs-card-border: rgba(255, 255, 255, 0.08);
   --tabs-card-shadow: none;
-  --tabs-search-bg: rgba(255, 255, 255, 0.08);
+  --tabs-search-bg: #18181b;
 
-  --sheet-bg: rgba(24, 24, 28, 0.92);
-  --sheet-border: rgba(255, 255, 255, 0.10);
-  --sheet-card-bg: rgba(255, 255, 255, 0.06);
-  --sheet-card-border: rgba(255, 255, 255, 0.08);
-  --sheet-card-hover: rgba(255, 255, 255, 0.10);
+  --sheet-bg: #121214;
+  --sheet-border: rgba(255, 255, 255, 0.08);
+  --sheet-card-bg: #18181b;
+  --sheet-card-border: rgba(255, 255, 255, 0.06);
+  --sheet-card-hover: #222226;
   --handle-color: rgba(255, 255, 255, 0.25);
 
   /* Subpages (Apple Settings Dark Inset Grouped) */
-  --subpage-bg: #121214;
-  --subpage-card-bg: #1c1c1e;
-  --subpage-card-border: rgba(255, 255, 255, 0.08);
+  --subpage-bg: #000000;
+  --subpage-card-bg: #121214;
+  --subpage-card-border: rgba(255, 255, 255, 0.06);
 
   --text-main: #ffffff;
   --text-muted: #a1a1aa;
   --text-subtle: #71717a;
   --wordmark-color: #ffffff;
+
+  --status-success: #00d665;
+  --apple-green: #00d665;
 }

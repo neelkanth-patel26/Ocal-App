@@ -70,12 +70,16 @@ export class CyberShield {
       <!-- Protection Toggles Grouped Table (Pure Monochrome Style) -->
       <div class="apple-grouped-table" style="margin-top: 12px;">
         <div class="apple-grouped-row" style="cursor: default;">
-          <div class="apple-row-icon mono-copilot" style="font-weight:800; font-size:11px; font-family:var(--font-sans); letter-spacing:-0.5px;">
-            uBO
+          <div class="apple-row-icon mono-item">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9.5" stroke="#ffffff" stroke-width="1.8"/>
+              <text x="12" y="15" text-anchor="middle" font-size="8.5" font-weight="800" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, sans-serif" letter-spacing="-0.5px">AD</text>
+              <line x1="4.5" y1="4.5" x2="19.5" y2="19.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
           </div>
           <div class="apple-row-content">
-            <div class="apple-row-title">uBlock Origin Ad Blocker</div>
-            <div class="apple-row-subtitle">Static network filtering & cosmetic element hiding</div>
+            <div class="apple-row-title">AD Blocker</div>
+            <div class="apple-row-subtitle">uBlock Origin network filter &amp; cosmetic hiding</div>
           </div>
           <label class="toggle-switch" style="margin-left: auto;">
             <input type="checkbox" id="toggle-shield-adblock" ${isAdBlock ? 'checked' : ''}>

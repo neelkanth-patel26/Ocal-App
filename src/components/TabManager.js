@@ -160,6 +160,11 @@ export class TabManager {
     if (this.onTabChanged) this.onTabChanged(tab);
   }
 
+  isDarkMode() {
+    const theme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('ocal-theme') || 'dark';
+    return theme === 'dark';
+  }
+
   getActiveTab() {
     return this.tabs.find(t => t.id === this.activeTabId) || null;
   }
@@ -196,11 +201,21 @@ export class TabManager {
         }
       } else {
         // Search query
+        const isDark = this.isDarkMode();
         const engine = localStorage.getItem('ocal-engine') || 'Google';
-        if (engine === 'DuckDuckGo') targetUrl = `https://duckduckgo.com/?q=${encodeURIComponent(targetUrl)}`;
-        else if (engine === 'Bing') targetUrl = `https://www.bing.com/search?q=${encodeURIComponent(targetUrl)}`;
-        else if (engine === 'Brave') targetUrl = `https://search.brave.com/search?q=${encodeURIComponent(targetUrl)}`;
-        else targetUrl = `https://www.google.com/search?q=${encodeURIComponent(targetUrl)}`;
+        if (engine === 'DuckDuckGo') {
+          targetUrl = `https://duckduckgo.com/?q=${encodeURIComponent(targetUrl)}&kae=${isDark ? 'd' : '-1'}`;
+        } else if (engine === 'Bing') {
+          targetUrl = `https://www.bing.com/search?q=${encodeURIComponent(targetUrl)}`;
+        } else if (engine === 'Brave') {
+          targetUrl = `https://search.brave.com/search?q=${encodeURIComponent(targetUrl)}`;
+        } else if (engine === 'Yahoo') {
+          targetUrl = `https://search.yahoo.com/search?p=${encodeURIComponent(targetUrl)}`;
+        } else if (engine === 'Ecosia') {
+          targetUrl = `https://www.ecosia.org/search?q=${encodeURIComponent(targetUrl)}`;
+        } else {
+          targetUrl = `https://www.google.com/search?q=${encodeURIComponent(targetUrl)}&cs=${isDark ? '1' : '0'}`;
+        }
       }
     }
 
@@ -280,6 +295,9 @@ export class TabManager {
           if (typeof window.OcalNative.setDesktopMode === 'function') {
             window.OcalNative.setDesktopMode(!!tab.isDesktop, false);
           }
+          if (typeof window.OcalNative.setDarkMode === 'function') {
+            window.OcalNative.setDarkMode(this.isDarkMode());
+          }
           window.OcalNative.setWebVisible(true);
           window.OcalNative.openUrl(targetUrl);
         }
@@ -338,8 +356,10 @@ export class TabManager {
       iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads');
       iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
       
+      const isDark = this.isDarkMode();
       const desktopParam = tab.isDesktop ? '&desktop=true' : '';
-      iframe.src = `/api/proxy?url=${encodeURIComponent(targetUrl)}${desktopParam}`;
+      const darkParam = `&dark=${isDark ? 'true' : 'false'}`;
+      iframe.src = `/api/proxy?url=${encodeURIComponent(targetUrl)}${desktopParam}${darkParam}`;
       
       let loadFinished = false;
       const removeLoader = () => {
@@ -359,6 +379,9 @@ export class TabManager {
       iframe.onload = () => {
         clearTimeout(timeoutId);
         removeLoader();
+        try {
+          iframe.contentWindow?.postMessage({ type: 'OCAL_SET_THEME', isDark: this.isDarkMode() }, '*');
+        } catch (e) {}
       };
 
       iframe.onerror = () => {
@@ -371,6 +394,19 @@ export class TabManager {
       tab.title = host;
       if (this.onTabChanged && tab.id === this.activeTabId) this.onTabChanged(tab);
     }
+  }
+
+  syncThemeToTabs(isDark) {
+    if (window.OcalNative && typeof window.OcalNative.setDarkMode === 'function') {
+      window.OcalNative.setDarkMode(isDark);
+    }
+    this.tabs.forEach(tab => {
+      if (tab.frameEl && tab.frameEl.tagName === 'IFRAME') {
+        try {
+          tab.frameEl.contentWindow?.postMessage({ type: 'OCAL_SET_THEME', isDark }, '*');
+        } catch (e) {}
+      }
+    });
   }
 
   showTabError(tab, failedUrl) {

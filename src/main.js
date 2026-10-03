@@ -25,8 +25,8 @@ class OcalMobileApp {
   }
 
   init() {
-    // 1. Initialize Theme (Light by default to match reference mockups)
-    const savedTheme = localStorage.getItem('ocal-theme') || 'light';
+    // 1. Initialize Theme (Deep Black Dark Mode by default)
+    const savedTheme = localStorage.getItem('ocal-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     this.updateStatusBarTheme(savedTheme === 'dark');
 
@@ -125,6 +125,7 @@ class OcalMobileApp {
     });
 
     this.tabManager.init();
+    this.tabManager.syncThemeToTabs(savedTheme === 'dark');
 
     // 4. Initialize AI Copilot Drawer
     const copilotSheet = document.getElementById('copilot-sheet');
@@ -907,7 +908,9 @@ class OcalMobileApp {
     const sheet = document.getElementById('menu-sheet');
     const activeTab = this.tabManager.getActiveTab();
     const isDesktop = activeTab ? activeTab.isDesktop : false;
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const isIncognito = activeTab ? Boolean(activeTab.isIncognito) : false;
+    const isAdBlockActive = this.cyberShield ? Boolean(this.cyberShield.settings?.adBlocker) : true;
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     const currentUrl = activeTab?.url || '';
     const isInternal = currentUrl.startsWith('ocal://');
 
@@ -965,6 +968,64 @@ class OcalMobileApp {
                 ${MENU_ICONS.shield}
               </div>
               <span class="apple-menu-label">CyberShield</span>
+            </div>
+          </div>
+
+          <!-- Core Features Section (Image 2 Reference Style: Private, AD Blocker, AI Power) -->
+          <div class="apple-grouped-table" style="margin-top: 2px; margin-bottom: 12px;">
+            <div class="apple-grouped-row" id="menu-quick-private-row">
+              <div class="apple-row-icon mono-item" style="background-color: #18181b;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 3H4C2.9 3 2 3.9 2 5v10c0 1.1.9 2 2 2h3v4l4.5-4H20c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" fill="#ffffff"/>
+                  <rect x="9" y="9.5" width="6" height="5" rx="1.2" fill="#18181b"/>
+                  <path d="M10.2 9.5V7.8a1.8 1.8 0 0 1 3.6 0v1.7" stroke="#18181b" stroke-width="1.5" fill="none"/>
+                  <circle cx="12" cy="12" r="0.75" fill="#ffffff"/>
+                </svg>
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title" style="font-size: 15.5px; font-weight: 600;">Private</div>
+              </div>
+              <div class="status-check-badge ${isIncognito ? '' : 'inactive'}" id="badge-quick-private" title="Private Mode">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+            </div>
+
+            <div class="apple-grouped-row" id="menu-quick-adblock-row">
+              <div class="apple-row-icon mono-item" style="background-color: #18181b;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="9.5" stroke="#ffffff" stroke-width="1.8"/>
+                  <text x="12" y="15" text-anchor="middle" font-size="8.5" font-weight="800" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, sans-serif" letter-spacing="-0.5px">AD</text>
+                  <line x1="4.5" y1="4.5" x2="19.5" y2="19.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title" style="font-size: 15.5px; font-weight: 600;">AD Blocker</div>
+              </div>
+              <div class="status-check-badge ${isAdBlockActive ? '' : 'inactive'}" id="badge-quick-adblock" title="Toggle AD Blocker">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+            </div>
+
+            <div class="apple-grouped-row" id="menu-quick-aipower-row">
+              <div class="apple-row-icon mono-item" style="background-color: #18181b;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
+                  <path d="M5 8.5C5.8 8.5 6.5 7.8 6.5 7C6.5 6.2 7.2 5.5 8 5.5C7.2 5.5 6.5 4.8 6.5 4C6.5 3.2 5.8 2.5 5 2.5C4.2 2.5 3.5 3.2 3.5 4C3.5 4.8 2.8 5.5 2 5.5C2.8 5.5 3.5 6.2 3.5 7C3.5 7.8 4.2 8.5 5 8.5Z"/>
+                  <path d="M19.7 4.3a2.5 2.5 0 0 0-3.5 0l-3 3 3.5 3.5 3-3a2.5 2.5 0 0 0 0-3.5z"/>
+                  <path d="M11.8 8.7 4.2 16.3a1 1 0 0 0-.27.53L3.1 20a.6.6 0 0 0 .7.7l3.2-.83a1 1 0 0 0 .53-.27l7.6-7.6-3.33-3.3z"/>
+                </svg>
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title" style="font-size: 15.5px; font-weight: 600;">AI Power</div>
+              </div>
+              <div class="status-check-badge" id="badge-quick-aipower" title="Launch Ocal Copilot AI">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
             </div>
           </div>
 
@@ -1113,6 +1174,31 @@ class OcalMobileApp {
         this.openCyberShieldSheet();
       });
 
+      sheet.querySelector('#menu-quick-private-row')?.addEventListener('click', () => {
+        this.closeAllSheets();
+        this.tabManager.createTab('ocal://home', true);
+        this.showToast('Private browsing tab opened', 'info');
+      });
+
+      sheet.querySelector('#menu-quick-adblock-row')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.cyberShield) {
+          const nextState = !this.cyberShield.settings.adBlocker;
+          this.cyberShield.settings.adBlocker = nextState;
+          this.cyberShield.saveSettings();
+          const badge = sheet.querySelector('#badge-quick-adblock');
+          if (badge) {
+            badge.classList.toggle('inactive', !nextState);
+          }
+          this.showToast(nextState ? 'AD Blocker enabled' : 'AD Blocker disabled', 'shield');
+        }
+      });
+
+      sheet.querySelector('#menu-quick-aipower-row')?.addEventListener('click', () => {
+        this.closeAllSheets();
+        this.copilotDrawer.open();
+      });
+
       sheet.querySelector('#menu-share-row')?.addEventListener('click', () => {
         this.closeAllSheets();
         if (activeTab) {
@@ -1156,6 +1242,7 @@ class OcalMobileApp {
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('ocal-theme', next);
         this.updateStatusBarTheme(next === 'dark');
+        this.tabManager?.syncThemeToTabs(next === 'dark');
         this.closeAllSheets();
       });
       sheet.querySelector('#menu-settings-row')?.addEventListener('click', () => {
@@ -1732,6 +1819,13 @@ class OcalMobileApp {
   updateStatusBarTheme(isDark = null) {
     const currentTheme = isDark !== null ? (isDark ? 'dark' : 'light') : (document.documentElement.getAttribute('data-theme') || 'light');
     const isDarkMode = currentTheme === 'dark';
+
+    // Synchronize theme to active tabs & native layer
+    if (this.tabManager && typeof this.tabManager.syncThemeToTabs === 'function') {
+      this.tabManager.syncThemeToTabs(isDarkMode);
+    } else if (window.OcalNative && typeof window.OcalNative.setDarkMode === 'function') {
+      window.OcalNative.setDarkMode(isDarkMode);
+    }
 
     let bgColor = '#ffffff';
     if (isDarkMode) {

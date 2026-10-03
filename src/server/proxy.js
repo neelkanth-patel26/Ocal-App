@@ -55,9 +55,17 @@ export function createOcalProxyPlugin() {
         }
 
         const isDesktop = parsedUrl.searchParams.get('desktop') === 'true';
+        const isDark = parsedUrl.searchParams.get('dark') !== 'false';
         const userAgent = isDesktop
           ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
           : 'Mozilla/5.0 (Linux; Android 14; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
+
+        // Auto-tune search engine parameters for browser theme if not explicit
+        if (targetHostname.includes('duckduckgo.com') && !targetUrl.includes('kae=')) {
+          targetUrl += (targetUrl.includes('?') ? '&' : '?') + (isDark ? 'kae=d' : 'kae=-1');
+        } else if (targetHostname.includes('google.') && targetUrl.includes('/search') && !targetUrl.includes('cs=')) {
+          targetUrl += (targetUrl.includes('?') ? '&' : '?') + (isDark ? 'cs=1' : 'cs=0');
+        }
 
         // Check for direct Google homepage navigation
         const isGoogleDomain = targetHostname === 'google.com' || targetHostname === 'www.google.com';
@@ -70,7 +78,7 @@ export function createOcalProxyPlugin() {
           res.setHeader('X-Ocal-Shield-Status', 'Active');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.statusCode = 200;
-          res.end(injectOcalClientBridge(renderGoogleHomepage(targetUrl), targetUrl));
+          res.end(injectOcalClientBridge(renderGoogleHomepage(targetUrl, isDark), targetUrl, isDark));
           return;
         }
 
@@ -84,6 +92,8 @@ export function createOcalProxyPlugin() {
               'Sec-Fetch-Mode': 'navigate',
               'Sec-Fetch-Site': 'none',
               'Sec-Fetch-User': '?1',
+              'Sec-CH-Prefers-Color-Scheme': isDark ? 'dark' : 'light',
+              'Cookie': isDark ? 'PREF=f6=400; kae=d; b_drk=1; night_mode=1' : 'PREF=f6=0; kae=-1; b_drk=0; night_mode=0',
               'Upgrade-Insecure-Requests': '1'
             },
             redirect: 'follow'
@@ -130,10 +140,10 @@ export function createOcalProxyPlugin() {
             // If this was a fallback search result, enhance presentation
             if (isGoogleSearch && isBotBlocked) {
               const queryParam = parsedTarget.searchParams.get('q') || '';
-              htmlText = formatSearchFallback(htmlText, queryParam, targetUrl);
+              htmlText = formatSearchFallback(htmlText, queryParam, targetUrl, isDark);
             }
 
-            const modifiedHtml = injectOcalClientBridge(htmlText, finalUrl);
+            const modifiedHtml = injectOcalClientBridge(htmlText, finalUrl, isDark);
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
             res.end(modifiedHtml);
           } else {
@@ -233,7 +243,7 @@ export function createOcalProxyPlugin() {
 }
 
 // Injects base tag, uBlock Origin cosmetic filters, and communication bridge into live proxied HTML
-function injectOcalClientBridge(html, targetUrl) {
+function injectOcalClientBridge(html, targetUrl, isDark = true) {
   const urlObj = new URL(targetUrl);
   const origin = urlObj.origin;
   const baseTag = `<base href="${targetUrl}">`;
@@ -439,6 +449,170 @@ function injectOcalClientBridge(html, targetUrl) {
     }
   });
 
+  // --- Ocal Universal Theme Adapter ---
+  let currentIsDark = ${isDark ? 'true' : 'false'};
+
+  function applyPageTheme(dark) {
+    currentIsDark = dark;
+    try {
+      const docEl = document.documentElement;
+      if (!docEl) return;
+
+      // 1. Meta color-scheme
+      let meta = document.querySelector('meta[name="color-scheme"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'color-scheme';
+        (document.head || docEl).appendChild(meta);
+      }
+      meta.content = dark ? 'dark light' : 'light dark';
+
+      // 2. CSS color-scheme
+      let styleEl = document.getElementById('__ocal_theme_override');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = '__ocal_theme_override';
+        (document.head || docEl).appendChild(styleEl);
+      }
+      styleEl.textContent = dark 
+        ? ':root { color-scheme: dark !important; }'
+        : ':root { color-scheme: light !important; }';
+
+      // 3. Search Engines & Popular Sites Dark Mode Support
+      const host = (window.location && window.location.hostname) ? window.location.hostname.toLowerCase() : '';
+
+      // DuckDuckGo
+      if (host.includes('duckduckgo.com')) {
+        try {
+          localStorage.setItem('theme', dark ? 'dark' : 'light');
+          document.cookie = 'kae=' + (dark ? 'd' : '-1') + ';path=/;domain=.duckduckgo.com;max-age=31536000';
+          if (dark) {
+            docEl.classList.add('dark-bg', 'theme-dark');
+            if (document.body) document.body.classList.add('dark-bg', 'theme-dark');
+          } else {
+            docEl.classList.remove('dark-bg', 'theme-dark');
+            if (document.body) document.body.classList.remove('dark-bg', 'theme-dark');
+          }
+        } catch(e) {}
+      }
+
+      // Google Search
+      if (host.includes('google.')) {
+        try {
+          if (dark) {
+            docEl.classList.add('darkmode');
+            if (document.body) document.body.classList.add('darkmode');
+            docEl.setAttribute('data-darkmode', 'true');
+          } else {
+            docEl.classList.remove('darkmode');
+            if (document.body) document.body.classList.remove('darkmode');
+            docEl.removeAttribute('data-darkmode');
+          }
+        } catch(e) {}
+      }
+
+      // Bing
+      if (host.includes('bing.com')) {
+        try {
+          document.cookie = 'b_drk=' + (dark ? '1' : '0') + ';path=/;domain=.bing.com;max-age=31536000';
+          if (dark) {
+            if (document.body) document.body.classList.add('b_dark');
+          } else {
+            if (document.body) document.body.classList.remove('b_dark');
+          }
+        } catch(e) {}
+      }
+
+      // Wikipedia
+      if (host.includes('wikipedia.org')) {
+        try {
+          localStorage.setItem('skin-client-pref-vector-night-mode', dark ? 'night' : 'day');
+          if (dark) {
+            docEl.classList.add('skin-theme-clientpref-night');
+            docEl.classList.remove('skin-theme-clientpref-day');
+          } else {
+            docEl.classList.add('skin-theme-clientpref-day');
+            docEl.classList.remove('skin-theme-clientpref-night');
+          }
+        } catch(e) {}
+      }
+
+      // GitHub
+      if (host.includes('github.com')) {
+        try {
+          docEl.setAttribute('data-color-mode', dark ? 'dark' : 'light');
+          docEl.setAttribute('data-dark-theme', 'dark');
+          docEl.setAttribute('data-light-theme', 'light');
+        } catch(e) {}
+      }
+
+      // YouTube
+      if (host.includes('youtube.com')) {
+        try {
+          if (dark) {
+            docEl.setAttribute('dark', 'true');
+          } else {
+            docEl.removeAttribute('dark');
+          }
+        } catch(e) {}
+      }
+
+      // Dynamic attribute updates for sites with data-theme / data-bs-theme / theme
+      if (docEl.hasAttribute('data-theme')) docEl.setAttribute('data-theme', dark ? 'dark' : 'light');
+      if (docEl.hasAttribute('data-bs-theme')) docEl.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+      if (docEl.hasAttribute('theme')) docEl.setAttribute('theme', dark ? 'dark' : 'light');
+
+      // Dispatch media query change to any registered listeners in the page
+      if (window.__ocalMediaListeners && window.__ocalMediaListeners.size > 0) {
+        window.__ocalMediaListeners.forEach(listener => {
+          try {
+            listener({ matches: dark, media: '(prefers-color-scheme: dark)' });
+          } catch(e) {}
+        });
+      }
+    } catch(err) {}
+  }
+
+  // Override matchMedia for prefers-color-scheme
+  if (!window.__ocalMatchMediaOverridden) {
+    window.__ocalMatchMediaOverridden = true;
+    window.__ocalMediaListeners = new Set();
+    const origMatchMedia = window.matchMedia;
+    window.matchMedia = function(query) {
+      if (!query) return origMatchMedia.call(window, query);
+      const q = String(query).toLowerCase();
+      if (q.includes('prefers-color-scheme')) {
+        const wantsDark = q.includes('dark');
+        const matches = wantsDark ? currentIsDark : !currentIsDark;
+        return {
+          matches: matches,
+          media: query,
+          onchange: null,
+          addListener: function(fn) { window.__ocalMediaListeners.add(fn); },
+          removeListener: function(fn) { window.__ocalMediaListeners.delete(fn); },
+          addEventListener: function(type, fn) { if (type === 'change') window.__ocalMediaListeners.add(fn); },
+          removeEventListener: function(type, fn) { if (type === 'change') window.__ocalMediaListeners.delete(fn); },
+          dispatchEvent: function() { return true; }
+        };
+      }
+      return origMatchMedia.call(window, query);
+    };
+  }
+
+  // Apply on startup and DOM ready
+  applyPageTheme(currentIsDark);
+  if (document.readyState !== 'complete') {
+    window.addEventListener('DOMContentLoaded', () => applyPageTheme(currentIsDark));
+  }
+
+  // Listen for live theme updates from parent browser
+  window.addEventListener('message', function(e) {
+    if (!e.data) return;
+    if (e.data.type === 'OCAL_SET_THEME') {
+      applyPageTheme(Boolean(e.data.isDark));
+    }
+  });
+
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     cleanAdElements();
     notifyParentLoaded();
@@ -466,7 +640,7 @@ function injectOcalClientBridge(html, targetUrl) {
 }
 
 // Authentic Google Homepage Renderer
-function renderGoogleHomepage(targetUrl) {
+function renderGoogleHomepage(targetUrl, isDark = true) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -477,8 +651,8 @@ function renderGoogleHomepage(targetUrl) {
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: #ffffff;
-      color: #202124;
+      background: ${isDark ? '#202124' : '#ffffff'};
+      color: ${isDark ? '#e8eaed' : '#202124'};
       display: flex;
       flex-direction: column;
       min-height: 100vh;
@@ -493,7 +667,7 @@ function renderGoogleHomepage(targetUrl) {
       align-items: center;
       gap: 16px;
       font-size: 13px;
-      color: #3c4043;
+      color: ${isDark ? '#9aa0a6' : '#3c4043'};
       padding: 8px 0;
     }
     .google-top-bar a {
@@ -522,21 +696,21 @@ function renderGoogleHomepage(targetUrl) {
       width: 100%;
       display: flex;
       align-items: center;
-      border: 1px solid #dfe1e5;
+      border: 1px solid ${isDark ? '#5f6368' : '#dfe1e5'};
       border-radius: 24px;
       padding: 10px 16px;
-      box-shadow: 0 1px 6px rgba(32,33,36,.12);
+      box-shadow: ${isDark ? 'none' : '0 1px 6px rgba(32,33,36,.12)'};
       transition: all 0.2s ease;
-      background: #ffffff;
+      background: ${isDark ? '#303134' : '#ffffff'};
     }
     .google-search-box:focus-within {
       box-shadow: 0 2px 10px rgba(32,33,36,.2);
-      border-color: transparent;
+      border-color: ${isDark ? '#8ab4f8' : 'transparent'};
     }
     .search-icon-svg {
       width: 18px;
       height: 18px;
-      fill: #9aa0a6;
+      fill: ${isDark ? '#9aa0a6' : '#9aa0a6'};
       margin-right: 12px;
       flex-shrink: 0;
     }
@@ -545,7 +719,7 @@ function renderGoogleHomepage(targetUrl) {
       border: none;
       outline: none;
       font-size: 16px;
-      color: #202124;
+      color: ${isDark ? '#e8eaed' : '#202124'};
       background: transparent;
     }
     .google-buttons {
@@ -554,10 +728,10 @@ function renderGoogleHomepage(targetUrl) {
       margin-top: 24px;
     }
     .google-btn {
-      background: #f8f9fa;
-      border: 1px solid #f8f9fa;
+      background: ${isDark ? '#303134' : '#f8f9fa'};
+      border: 1px solid ${isDark ? '#303134' : '#f8f9fa'};
       border-radius: 4px;
-      color: #3c4043;
+      color: ${isDark ? '#e8eaed' : '#3c4043'};
       font-size: 14px;
       padding: 9px 16px;
       cursor: pointer;
@@ -565,13 +739,13 @@ function renderGoogleHomepage(targetUrl) {
     }
     .google-btn:hover {
       box-shadow: 0 1px 1px rgba(0,0,0,.1);
-      background-color: #f1f3f4;
-      border: 1px solid #dadce0;
-      color: #202124;
+      background-color: ${isDark ? '#3c4043' : '#f1f3f4'};
+      border: 1px solid ${isDark ? '#5f6368' : '#dadce0'};
+      color: ${isDark ? '#ffffff' : '#202124'};
     }
     .google-footer {
       font-size: 12px;
-      color: #70757a;
+      color: ${isDark ? '#9aa0a6' : '#70757a'};
       display: flex;
       align-items: center;
       gap: 6px;
@@ -657,30 +831,31 @@ function renderGoogleHomepage(targetUrl) {
 }
 
 // Enhances fallback search results page with clean modern typography & banner
-function formatSearchFallback(html, query, originalUrl) {
+function formatSearchFallback(html, query, originalUrl, isDark = true) {
   const customCss = `
 <style id="__ocal_search_enhancement">
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     padding-bottom: 90px !important;
-    background: #ffffff !important;
+    background: ${isDark ? '#000000' : '#ffffff'} !important;
+    color: ${isDark ? '#e8eaed' : '#202124'} !important;
   }
   .ocal-search-banner {
     position: sticky;
     top: 0;
     z-index: 999;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
+    background: ${isDark ? '#161618' : '#f8fafc'} !important;
+    border-bottom: 1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0'} !important;
     padding: 8px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     font-size: 12.5px;
-    color: #334155;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    color: ${isDark ? '#cbd5e1' : '#334155'} !important;
+    box-shadow: ${isDark ? '0 4px 16px rgba(0,0,0,0.6)' : '0 1px 3px rgba(0,0,0,0.05)'};
   }
   .ocal-search-banner a {
-    color: #2563eb;
+    color: ${isDark ? '#60a5fa' : '#2563eb'};
     text-decoration: none;
     font-weight: 600;
   }
@@ -688,9 +863,9 @@ function formatSearchFallback(html, query, originalUrl) {
     margin: 12px 16px !important;
     padding: 12px 14px !important;
     border-radius: 12px !important;
-    border: 1px solid #f1f5f9 !important;
-    background: #ffffff !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+    border: 1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9'} !important;
+    background: ${isDark ? '#121214' : '#ffffff'} !important;
+    box-shadow: ${isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.04)'} !important;
   }
   .result__title {
     font-size: 16px !important;
@@ -698,7 +873,7 @@ function formatSearchFallback(html, query, originalUrl) {
     margin-bottom: 4px !important;
   }
   .result__title a {
-    color: #1a0dab !important;
+    color: ${isDark ? '#8ab4f8' : '#1a0dab'} !important;
     text-decoration: none !important;
     font-weight: 600 !important;
   }
@@ -706,14 +881,14 @@ function formatSearchFallback(html, query, originalUrl) {
     text-decoration: underline !important;
   }
   .result__url {
-    color: #202124 !important;
+    color: ${isDark ? '#9aa0a6' : '#202124'} !important;
     font-size: 11px !important;
     margin-bottom: 4px !important;
     display: block !important;
     word-break: break-all !important;
   }
   .result__snippet {
-    color: #4d5156 !important;
+    color: ${isDark ? '#bdc1c6' : '#4d5156'} !important;
     font-size: 13px !important;
     line-height: 1.45 !important;
   }

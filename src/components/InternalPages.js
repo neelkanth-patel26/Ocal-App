@@ -2589,6 +2589,7 @@ export class InternalPages {
       if (window.ocalApp?.updateStatusBarTheme) {
         window.ocalApp.updateStatusBarTheme(t === 'dark');
       }
+      window.ocalApp?.tabManager?.syncThemeToTabs?.(t === 'dark');
     });
 
     // Helper to calculate rgba

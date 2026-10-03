@@ -97,7 +97,7 @@ button {
 }
 
 [data-theme="dark"] .search-backdrop {
-  background: rgba(14, 14, 18, 0.76);
+  background: rgba(0, 0, 0, 0.88);
   backdrop-filter: blur(var(--app-blur-val, 28px)) saturate(190%);
   -webkit-backdrop-filter: blur(var(--app-blur-val, 28px)) saturate(190%);
 }
@@ -342,11 +342,11 @@ body.search-active .url-capsule-bar {
 }
 
 [data-theme="dark"] body.search-active .url-capsule-bar {
-  background-color: rgba(28, 28, 34, 0.75) !important;
-  backdrop-filter: blur(32px) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  background-color: #161618 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
 }
 
 body.search-active .url-capsule-bar .capsule-nav-btn,
@@ -584,6 +584,12 @@ body.is-internal-page:not(.search-active) .capsule-url-input {
   background: #0a84ff;
 }
 
+[data-theme="dark"] .shield-badge-dot,
+[data-theme="dark"] .shield-badge-dot.active {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
 /* ==========================================================================
    Circular Download Progress Ball Indicator (Safari / Chrome style % ball)
    ========================================================================== */
@@ -736,11 +742,11 @@ body.is-web-page .bottom-nav-bar {
 }
 
 [data-theme="dark"] body.is-web-page .bottom-nav-bar {
-  background-color: rgba(18, 18, 22, 0.70) !important;
-  backdrop-filter: blur(var(--dock-blur-val, 28px)) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(var(--dock-blur-val, 28px)) saturate(190%) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4) !important;
+  background-color: #000000 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: none !important;
 }
 
 body.is-web-page .url-capsule-bar {
@@ -752,11 +758,11 @@ body.is-web-page .url-capsule-bar {
 }
 
 [data-theme="dark"] body.is-web-page .url-capsule-bar {
-  background-color: rgba(28, 28, 34, 0.72) !important;
-  backdrop-filter: blur(var(--capsule-blur-val, 24px)) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(var(--capsule-blur-val, 24px)) saturate(190%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.45) !important;
+  background-color: #161618 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7) !important;
 }
 
 /* Frosted Glass Blurred Footer for Internal Pages (Home, Bookmarks, History, Settings) */
@@ -768,10 +774,11 @@ body.is-internal-page .bottom-nav-bar {
 }
 
 [data-theme="dark"] body.is-internal-page .bottom-nav-bar {
-  background-color: rgba(18, 18, 22, 0.75) !important;
-  backdrop-filter: blur(var(--dock-blur-val, 28px)) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(var(--dock-blur-val, 28px)) saturate(190%) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background-color: #000000 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: none !important;
+  box-shadow: none !important;
 }
 
 body.is-internal-page .url-capsule-bar {
@@ -782,10 +789,11 @@ body.is-internal-page .url-capsule-bar {
 }
 
 [data-theme="dark"] body.is-internal-page .url-capsule-bar {
-  background-color: rgba(28, 28, 34, 0.75) !important;
-  backdrop-filter: blur(var(--capsule-blur-val, 24px)) saturate(190%) !important;
-  -webkit-backdrop-filter: blur(var(--capsule-blur-val, 24px)) saturate(190%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background-color: #161618 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7) !important;
 }
 
 .nav-icon-btn {
@@ -3351,9 +3359,10 @@ body.search-active .suggestions-dropdown {
 }
 
 [data-theme="dark"] .apple-row-icon.mono-item {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: #18181b;
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
 }
 
 /* Solid Monochrome Hero Tile for Ocal Copilot */
@@ -3364,9 +3373,10 @@ body.search-active .suggestions-dropdown {
 }
 
 [data-theme="dark"] .apple-row-icon.mono-copilot {
-  background-color: #ffffff;
-  color: #000000;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: #18181b;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
 }
 
 .apple-row-icon.engine-tile {
@@ -3508,14 +3518,14 @@ body.search-active .suggestions-dropdown {
 }
 
 [data-theme="dark"] .apple-menu-icon.menu-icon-mono {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: #18181b;
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: none;
 }
 
 [data-theme="dark"] .apple-menu-card:hover .apple-menu-icon.menu-icon-mono {
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: #242428;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
@@ -3573,13 +3583,17 @@ input:checked + .toggle-slider:before {
   background-color: #ffffff;
 }
 
+[data-theme="dark"] .toggle-slider {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
 [data-theme="dark"] input:checked + .toggle-slider {
-  background-color: #ffffff;
+  background-color: #00d665;
 }
 
 [data-theme="dark"] input:checked + .toggle-slider:before {
   transform: translateX(16px);
-  background-color: #000000;
+  background-color: #ffffff;
 }
 
 /* CyberShield Privacy Center Dashboard Styles */
@@ -7023,12 +7037,12 @@ html[data-blur="0"] .dl-quick-popover {
 [data-theme="dark"].glass-blur-disabled .dl-quick-popover,
 [data-theme="dark"][data-blur="0"] .shield-popover,
 [data-theme="dark"][data-blur="0"] .dl-quick-popover {
-  background: #1e1e24 !important;
-  background-color: #1e1e24 !important;
+  background: #121214 !important;
+  background-color: #121214 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(255, 255, 255, 0.13) !important;
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.85) !important;
 }
 
 /* Solid Mode: Backdrops & Scrims */
@@ -7043,7 +7057,7 @@ html[data-blur="0"] .search-backdrop {
 [data-theme="dark"][data-blur="0"] .search-backdrop {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  background-color: rgba(0, 0, 0, 0.72) !important;
+  background-color: rgba(0, 0, 0, 0.88) !important;
 }
 
 html.glass-blur-disabled .tabs-tray-backdrop,
@@ -7057,10 +7071,638 @@ html[data-blur="0"] .tabs-tray-backdrop {
 [data-theme="dark"][data-blur="0"] .tabs-tray-backdrop {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  background-color: rgba(0, 0, 0, 0.72) !important;
+  background-color: rgba(0, 0, 0, 0.88) !important;
 }
 
 html.glass-blur-disabled body.search-active .viewport-container,
 html[data-blur="0"] body.search-active .viewport-container {
   filter: none !important;
+}
+
+/* ==========================================================================
+   Pure Deep Black (#000000) & Complement Neutral Gray Design System
+   Exact Reference Mockup Precision & Component Styling
+   ========================================================================== */
+
+/* 1. Global Viewport, Scrims & App Backgrounds */
+[data-theme="dark"] html,
+[data-theme="dark"] body,
+[data-theme="dark"] #app-root,
+[data-theme="dark"] .viewport-container,
+[data-theme="dark"] .internal-page-container,
+[data-theme="dark"] .subpage-container,
+[data-theme="dark"] .opera-home-view,
+[data-theme="dark"] .tabs-tray-sheet,
+[data-theme="dark"] .tabs-tray-container {
+  background-color: #000000 !important;
+  color: #ffffff;
+}
+
+/* 2. Start Page "Favorites" & Brand Hero (Image 1 Reference) */
+[data-theme="dark"] .opera-section-label {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+  padding-left: 2px;
+}
+
+[data-theme="dark"] .opera-speed-dial {
+  gap: 20px 14px;
+}
+
+[data-theme="dark"] .opera-dial-tile {
+  width: 54px;
+  height: 54px;
+  border-radius: 17px;
+  background-color: #18181b !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.14s ease, background-color 0.14s ease;
+}
+
+[data-theme="dark"] .opera-dial-tile svg {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .opera-dial-tile:hover {
+  background-color: #242428 !important;
+}
+
+[data-theme="dark"] .opera-dial-tile:active {
+  transform: scale(0.92);
+}
+
+[data-theme="dark"] .opera-dial-title {
+  color: #a1a1aa !important;
+  font-size: 11.5px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+[data-theme="dark"] .opera-wordmark {
+  color: #ffffff;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* 3. URL Capsule Bar (Image 1 Reference) */
+[data-theme="dark"] .url-capsule-bar {
+  background-color: #161618 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-theme="dark"] .capsule-url-input {
+  color: #ffffff !important;
+  font-weight: 400;
+}
+
+[data-theme="dark"] .capsule-url-input::placeholder {
+  color: #71717a !important;
+}
+
+[data-theme="dark"] .capsule-nav-btn {
+  color: #8e8e93 !important;
+}
+
+[data-theme="dark"] .capsule-nav-btn:active {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .capsule-icon-btn {
+  color: #8e8e93 !important;
+}
+
+[data-theme="dark"] .capsule-icon-btn:active {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .capsule-heart-btn svg {
+  stroke: #8e8e93;
+}
+
+[data-theme="dark"] .capsule-heart-btn.is-bookmarked svg {
+  stroke: #ff3b30;
+  fill: #ff3b30;
+}
+
+/* Lightning Action Button: Solid White Circle + Black Bolt (Image 1 Reference) */
+[data-theme="dark"] .capsule-shield-btn .shield-badge-dot,
+[data-theme="dark"] .capsule-shield-btn .shield-badge-dot.active {
+  background: #ffffff !important;
+  color: #000000 !important;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.25);
+}
+
+[data-theme="dark"] .capsule-shield-btn .shield-badge-dot i,
+[data-theme="dark"] .capsule-shield-btn .shield-badge-dot svg {
+  color: #000000 !important;
+  fill: #000000 !important;
+}
+
+/* 4. Bottom Navigation Bar (Image 1 Reference) */
+[data-theme="dark"] .bottom-nav-bar {
+  background-color: #000000 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.04) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-theme="dark"] .nav-icon-btn {
+  color: #ffffff !important;
+  opacity: 0.9;
+}
+
+[data-theme="dark"] .nav-icon-btn:hover,
+[data-theme="dark"] .nav-icon-btn:active {
+  opacity: 1;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .tab-badge {
+  border: 1.8px solid #ffffff !important;
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+[data-theme="dark"] .tab-badge.active {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+}
+
+[data-theme="dark"] .circle-dots-icon {
+  border: 1.8px solid #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* 5. Inset Grouped Tables, Rows & Complement Gray Squircles (Image 2 Reference) */
+[data-theme="dark"] .apple-grouped-table {
+  background-color: #121214 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 18px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .apple-grouped-row {
+  min-height: 52px;
+  padding: 12px 16px;
+  gap: 14px;
+  background-color: transparent;
+  transition: background-color 0.12s ease;
+}
+
+[data-theme="dark"] .apple-grouped-row:not(:last-child)::after {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  left: 64px;
+}
+
+[data-theme="dark"] .apple-grouped-row:hover {
+  background-color: #18181b !important;
+}
+
+[data-theme="dark"] .apple-grouped-row:active {
+  background-color: #202024 !important;
+}
+
+/* Complement Gray Icon Squircle Container (Image 2 Reference) */
+[data-theme="dark"] .apple-row-icon,
+[data-theme="dark"] .apple-row-icon.mono-item,
+[data-theme="dark"] .apple-row-icon.mono-copilot {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 12px !important;
+  background-color: #18181b !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .apple-row-icon svg,
+[data-theme="dark"] .apple-row-icon i {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .apple-row-title {
+  color: #ffffff !important;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+[data-theme="dark"] .apple-row-subtitle {
+  color: #8e8e93 !important;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+[data-theme="dark"] .apple-row-chevron {
+  color: #71717a !important;
+}
+
+/* 6. Status Check Badge: Emerald Circle with White Check (Image 2 Reference) */
+.status-check-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #00d665;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  box-shadow: 0 2px 8px rgba(0, 214, 101, 0.4);
+  transition: transform 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+  cursor: pointer;
+}
+
+.status-check-badge svg {
+  width: 14px;
+  height: 14px;
+  stroke: #ffffff;
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+}
+
+.status-check-badge.inactive {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: none !important;
+}
+
+.status-check-badge.inactive svg {
+  opacity: 0;
+}
+
+.status-check-badge:active {
+  transform: scale(0.92);
+}
+
+/* 7. Bottom Sheets & Drawers (Menu, Shield, Copilot, Context Menu) */
+[data-theme="dark"] .bottom-sheet {
+  background-color: #101012 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.9) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-theme="dark"] .sheet-handle {
+  background-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+[data-theme="dark"] .sheet-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .sheet-close-pill {
+  background-color: #18181b !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .sheet-close-pill:hover {
+  background-color: #242428 !important;
+}
+
+/* 8. Tabs Tray & Cards */
+[data-theme="dark"] .tabs-tray-sheet {
+  background-color: #000000 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .tabs-tray-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .tabs-tray-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .tabs-count-badge {
+  background-color: #18181b !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .tabs-tray-close-all {
+  background-color: #18181b !important;
+  color: #8e8e93 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .tabs-tray-close-all:hover {
+  background-color: #242428 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .tabs-search-box {
+  background-color: #141416 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .tabs-search-input {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .tabs-search-input::placeholder {
+  color: #71717a !important;
+}
+
+[data-theme="dark"] .tab-card {
+  background-color: #121214 !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-theme="dark"] .tab-card-header {
+  background-color: #161618 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme="dark"] .tab-card-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .tab-card-close {
+  color: #8e8e93 !important;
+}
+
+[data-theme="dark"] .tab-card-close:hover {
+  background-color: #242428 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .tab-card.active {
+  border: 2px solid #ffffff !important;
+}
+
+[data-theme="dark"] .tabs-preset-segmented {
+  background-color: #141416 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .tabs-preset-btn {
+  color: #8e8e93 !important;
+}
+
+[data-theme="dark"] .tabs-preset-btn.active {
+  background-color: #222226 !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 9. CyberShield Popover & Sheet */
+[data-theme="dark"] .shield-popover {
+  background-color: #101012 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85) !important;
+}
+
+[data-theme="dark"] .shield-popover-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .shield-popover-domain {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .shield-inset-box {
+  background-color: #161618 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .shield-big-number {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .shield-label-text {
+  color: #8e8e93 !important;
+}
+
+[data-theme="dark"] .shield-hint-text {
+  color: #71717a !important;
+}
+
+[data-theme="dark"] .shield-advanced-btn {
+  color: #ffffff !important;
+  background-color: #18181b !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .shield-metric-card {
+  background-color: #161618 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .shield-metric-val {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .shield-metric-lbl {
+  color: #8e8e93 !important;
+}
+
+/* 10. Downloads Quick Popover & Downloads Manager */
+[data-theme="dark"] .dl-quick-popover {
+  background-color: #101012 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85) !important;
+}
+
+[data-theme="dark"] .dl-quick-popover-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .dl-quick-popover-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .dl-popover-item {
+  background-color: #161618 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .dl-popover-icon {
+  background-color: #202024 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .dl-popover-name {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .dl-popover-meta {
+  color: #8e8e93 !important;
+}
+
+[data-theme="dark"] .dl-quick-view-all-btn {
+  background-color: #18181b !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+/* 11. Subpages (Settings, History, Bookmarks, Passwords, Sync, Games) */
+[data-theme="dark"] .subpage-header {
+  background-color: #000000 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme="dark"] .subpage-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .subpage-back-btn {
+  background-color: #18181b !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .subpage-back-btn:hover {
+  background-color: #242428 !important;
+}
+
+[data-theme="dark"] .subpage-section-title {
+  color: #8e8e93 !important;
+}
+
+[data-theme="dark"] .subpage-container .apple-grouped-table {
+  background-color: #121214 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .subpage-search-bar {
+  background-color: #141416 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .subpage-search-input {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .subpage-search-input::placeholder {
+  color: #71717a !important;
+}
+
+[data-theme="dark"] .subpage-empty-icon {
+  background-color: #141416 !important;
+  color: #8e8e93 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .subpage-empty-title {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .subpage-empty-desc {
+  color: #8e8e93 !important;
+}
+
+[data-theme="dark"] .pill-chip {
+  background-color: #18181b !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .pill-chip:hover {
+  background-color: #242428 !important;
+}
+
+/* 12. Autocomplete Suggestions Dropdown */
+[data-theme="dark"] .suggestions-dropdown {
+  background-color: #121214 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85) !important;
+}
+
+[data-theme="dark"] .suggestion-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .suggestion-item:hover,
+[data-theme="dark"] .suggestion-item:active {
+  background-color: #18181b !important;
+}
+
+[data-theme="dark"] .suggestion-icon {
+  background-color: #1c1c1e !important;
+  color: #8e8e93 !important;
+}
+
+/* 13. Copilot AI Assistant Drawer */
+[data-theme="dark"] .copilot-sheet {
+  background-color: #101012 !important;
+}
+
+[data-theme="dark"] .copilot-message-bubble.assistant {
+  background-color: #161618 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .copilot-message-bubble.user {
+  background-color: #222226 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .copilot-input-container {
+  background-color: #121214 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .copilot-input-field {
+  background-color: #18181b !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .copilot-action-pill {
+  background-color: #18181b !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: #ffffff !important;
+}
+
+/* 14. Context Menu Sheet */
+[data-theme="dark"] #context-menu-sheet {
+  background-color: #101012 !important;
+}
+
+[data-theme="dark"] .context-preview-card {
+  background-color: #161618 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .context-menu-cancel-btn {
+  background-color: #18181b !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+/* 15. Toast Notifications */
+[data-theme="dark"] .ocal-toast {
+  background-color: #18181b !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75) !important;
 }
