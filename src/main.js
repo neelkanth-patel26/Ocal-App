@@ -154,6 +154,8 @@ class OcalMobileApp {
     this.setupContextMenuListeners();
     this.checkCurrentTabBookmarked();
     this.syncNativeNavigationState();
+    this.setupOverlayObserver();
+    this.checkInitialPermissionsPrompt();
   }
 
   bindUrlCapsuleEvents() {
@@ -204,6 +206,14 @@ class OcalMobileApp {
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', () => {
         if (document.body.classList.contains('search-active')) {
+          const keyboardH = Math.max(0, Math.round(window.innerHeight - window.visualViewport.height));
+          if (keyboardH > 50) {
+            document.documentElement.style.setProperty('--keyboard-height', keyboardH + 'px');
+            document.body.classList.add('keyboard-open-native');
+          } else if (!window.OcalNative) {
+            document.documentElement.style.setProperty('--keyboard-height', '0px');
+            document.body.classList.remove('keyboard-open-native');
+          }
           resetScroll();
         }
       });
@@ -317,10 +327,16 @@ class OcalMobileApp {
 
     const exitSearchMode = (revert = true) => {
       stopVoiceRecognition();
+      clearTimeout(this.suggestDebounceTimer);
+      if (this.suggestAbortController) {
+        this.suggestAbortController.abort();
+        this.suggestAbortController = null;
+      }
       document.body.classList.remove('search-active');
       document.body.classList.remove('keyboard-open');
       document.documentElement.style.removeProperty('--keyboard-offset');
       suggestionsDropdown.classList.remove('visible');
+      suggestionsDropdown.innerHTML = '';
       clearBtn?.classList.remove('visible');
       resetScroll();
       if (document.activeElement && typeof document.activeElement.blur === 'function') {
@@ -341,6 +357,7 @@ class OcalMobileApp {
         }
       }
       this.syncNativeWebVisibility();
+      this.syncOverlayState();
       setTimeout(() => this.syncDockLayout && this.syncDockLayout(), 100);
     };
 
@@ -351,6 +368,14 @@ class OcalMobileApp {
       if (!q) return;
       isNavigating = true;
       setTimeout(() => { isNavigating = false; }, 800);
+
+      clearTimeout(this.suggestDebounceTimer);
+      if (this.suggestAbortController) {
+        this.suggestAbortController.abort();
+        this.suggestAbortController = null;
+      }
+      suggestionsDropdown.classList.remove('visible');
+      suggestionsDropdown.innerHTML = '';
 
       this.animateProgressBar();
       exitSearchMode(false);
@@ -471,22 +496,34 @@ class OcalMobileApp {
       }
 
       clearTimeout(this.suggestDebounceTimer);
-      if (!val || val.startsWith('ocal://')) {
+      if (this.suggestAbortController) {
+        this.suggestAbortController.abort();
+        this.suggestAbortController = null;
+      }
+      if (!val || val.startsWith('ocal://') || !document.body.classList.contains('search-active')) {
         suggestionsDropdown.classList.remove('visible');
+        suggestionsDropdown.innerHTML = '';
         return;
       }
 
+      this.suggestAbortController = new AbortController();
+      const currentController = this.suggestAbortController;
+
       this.suggestDebounceTimer = setTimeout(async () => {
         try {
-          const res = await fetch(`/api/suggest?q=${encodeURIComponent(val)}`);
+          const res = await fetch(`/api/suggest?q=${encodeURIComponent(val)}`, { signal: currentController.signal });
           const data = await res.json();
-          if (data.suggestions && data.suggestions.length > 0) {
+          if (document.body.classList.contains('search-active') && data.suggestions && data.suggestions.length > 0) {
             this.renderSuggestions(data.suggestions, () => exitSearchMode(false));
           } else {
             suggestionsDropdown.classList.remove('visible');
+            suggestionsDropdown.innerHTML = '';
           }
-        } catch {
-          suggestionsDropdown.classList.remove('visible');
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            suggestionsDropdown.classList.remove('visible');
+            suggestionsDropdown.innerHTML = '';
+          }
         }
       }, 180);
       this.positionSuggestionsDropdown();
@@ -495,12 +532,20 @@ class OcalMobileApp {
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#url-capsule-bar') && !e.target.closest('#suggestions-dropdown')) {
         suggestionsDropdown.classList.remove('visible');
+        suggestionsDropdown.innerHTML = '';
       }
     });
   }
 
   renderSuggestions(suggestions, onSelected) {
     const dropdown = document.getElementById('suggestions-dropdown');
+    if (!dropdown || !document.body.classList.contains('search-active')) {
+      if (dropdown) {
+        dropdown.classList.remove('visible');
+        dropdown.innerHTML = '';
+      }
+      return;
+    }
     dropdown.innerHTML = '';
     suggestions.forEach(item => {
       const div = document.createElement('div');
@@ -513,6 +558,7 @@ class OcalMobileApp {
         const omnibox = document.getElementById('omnibox-input');
         if (omnibox) omnibox.value = item;
         dropdown.classList.remove('visible');
+        dropdown.innerHTML = '';
         if (onSelected) onSelected();
         this.tabManager.navigateTab(this.tabManager.activeTabId, item);
       });
@@ -520,6 +566,7 @@ class OcalMobileApp {
     });
     this.positionSuggestionsDropdown();
     dropdown.classList.add('visible');
+    this.syncOverlayState();
   }
 
   positionSuggestionsDropdown() {
@@ -653,9 +700,11 @@ class OcalMobileApp {
       }
       this.updateShieldStats(activeTab?.blockedAdsCount || 0);
       popover.classList.toggle('visible');
+      this.syncOverlayState();
     });
 
-    powerToggle?.addEventListener('click', () => {
+    powerToggle?.addEventListener('click', (e) => {
+      e.stopPropagation();
       this.adFilterEnabled = !this.adFilterEnabled;
       if (window.OcalNative && typeof window.OcalNative.setAdBlockEnabled === 'function') {
         window.OcalNative.setAdBlockEnabled(this.adFilterEnabled);
@@ -674,14 +723,19 @@ class OcalMobileApp {
       }
     });
 
-    advancedBtn?.addEventListener('click', () => {
+    advancedBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
       popover.classList.remove('visible');
+      this.syncOverlayState();
       this.openCyberShieldSheet();
     });
 
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#shield-popover') && !e.target.closest('#capsule-shield-btn')) {
-        popover?.classList.remove('visible');
+        if (popover?.classList.contains('visible')) {
+          popover.classList.remove('visible');
+          this.syncOverlayState();
+        }
       }
     });
   }
@@ -690,6 +744,11 @@ class OcalMobileApp {
     const tray = document.getElementById('tabs-tray-container');
     const backdrop = document.getElementById('tabs-tray-backdrop');
     const searchInput = document.getElementById('tabs-search-input');
+    const searchContainer = document.getElementById('tabs-search-container');
+    const searchToggleBtn = document.getElementById('tabs-search-toggle-btn');
+    const searchClearBtn = document.getElementById('tabs-search-clear-btn');
+    const popover = document.getElementById('opera-tabs-menu-popover');
+    const moreBtn = document.getElementById('tabs-nav-more');
 
     backdrop?.addEventListener('click', () => {
       this.closeTabsTray();
@@ -706,37 +765,122 @@ class OcalMobileApp {
       this.tabManager.navigateTab(this.tabManager.activeTabId, 'ocal://bookmarks');
     });
 
-    document.getElementById('tabs-nav-new-tab')?.addEventListener('click', () => {
-      this.tabManager.createTab('ocal://home', false);
-      this.closeTabsTray();
-    });
-
-    document.getElementById('tabs-nav-tabs')?.addEventListener('click', () => {
-      this.closeTabsTray();
-    });
-
     document.getElementById('tabs-nav-menu')?.addEventListener('click', () => {
       this.closeTabsTray();
       this.openMoreMenuSheet();
     });
 
-    // Preset switcher buttons (Grid, Stack, List)
-    document.querySelectorAll('#tabs-preset-segmented .tabs-preset-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const preset = btn.getAttribute('data-preset');
-        if (preset) {
-          this.tabManager?.setPreset(preset);
+    // Tab Counter badge & Done buttons in tabs tray (returns to active tab)
+    const handleCloseTray = () => this.closeTabsTray();
+    document.getElementById('tabs-done-btn')?.addEventListener('click', handleCloseTray);
+    document.getElementById('tabs-nav-done')?.addEventListener('click', handleCloseTray);
+
+    // Toggle search bar
+    searchToggleBtn?.addEventListener('click', () => {
+      if (searchContainer) {
+        const isHidden = searchContainer.style.display === 'none';
+        searchContainer.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+          searchInput?.focus();
+        } else {
+          if (searchInput) searchInput.value = '';
+          const carousel = document.getElementById('tabs-carousel');
+          if (carousel) this.tabManager?.renderTabsGrid(carousel);
         }
-      });
+      }
+    });
+
+    searchClearBtn?.addEventListener('click', () => {
+      if (searchContainer) searchContainer.style.display = 'none';
+      if (searchInput) searchInput.value = '';
+      const carousel = document.getElementById('tabs-carousel');
+      if (carousel) this.tabManager?.renderTabsGrid(carousel);
+    });
+
+    // Tabs / Private header segment buttons
+    const normalTabBtn = document.getElementById('tab-mode-normal');
+    const privateTabBtn = document.getElementById('tab-mode-private');
+
+    let lastModeSwitchTime = 0;
+    const switchTabMode = (mode, e) => {
+      const now = Date.now();
+      if (now - lastModeSwitchTime < 250) return;
+      lastModeSwitchTime = now;
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      this.tabManager.tabFilterMode = mode;
+      const carousel = document.getElementById('tabs-carousel');
+      if (carousel) {
+        this.tabManager.renderTabsGrid(carousel, (tabId) => {
+          this.tabManager.switchTab(tabId);
+          this.closeTabsTray();
+        });
+      }
+    };
+
+    normalTabBtn?.addEventListener('click', (e) => switchTabMode('normal', e));
+    normalTabBtn?.addEventListener('touchend', (e) => switchTabMode('normal', e));
+    privateTabBtn?.addEventListener('click', (e) => switchTabMode('private', e));
+    privateTabBtn?.addEventListener('touchend', (e) => switchTabMode('private', e));
+
+    // View mode layout switcher button in Opera bottom dock (toggles Grid <-> List)
+    let lastViewModeTime = 0;
+    const toggleViewMode = (e) => {
+      const now = Date.now();
+      if (now - lastViewModeTime < 250) return;
+      lastViewModeTime = now;
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const next = (this.tabManager.currentPreset === 'list') ? 'grid' : 'list';
+      this.tabManager.setPreset(next);
+    };
+
+    const viewModeBtn = document.getElementById('tabs-nav-view-mode');
+    viewModeBtn?.addEventListener('click', toggleViewMode);
+    viewModeBtn?.addEventListener('touchend', toggleViewMode);
+
+    // More options menu in Opera bottom dock (⋮)
+    moreBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (popover) {
+        popover.style.display = popover.style.display === 'none' ? 'flex' : 'none';
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (popover && popover.style.display !== 'none' && !e.target.closest('#opera-tabs-menu-popover') && !e.target.closest('#tabs-nav-more')) {
+        popover.style.display = 'none';
+      }
     });
 
     // Close all tabs button
     document.getElementById('tabs-close-all-btn')?.addEventListener('click', () => {
-      const count = this.tabManager?.tabs?.length || 0;
-      if (count <= 1 || confirm(`Close all ${count} tabs?`)) {
-        this.tabManager?.closeAllTabs();
-        this.closeTabsTray();
+      if (popover) popover.style.display = 'none';
+      this.tabManager?.closeAllTabs();
+    });
+
+    // Close inactive tabs
+    document.getElementById('tabs-menu-close-inactive')?.addEventListener('click', () => {
+      if (popover) popover.style.display = 'none';
+      const active = this.tabManager.getActiveTab();
+      if (active) {
+        this.tabManager.tabs = this.tabManager.tabs.filter(t => t.id === active.id);
+        this.tabManager.notifyTabsCount();
+        const carousel = document.getElementById('tabs-carousel');
+        if (carousel) this.tabManager.renderTabsGrid(carousel);
       }
+    });
+
+    // New Private Tab from popover
+    document.getElementById('tabs-menu-new-private')?.addEventListener('click', () => {
+      if (popover) popover.style.display = 'none';
+      this.tabManager.tabFilterMode = 'private';
+      this.tabManager.createTab('ocal://home', true);
+      this.closeTabsTray();
     });
 
     // Search tabs filter (supports both card and list rows)
@@ -755,6 +899,9 @@ class OcalMobileApp {
   openTabsTray() {
     this.closeAllSheets();
     document.body.classList.add('tabs-tray-open');
+    if (window.OcalNative && typeof window.OcalNative.setOverlayOpen === 'function') {
+      window.OcalNative.setOverlayOpen(true);
+    }
     const tray = document.getElementById('tabs-tray-container');
     const carousel = document.getElementById('tabs-carousel');
     const searchInput = document.getElementById('tabs-search-input');
@@ -762,7 +909,10 @@ class OcalMobileApp {
 
     if (tray && carousel) {
       const activeTab = this.tabManager?.getActiveTab();
-      if (window.OcalNative && activeTab && !activeTab.url.startsWith('ocal://')) {
+      if (this.tabManager && activeTab) {
+        this.tabManager.tabFilterMode = activeTab.isIncognito ? 'private' : 'normal';
+      }
+      if (window.OcalNative && activeTab && !activeTab.url.startsWith('ocal://') && !activeTab.url.includes('dineinstyle.com')) {
         try {
           const freshThumb = window.OcalNative.captureCurrentThumbnailImmediate(activeTab.id);
           if (freshThumb && freshThumb.startsWith('data:image')) {
@@ -798,6 +948,9 @@ class OcalMobileApp {
     const mainTabBadge = document.getElementById('tab-counter-badge');
     tray?.classList.remove('visible');
     if (mainTabBadge) mainTabBadge.classList.remove('active');
+    if (window.OcalNative && typeof window.OcalNative.setOverlayOpen === 'function') {
+      window.OcalNative.setOverlayOpen(false);
+    }
     this.syncNativeWebVisibility();
   }
 
@@ -892,8 +1045,13 @@ class OcalMobileApp {
     const content = document.getElementById('shield-sheet-content');
     if (sheet && content) {
       this.cyberShield.renderControlSheet(content);
-      sheet.classList.add('visible');
-      document.getElementById('drawer-backdrop')?.classList.add('visible');
+      sheet.classList.remove('visible');
+      sheet.style.transform = '';
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.add('visible');
+        document.getElementById('drawer-backdrop')?.classList.add('visible');
+      });
       this.setupSheetDragDismiss(sheet);
       if (window.OcalNative) {
         window.OcalNative.setOverlayOpen?.(true);
@@ -1257,14 +1415,20 @@ class OcalMobileApp {
         }
       });
 
-      sheet.classList.add('visible');
-      document.getElementById('drawer-backdrop')?.classList.add('visible');
+      sheet.classList.remove('visible');
+      sheet.style.transform = '';
+      void sheet.offsetHeight;
+      requestAnimationFrame(() => {
+        sheet.classList.add('visible');
+        document.getElementById('drawer-backdrop')?.classList.add('visible');
+      });
       this.setupSheetDragDismiss(sheet);
       if (window.OcalNative) {
         window.OcalNative.setOverlayOpen?.(true);
-        window.OcalNative.setWebVisible(false);
+        window.OcalNative.setWebBlurred?.(true);
       }
       this.syncNativeNavigationState();
+      this.syncOverlayState();
     }
   }
 
@@ -1286,9 +1450,11 @@ class OcalMobileApp {
     document.body.classList.remove('context-menu-open');
     if (window.OcalNative) {
       window.OcalNative.setOverlayOpen?.(false);
+      window.OcalNative.setWebBlurred?.(false);
     }
     this.syncNativeWebVisibility();
     this.syncNativeNavigationState();
+    this.syncOverlayState();
   }
 
   bindBackHandler() {
@@ -1412,6 +1578,33 @@ class OcalMobileApp {
     this.syncNativeNavigationState();
   }
   cancelWebBackPeek() {}
+
+  syncOverlayState() {
+    const isSearch = document.body.classList.contains('search-active');
+    const suggestionsOpen = document.getElementById('suggestions-dropdown')?.classList.contains('visible');
+    const shieldOpen = document.getElementById('shield-popover')?.classList.contains('visible');
+    const dlOpen = document.getElementById('dl-quick-popover')?.classList.contains('visible');
+    const contextMenuOpen = document.getElementById('context-menu-sheet')?.classList.contains('visible');
+    const sheetOpen = !!document.querySelector('.bottom-sheet.visible, .modal-sheet.visible, .tabs-tray-container.visible, .drawer-backdrop.visible');
+
+    const hasOverlay = Boolean(isSearch || suggestionsOpen || shieldOpen || dlOpen || contextMenuOpen || sheetOpen);
+
+    if (window.OcalNative && typeof window.OcalNative.setOverlayOpen === 'function') {
+      window.OcalNative.setOverlayOpen(hasOverlay);
+    }
+    this.syncNativeNavigationState();
+  }
+
+  setupOverlayObserver() {
+    const observer = new MutationObserver(() => {
+      this.syncOverlayState();
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    ['shield-popover', 'dl-quick-popover', 'suggestions-dropdown', 'context-menu-sheet', 'menu-sheet', 'shield-sheet', 'tabs-tray-container', 'drawer-backdrop'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+  }
 
   syncNativeNavigationState() {
     if (!window.OcalNative || typeof window.OcalNative.setWebNavigationState !== 'function') return;
@@ -1729,6 +1922,16 @@ class OcalMobileApp {
           bar.style.width = '100%';
           setTimeout(() => { bar.style.opacity = '0'; bar.style.width = '0%'; }, 200);
         }
+        clearTimeout(this.suggestDebounceTimer);
+        if (this.suggestAbortController) {
+          this.suggestAbortController.abort();
+          this.suggestAbortController = null;
+        }
+        const sDropdown = document.getElementById('suggestions-dropdown');
+        if (sDropdown) {
+          sDropdown.classList.remove('visible');
+          sDropdown.innerHTML = '';
+        }
         if (typeof event.canGoBack === 'boolean') window.nativeCanGoBack = event.canGoBack;
         if (typeof event.canGoForward === 'boolean') window.nativeCanGoForward = event.canGoForward;
         if (event.url) {
@@ -1792,7 +1995,7 @@ class OcalMobileApp {
   syncNativeWebVisibility() {
     if (!window.OcalNative) return;
     const activeTab = this.tabManager?.getActiveTab();
-    const isWebUrl = activeTab && !activeTab.url.startsWith('ocal://');
+    const isWebUrl = activeTab && !activeTab.url.startsWith('ocal://') && !activeTab.url.includes('dineinstyle.com');
     const isOverlayOpen = document.body.classList.contains('search-active') ||
       document.getElementById('tabs-tray-container')?.classList.contains('visible') ||
       document.getElementById('shield-sheet')?.classList.contains('visible') ||
@@ -1829,7 +2032,7 @@ class OcalMobileApp {
 
     let bgColor = '#ffffff';
     if (isDarkMode) {
-      bgColor = '#121214';
+      bgColor = '#000000';
     } else {
       const activeTab = this.tabManager?.getActiveTab();
       const isInternalSubpage = activeTab && activeTab.url?.startsWith('ocal://') && activeTab.url !== 'ocal://home';
@@ -1851,6 +2054,77 @@ class OcalMobileApp {
         console.warn('[OcalNative] setStatusBarTheme error:', err);
       }
     }
+  }
+
+  checkInitialPermissionsPrompt() {
+    if (!window.OcalNative) return;
+    const hasPrompted = localStorage.getItem('ocal-permissions-prompted');
+    if (hasPrompted) return;
+
+    // Gracefully ask user after 1.5 seconds so app renders first
+    setTimeout(() => {
+      this.showPermissionsDialog();
+    }, 1500);
+  }
+
+  showPermissionsDialog() {
+    const existing = document.getElementById('ocal-permission-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'ocal-permission-modal';
+    modal.className = 'permission-modal-backdrop';
+    modal.innerHTML = `
+      <div class="permission-modal-card">
+        <div class="permission-modal-icon">
+          <i class="fas fa-shield-halved"></i>
+        </div>
+        <h3 class="permission-modal-title">Enable Browser Permissions</h3>
+        <p class="permission-modal-desc">
+          To provide full browser capabilities, Ocal needs permission to download files, send download notifications, and access camera/microphone when requested by websites.
+        </p>
+        <div class="permission-modal-features">
+          <div class="permission-feature-row">
+            <i class="fas fa-bell"></i>
+            <span>Notifications for download progress and alerts</span>
+          </div>
+          <div class="permission-feature-row">
+            <i class="fas fa-folder-open"></i>
+            <span>File manager and download storage</span>
+          </div>
+          <div class="permission-feature-row">
+            <i class="fas fa-camera"></i>
+            <span>Camera, mic & location for web apps</span>
+          </div>
+        </div>
+        <div class="permission-modal-actions">
+          <button class="permission-btn permission-grant-btn" id="modal-grant-perms-btn">
+            Grant Permissions
+          </button>
+          <button class="permission-btn permission-skip-btn" id="modal-skip-perms-btn">
+            Maybe Later
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('visible'));
+
+    modal.querySelector('#modal-grant-perms-btn')?.addEventListener('click', () => {
+      localStorage.setItem('ocal-permissions-prompted', 'true');
+      modal.classList.remove('visible');
+      setTimeout(() => modal.remove(), 250);
+      if (window.OcalNative && typeof window.OcalNative.requestAllPermissions === 'function') {
+        window.OcalNative.requestAllPermissions();
+      }
+    });
+
+    modal.querySelector('#modal-skip-perms-btn')?.addEventListener('click', () => {
+      localStorage.setItem('ocal-permissions-prompted', 'true');
+      modal.classList.remove('visible');
+      setTimeout(() => modal.remove(), 250);
+    });
   }
 
   setupContextMenuListeners() {
@@ -2314,24 +2588,34 @@ class OcalMobileApp {
     const bgPreview = document.getElementById('context-menu-bg-preview');
     const snapshot = data?.snapshot || activeTab?.thumbnail || (window.OcalNative ? window.OcalNative.getLastTabThumbnail() : '') || '';
     if (bgPreview) {
-      if (snapshot) {
+      if (snapshot && snapshot.startsWith('data:image/')) {
         bgPreview.style.backgroundImage = `url("${snapshot}")`;
         bgPreview.classList.add('visible');
       } else {
         bgPreview.classList.remove('visible');
+        bgPreview.style.backgroundImage = '';
       }
     }
     if (snapshot) {
       this.updateWebBgSnapshot(snapshot);
     }
 
-    if (window.OcalNative) window.OcalNative.setWebVisible(false);
-    sheet.classList.add('visible');
-    const backdrop = document.getElementById('drawer-backdrop');
-    backdrop?.classList.add('visible');
-    backdrop?.classList.add('context-menu-active');
-    document.body.classList.add('context-menu-open');
+    if (window.OcalNative) {
+      window.OcalNative.setOverlayOpen?.(true);
+      window.OcalNative.setWebBlurred?.(true);
+    }
+    sheet.classList.remove('visible');
+    sheet.style.transform = '';
+    void sheet.offsetHeight;
+    requestAnimationFrame(() => {
+      sheet.classList.add('visible');
+      const backdrop = document.getElementById('drawer-backdrop');
+      backdrop?.classList.add('visible');
+      backdrop?.classList.add('context-menu-active');
+      document.body.classList.add('context-menu-open');
+    });
     this.syncNativeNavigationState();
+    this.syncOverlayState();
   }
 
   copyToClipboard(text, label = 'Copied to clipboard') {

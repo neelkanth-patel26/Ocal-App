@@ -23,6 +23,7 @@ export class TabManager {
     this.activeTabId = null;
     this.tabCounter = 1;
     this.isIncognitoMode = false;
+    this.tabFilterMode = 'normal';
     this.currentPreset = localStorage.getItem('ocal-tabs-preset') || 'grid';
   }
 
@@ -30,6 +31,12 @@ export class TabManager {
     if (!['grid', 'stack', 'list'].includes(preset)) return;
     this.currentPreset = preset;
     try { localStorage.setItem('ocal-tabs-preset', preset); } catch (_) {}
+    const sheet = document.getElementById('tabs-tray-sheet');
+    if (sheet) {
+      sheet.classList.remove('tabs-view-grid', 'tabs-view-stack', 'tabs-view-list');
+      sheet.classList.add(`tabs-view-${preset}`);
+    }
+    this.updateViewModeButtonIcon();
     const carousel = document.getElementById('tabs-carousel');
     if (carousel) {
       this.renderTabsGrid(carousel, (tabId) => {
@@ -39,15 +46,66 @@ export class TabManager {
     }
   }
 
+  updateViewModeButtonIcon() {
+    const btn = document.getElementById('tabs-nav-view-mode');
+    if (!btn) return;
+    if (this.currentPreset === 'list') {
+      btn.title = "Switch to Grid View";
+      btn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+        </svg>
+      `;
+    } else {
+      btn.title = "Switch to List View";
+      btn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="7" y="4" width="10" height="16" rx="2.5"></rect>
+          <line x1="3.5" y1="7.5" x2="3.5" y2="16.5"></line>
+          <line x1="20.5" y1="7.5" x2="20.5" y2="16.5"></line>
+        </svg>
+      `;
+    }
+  }
+
   closeAllTabs() {
-    this.tabs.forEach(tab => {
-      try { sessionStorage.removeItem(`ocal_thumb_${tab.id}`); } catch (_) {}
-      if (tab.frameWrapperEl?.parentNode) {
-        tab.frameWrapperEl.parentNode.removeChild(tab.frameWrapperEl);
+    if (this.tabFilterMode === 'private') {
+      const privateTabs = this.tabs.filter(t => t.isIncognito);
+      privateTabs.forEach(tab => {
+        try { sessionStorage.removeItem(`ocal_thumb_${tab.id}`); } catch (_) {}
+        if (tab.frameWrapperEl?.parentNode) {
+          tab.frameWrapperEl.parentNode.removeChild(tab.frameWrapperEl);
+        }
+      });
+      this.tabs = this.tabs.filter(t => !t.isIncognito);
+      if (this.tabs.length > 0) {
+        this.switchTab(this.tabs[0].id);
+      } else {
+        this.createTab('ocal://home', false);
       }
-    });
-    this.tabs = [];
-    this.createTab('ocal://home', false);
+    } else {
+      const normalTabs = this.tabs.filter(t => !t.isIncognito);
+      normalTabs.forEach(tab => {
+        try { sessionStorage.removeItem(`ocal_thumb_${tab.id}`); } catch (_) {}
+        if (tab.frameWrapperEl?.parentNode) {
+          tab.frameWrapperEl.parentNode.removeChild(tab.frameWrapperEl);
+        }
+      });
+      this.tabs = this.tabs.filter(t => t.isIncognito);
+      const newNormal = this.createTab('ocal://home', false);
+      this.switchTab(newNormal.id);
+    }
+    this.notifyTabsCount();
+    const carousel = document.getElementById('tabs-carousel');
+    if (carousel) {
+      this.renderTabsGrid(carousel, (tabId) => {
+        this.switchTab(tabId);
+        window.ocalApp?.closeTabsTray?.();
+      });
+    }
   }
 
   init() {
@@ -65,6 +123,10 @@ export class TabManager {
     if (initialUrl.includes('dineinstyle.com')) displayTitle = 'Dine in Style';
     else if (initialUrl.includes('twitter.com') || initialUrl.includes('x.com')) displayTitle = 'Twitter';
     else if (initialUrl === 'ocal://home') displayTitle = 'Start Page';
+    else if (initialUrl.startsWith('ocal://')) {
+      const p = initialUrl.replace('ocal://', '').split('?')[0].split('#')[0];
+      displayTitle = p.charAt(0).toUpperCase() + p.slice(1);
+    }
     else displayTitle = initialUrl;
 
     let cachedThumb = null;
@@ -146,7 +208,7 @@ export class TabManager {
 
     // Sync native Android web view visibility & URL
     if (window.OcalNative) {
-      if (tab.url.startsWith('ocal://')) {
+      if (tab.url.startsWith('ocal://') || tab.url.includes('dineinstyle.com')) {
         window.OcalNative.setWebVisible(false);
       } else {
         if (typeof window.OcalNative.setDesktopMode === 'function') {
@@ -253,7 +315,7 @@ export class TabManager {
       localStorage.setItem('ocal-history', JSON.stringify(filtered.slice(0, 100)));
     }
 
-    if (targetUrl.startsWith('ocal://')) {
+    if (targetUrl.startsWith('ocal://') || targetUrl.includes('dineinstyle.com')) {
       // Internal page
       document.documentElement.classList.remove('is-web-page');
       document.body.classList.remove('is-web-page');
@@ -272,7 +334,14 @@ export class TabManager {
       } else {
         tab.frameWrapperEl.appendChild(internalView);
       }
-      tab.title = targetUrl === 'ocal://home' ? 'Start Page' : 'Ocal ' + targetUrl.replace('ocal://', '').replace(/^./, c => c.toUpperCase());
+      if (targetUrl.includes('dineinstyle.com')) {
+        tab.title = 'Dine in Style';
+      } else if (targetUrl === 'ocal://home') {
+        tab.title = 'Start Page';
+      } else {
+        const p = targetUrl.replace('ocal://', '').split('?')[0].split('#')[0];
+        tab.title = p.charAt(0).toUpperCase() + p.slice(1);
+      }
       if (this.onTabChanged && tab.id === this.activeTabId) this.onTabChanged(tab);
     } else {
       // External web page
@@ -550,25 +619,31 @@ export class TabManager {
 
   getTabFaviconHtml(tab) {
     if (tab.isIncognito) {
-      return '<i class="fas fa-user-secret" style="color:var(--text-muted); font-size:11px;"></i>';
+      return '<span class="tab-card-private-icon-solid" style="display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:4px; background:#9333ea; color:#ffffff; flex-shrink:0;"><i class="fas fa-user-secret" style="color:#ffffff; font-size:9.5px;"></i></span>';
     }
     if (tab.url === 'ocal://home') {
-      return '<i class="fas fa-compass" style="color:var(--accent-primary); font-size:11px;"></i>';
+      return '<i class="fas fa-compass" style="color:inherit; font-size:11px;"></i>';
+    }
+    if (tab.url.startsWith('ocal://settings')) {
+      return '<i class="fas fa-sliders" style="color:inherit; font-size:11px;"></i>';
     }
     if (tab.url.startsWith('ocal://bookmarks')) {
-      return '<i class="fas fa-thumbtack" style="color:#f59e0b; font-size:11px;"></i>';
+      return '<i class="fas fa-bookmark" style="color:inherit; font-size:11px;"></i>';
     }
     if (tab.url.startsWith('ocal://history')) {
-      return '<i class="far fa-clock" style="color:#3b82f6; font-size:11px;"></i>';
+      return '<i class="far fa-clock" style="color:inherit; font-size:11px;"></i>';
     }
     if (tab.url.startsWith('ocal://downloads')) {
-      return '<i class="fas fa-arrow-down" style="color:#10b981; font-size:11px;"></i>';
+      return '<i class="fas fa-arrow-down" style="color:inherit; font-size:11px;"></i>';
     }
     if (tab.url.startsWith('ocal://sync')) {
-      return '<i class="fas fa-qrcode" style="color:#8b5cf6; font-size:11px;"></i>';
+      return '<i class="fas fa-arrows-rotate" style="color:inherit; font-size:11px;"></i>';
     }
-    if (tab.url.startsWith('ocal://games')) {
-      return '<i class="fas fa-gamepad" style="color:#ec4899; font-size:11px;"></i>';
+    if (tab.url.startsWith('ocal://passwords')) {
+      return '<i class="fas fa-key" style="color:inherit; font-size:11px;"></i>';
+    }
+    if (tab.url.startsWith('ocal://games') || tab.url.startsWith('ocal://snake') || tab.url.startsWith('ocal://tetris')) {
+      return '<i class="fas fa-gamepad" style="color:inherit; font-size:11px;"></i>';
     }
 
     let domain = '';
@@ -583,47 +658,99 @@ export class TabManager {
            alt=""
            onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
            onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
-           style="width:14px; height:14px; border-radius:3px; object-fit:contain; display:none;" />
+           style="width:14px; height:14px; border-radius:3px; object-fit:contain; display:none; filter:grayscale(1);" />
       <span class="tab-card-favicon-fallback" style="display:flex; align-items:center; justify-content:center; width:14px; height:14px;">
-        <i class="fas fa-globe" style="color:var(--accent-primary); font-size:11px;"></i>
+        <i class="fas fa-globe" style="color:inherit; font-size:11px;"></i>
       </span>
     `;
   }
 
   getDomainGradient(domain = '') {
-    const d = domain.toLowerCase();
-    if (d.includes('google')) return 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)';
-    if (d.includes('youtube')) return 'linear-gradient(135deg, #ef4444 0%, #991b1b 100%)';
-    if (d.includes('twitter') || d.includes('x.com')) return 'linear-gradient(135deg, #0f172a 0%, #334155 100%)';
-    if (d.includes('reddit')) return 'linear-gradient(135deg, #ff4500 0%, #ea580c 100%)';
-    if (d.includes('discord')) return 'linear-gradient(135deg, #5865f2 0%, #4338ca 100%)';
-    if (d.includes('github')) return 'linear-gradient(135deg, #181717 0%, #374151 100%)';
-    if (d.includes('wikipedia')) return 'linear-gradient(135deg, #475569 0%, #64748b 100%)';
-    if (d.includes('amazon')) return 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
-    if (d.includes('apple')) return 'linear-gradient(135deg, #374151 0%, #111827 100%)';
-    if (d.includes('twitch')) return 'linear-gradient(135deg, #9146ff 0%, #772ce8 100%)';
-    if (d.includes('instagram')) return 'linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%)';
-    if (d.includes('facebook')) return 'linear-gradient(135deg, #1877f2 0%, #0c4a6e 100%)';
-    if (d.includes('netflix')) return 'linear-gradient(135deg, #e50914 0%, #1f1f1f 100%)';
-    if (d.includes('spotify')) return 'linear-gradient(135deg, #1db954 0%, #121212 100%)';
+    // Pure sleek monochrome gradient
+    return 'linear-gradient(180deg, #18181b 0%, #111113 100%)';
+  }
 
-    let hash = 0;
-    for (let i = 0; i < d.length; i++) hash = (hash << 5) - hash + d.charCodeAt(i);
-    const hues = [210, 260, 285, 335, 155, 185, 25, 45];
-    const hue = hues[Math.abs(hash) % hues.length];
-    return `linear-gradient(135deg, hsl(${hue}, 70%, 45%) 0%, hsl(${(hue + 45) % 360}, 65%, 25%) 100%)`;
+  getInternalPageInfo(url) {
+    if (!url || !url.startsWith('ocal://')) return { name: 'Internal Page', icon: 'fas fa-layer-group' };
+    const path = url.replace('ocal://', '').split('?')[0].split('#')[0].toLowerCase();
+    switch (path) {
+      case 'home':
+      case '':
+        return { name: 'Start Page', icon: 'fas fa-compass' };
+      case 'settings':
+        return { name: 'Settings', icon: 'fas fa-sliders' };
+      case 'history':
+        return { name: 'History', icon: 'far fa-clock' };
+      case 'bookmarks':
+        return { name: 'Bookmarks', icon: 'fas fa-bookmark' };
+      case 'downloads':
+        return { name: 'Downloads', icon: 'fas fa-arrow-down' };
+      case 'sync':
+        return { name: 'Sync', icon: 'fas fa-arrows-rotate' };
+      case 'passwords':
+        return { name: 'Passwords', icon: 'fas fa-key' };
+      case 'games':
+        return { name: 'Games', icon: 'fas fa-gamepad' };
+      case 'snake':
+        return { name: 'Cyber Snake', icon: 'fas fa-ghost' };
+      case 'tetris':
+        return { name: 'Classic Tetris', icon: 'fas fa-cubes' };
+      default: {
+        const title = path.charAt(0).toUpperCase() + path.slice(1);
+        return { name: title || 'Internal Page', icon: 'fas fa-layer-group' };
+      }
+    }
   }
 
   renderTabPreviewHtml(tab) {
-    // 1. Real captured WebView Screenshot Thumbnail
+    // 1. For Internal Pages (ocal://*): Match Ocal Home Page style
+    if (!tab.url || tab.url.startsWith('ocal://')) {
+      const isStartPage = !tab.url || tab.url === 'ocal://home' || tab.url === 'ocal://';
+      if (tab.isIncognito && isStartPage) {
+        return `
+          <div class="tab-internal-dial-preview">
+            <div class="tab-internal-dial-tile" style="background-color: #9333ea !important; color: #ffffff !important; border: none !important; box-shadow: 0 4px 14px rgba(147, 51, 234, 0.4) !important;">
+              <i class="fas fa-user-secret" style="font-size: 22px; color: #ffffff;"></i>
+            </div>
+            <span class="tab-internal-dial-name" style="font-weight: 600;">Private Browsing</span>
+          </div>
+        `;
+      }
+      if (isStartPage) {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const logoSrc = isDark ? '/assets/Dark.png' : '/assets/Light.png';
+        return `
+          <div class="tab-home-preview">
+            <div class="tab-home-preview-logo">
+              <img src="${logoSrc}" alt="Ocal Logo" class="tab-home-logo-img" />
+            </div>
+            <div class="tab-home-preview-wordmark">Ocal</div>
+            <div class="tab-home-mini-grid">
+              <div class="tab-home-mini-tile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="1" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div>
+              <div class="tab-home-mini-tile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg></div>
+              <div class="tab-home-mini-tile"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></div>
+              <div class="tab-home-mini-tile"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.56 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701z"/></svg></div>
+            </div>
+          </div>
+        `;
+      }
+
+      const info = this.getInternalPageInfo(tab.url || 'ocal://home');
+      return `
+        <div class="tab-internal-dial-preview">
+          <div class="tab-internal-dial-tile">
+            <i class="${info.icon}"></i>
+          </div>
+          <span class="tab-internal-dial-name">${escapeHtml(info.name)}</span>
+        </div>
+      `;
+    }
+
+    // 2. Real captured WebView Screenshot Thumbnail for external websites
     if (tab.thumbnail) {
-      let cleanDomain = 'ocal';
+      let cleanDomain = '';
       try {
-        if (!tab.url.startsWith('ocal://')) {
-          cleanDomain = new URL(tab.url).hostname.replace(/^www\./i, '');
-        } else {
-          cleanDomain = tab.url.replace('ocal://', '');
-        }
+        cleanDomain = new URL(tab.url).hostname.replace(/^www\./i, '');
       } catch {
         cleanDomain = tab.url;
       }
@@ -632,172 +759,14 @@ export class TabManager {
           <img src="${tab.thumbnail}" class="tab-screenshot-img" alt="${escapeHtml(tab.title)}" loading="lazy" />
           <div class="tab-screenshot-gloss"></div>
           <div class="tab-screenshot-domain-pill">
-            <i class="fas fa-lock" style="font-size:7.5px; color:#10b981;"></i>
+            <i class="fas fa-lock" style="font-size:7.5px; color:#ffffff;"></i>
             <span>${escapeHtml(cleanDomain)}</span>
           </div>
         </div>
       `;
     }
 
-    // 2. Ocal Start Page
-    if (tab.url === 'ocal://home') {
-      return `
-        <div class="tab-preview-home">
-          <div class="tab-home-wordmark">Ocal</div>
-          <div class="tab-home-search-mock">
-            <i class="fas fa-search" style="font-size:7px; opacity:0.6;"></i>
-            <span>Search or type URL</span>
-          </div>
-          <div class="tab-home-dials-grid">
-            <div class="tab-home-dial-item"><div class="tab-home-dial-icon" style="background:#4285f422; color:#4285f4;"><i class="fab fa-google"></i></div><span class="tab-home-dial-label">Google</span></div>
-            <div class="tab-home-dial-item"><div class="tab-home-dial-icon" style="background:var(--bg-elevated); color:var(--text-main);"><i class="fab fa-youtube"></i></div><span class="tab-home-dial-label">YouTube</span></div>
-            <div class="tab-home-dial-item"><div class="tab-home-dial-icon" style="background:#ff450022; color:#ff4500;"><i class="fab fa-reddit"></i></div><span class="tab-home-dial-label">Reddit</span></div>
-            <div class="tab-home-dial-item"><div class="tab-home-dial-icon" style="background:#5865f222; color:#5865f2;"><i class="fab fa-discord"></i></div><span class="tab-home-dial-label">Discord</span></div>
-            <div class="tab-home-dial-item"><div class="tab-home-dial-icon" style="background:#24292e22; color:var(--text-main);"><i class="fab fa-github"></i></div><span class="tab-home-dial-label">GitHub</span></div>
-            <div class="tab-home-dial-item"><div class="tab-home-dial-icon" style="background:#1d9bf022; color:#1d9bf0;"><i class="fab fa-x-twitter"></i></div><span class="tab-home-dial-label">X</span></div>
-            <div class="tab-home-dial-item"><div class="tab-home-dial-icon" style="background:#10b98122; color:#10b981;"><i class="fas fa-robot"></i></div><span class="tab-home-dial-label">AI</span></div>
-            <div class="tab-home-dial-item"><div class="tab-home-dial-icon" style="background:#8b5cf622; color:#8b5cf6;"><i class="fas fa-gamepad"></i></div><span class="tab-home-dial-label">Games</span></div>
-          </div>
-        </div>
-      `;
-    }
-
-    // 3. Bookmarks Page
-    if (tab.url.startsWith('ocal://bookmarks')) {
-      let bmarks = [];
-      try { bmarks = JSON.parse(localStorage.getItem('ocal-bookmarks') || '[]'); } catch {}
-      const previewItems = bmarks.slice(0, 3);
-      return `
-        <div class="tab-internal-preview tab-internal-bookmarks">
-          <div class="tab-internal-banner" style="background:linear-gradient(135deg, #f59e0b 0%, #b45309 100%);">
-            <i class="fas fa-thumbtack"></i>
-            <span>Bookmarks</span>
-          </div>
-          <div class="tab-internal-list">
-            ${previewItems.length > 0 ? previewItems.map(b => `
-              <div class="tab-internal-row">
-                <i class="fas fa-bookmark" style="color:#f59e0b; font-size:8px;"></i>
-                <span class="tab-internal-row-text">${escapeHtml(b.title || b.url)}</span>
-              </div>
-            `).join('') : `
-              <div class="tab-internal-empty">
-                <i class="far fa-star" style="font-size:16px; opacity:0.3; margin-bottom:4px;"></i>
-                <span>No bookmarks saved</span>
-              </div>
-            `}
-          </div>
-          <div class="tab-internal-footer">
-            <span class="tab-internal-badge">${bmarks.length} saved</span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 4. History Page
-    if (tab.url.startsWith('ocal://history')) {
-      let hist = [];
-      try { hist = JSON.parse(localStorage.getItem('ocal-history') || '[]'); } catch {}
-      const previewItems = hist.slice(0, 3);
-      return `
-        <div class="tab-internal-preview tab-internal-history">
-          <div class="tab-internal-banner" style="background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
-            <i class="far fa-clock"></i>
-            <span>Browsing History</span>
-          </div>
-          <div class="tab-internal-list">
-            ${previewItems.length > 0 ? previewItems.map(h => `
-              <div class="tab-internal-row">
-                <i class="fas fa-globe" style="color:#3b82f6; font-size:8px;"></i>
-                <span class="tab-internal-row-text">${escapeHtml(h.title || h.url)}</span>
-              </div>
-            `).join('') : `
-              <div class="tab-internal-empty">
-                <i class="far fa-compass" style="font-size:16px; opacity:0.3; margin-bottom:4px;"></i>
-                <span>No history yet</span>
-              </div>
-            `}
-          </div>
-          <div class="tab-internal-footer">
-            <span class="tab-internal-badge">${hist.length} visited</span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 5. Desktop Sync Page
-    if (tab.url.startsWith('ocal://sync')) {
-      return `
-        <div class="tab-internal-preview tab-internal-sync">
-          <div class="tab-internal-banner" style="background:linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">
-            <i class="fas fa-qrcode"></i>
-            <span>Ocal Connect</span>
-          </div>
-          <div class="tab-internal-sync-body">
-            <div class="tab-internal-sync-icon-box">
-              <i class="fas fa-laptop" style="font-size:16px; color:#8b5cf6;"></i>
-              <div class="tab-sync-wave"><i class="fas fa-link" style="font-size:10px;"></i></div>
-              <i class="fas fa-mobile-screen" style="font-size:16px; color:#8b5cf6;"></i>
-            </div>
-            <span style="font-size:9.5px; font-weight:600; color:var(--text-main);">Desktop Sync Ready</span>
-          </div>
-          <div class="tab-internal-footer">
-            <span class="tab-internal-badge" style="background:rgba(139,92,246,0.15); color:#8b5cf6;">PC & Android</span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 6. Downloads Page
-    if (tab.url.startsWith('ocal://downloads')) {
-      let downloads = [];
-      try { downloads = JSON.parse(localStorage.getItem('ocal-downloads') || '[]'); } catch {}
-      return `
-        <div class="tab-internal-preview tab-internal-downloads">
-          <div class="tab-internal-banner" style="background:linear-gradient(135deg, #10b981 0%, #047857 100%);">
-            <i class="fas fa-arrow-down"></i>
-            <span>Downloads</span>
-          </div>
-          <div class="tab-internal-list">
-            ${downloads.length > 0 ? downloads.slice(0, 3).map(d => `
-              <div class="tab-internal-row">
-                <i class="fas fa-file-arrow-down" style="color:#10b981; font-size:8px;"></i>
-                <span class="tab-internal-row-text">${escapeHtml(d.filename || 'File')}</span>
-              </div>
-            `).join('') : `
-              <div class="tab-internal-empty">
-                <i class="far fa-folder-open" style="font-size:16px; opacity:0.3; margin-bottom:4px;"></i>
-                <span>No downloads yet</span>
-              </div>
-            `}
-          </div>
-          <div class="tab-internal-footer">
-            <span class="tab-internal-badge">${downloads.length} files</span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 7. Games Hub Page
-    if (tab.url.startsWith('ocal://games')) {
-      return `
-        <div class="tab-internal-preview tab-internal-games">
-          <div class="tab-internal-banner" style="background:linear-gradient(135deg, #ec4899 0%, #be185d 100%);">
-            <i class="fas fa-gamepad"></i>
-            <span>Gaming Hub</span>
-          </div>
-          <div class="tab-internal-list" style="padding:10px 8px; gap:6px;">
-            <div class="tab-game-mini-pill" style="background:rgba(236,72,153,0.1); border:1px solid rgba(236,72,153,0.2);"><i class="fas fa-ghost" style="color:#ec4899; font-size:9px;"></i><span>Retro Arcade</span></div>
-            <div class="tab-game-mini-pill" style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2);"><i class="fas fa-chess" style="color:#3b82f6; font-size:9px;"></i><span>Chess Master</span></div>
-            <div class="tab-game-mini-pill" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2);"><i class="fas fa-puzzle-piece" style="color:#10b981; font-size:9px;"></i><span>2048 Puzzle</span></div>
-          </div>
-          <div class="tab-internal-footer">
-            <span class="tab-internal-badge" style="color:#ec4899;">Play Offline</span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 8. In Browser / Vite / Electron environment, show live scaled iframe preview
+    // 10. In Browser / Vite / Electron environment, show live scaled iframe preview
     if (!window.OcalNative && tab.url.startsWith('http')) {
       const desktopParam = tab.isDesktop ? '&desktop=true' : '';
       const proxyUrl = `/api/proxy?url=${encodeURIComponent(tab.url)}${desktopParam}`;
@@ -808,46 +777,43 @@ export class TabManager {
           <iframe src="${proxyUrl}" class="tab-mini-preview-iframe" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms" tabindex="-1"></iframe>
           <div class="tab-mini-preview-shield"></div>
           <div class="tab-screenshot-domain-pill">
-            <i class="fas fa-lock" style="font-size:7.5px; color:#10b981;"></i>
+            <i class="fas fa-lock" style="font-size:7.5px; color:#ffffff;"></i>
             <span>${escapeHtml(domain)}</span>
           </div>
         </div>
       `;
     }
 
-    // 9. Custom Brand & Domain High-Fidelity Previews
+    // 11. Custom Brand: Dine in Style (Luxury Monochrome Fashion Card)
     if (tab.url.includes('dineinstyle.com')) {
       return `
-        <div style="width:100%; height:100%; background-image:url('https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=400&q=80'), linear-gradient(180deg, #1e293b, #0f172a); background-size:cover; background-position:center; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:12px; position:relative;">
-          <div style="position:absolute; inset:0; background:rgba(0,0,0,0.35);"></div>
-          <div style="position:relative; z-index:2;">
-            <div style="font-size:15px; font-weight:800; color:#fff; line-height:1.1;">Autumn <span style="color:#d8ff00;">'23</span></div>
-            <div style="font-size:15px; font-weight:800; color:#fff; line-height:1.1; margin-bottom:8px;">Collection</div>
-            <div style="padding:4px 12px; border-radius:9999px; background:rgba(0,0,0,0.7); color:#fff; font-size:8.5px; font-weight:700; display:inline-block;">Shop Now</div>
-          </div>
-          <div class="tab-screenshot-domain-pill" style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%); z-index:4;">
-            <i class="fas fa-lock" style="font-size:7.5px; color:#10b981;"></i>
-            <span>dineinstyle.com</span>
+        <div class="tab-mockup-dine-mono">
+          <div class="dine-line-1">Autumn '23</div>
+          <div class="dine-line-2">Collection</div>
+          <div class="dine-btn-mono">Shop Collection</div>
+          <div class="tab-mockup-footer" style="position:absolute; bottom:4px; left:0; right:0;">
+            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>dineinstyle.com</span></span>
           </div>
         </div>
       `;
     }
 
+    // 12. Custom Brand: X / Twitter (Sleek Dark Theme)
     if (tab.url.includes('twitter.com') || tab.url.includes('x.com')) {
       return `
-        <div class="tab-mock-social">
-          <div class="tab-mock-social-banner" style="background:linear-gradient(135deg, #0f172a, #334155);"></div>
+        <div class="tab-mock-social" style="background:#000000;">
+          <div class="tab-mock-social-banner" style="background:#161618; border-bottom:1px solid rgba(255,255,255,0.08);"></div>
           <div class="tab-mock-social-profile">
-            <div class="tab-mock-social-avatar"><i class="fab fa-x-twitter"></i></div>
-            <div class="tab-mock-social-btn">Follow</div>
+            <div class="tab-mock-social-avatar" style="background:#000000; color:#ffffff; border:1px solid rgba(255,255,255,0.2);"><i class="fab fa-x-twitter"></i></div>
+            <div class="tab-mock-social-btn" style="background:#ffffff; color:#000000; font-weight:700;">Follow</div>
           </div>
           <div class="tab-mock-social-info">
-            <div class="tab-mock-social-name">X / Twitter <i class="fas fa-check-circle" style="color:#1d9bf0; font-size:8px;"></i></div>
-            <div class="tab-mock-social-handle">@X • Trending worldwide</div>
-            <div class="tab-mock-social-tweet">Explore what's happening right now across news, tech &amp; culture.</div>
+            <div class="tab-mock-social-name" style="color:#ffffff;">X <i class="fas fa-circle-check" style="color:#ffffff; font-size:8px;"></i></div>
+            <div class="tab-mock-social-handle" style="color:#a1a1aa;">@X • Trending worldwide</div>
+            <div class="tab-mock-social-tweet" style="color:#e4e4e7;">Explore what's happening right now across news, tech &amp; culture.</div>
           </div>
           <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#10b981;"></i><span>x.com</span></span>
+            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>x.com</span></span>
           </div>
         </div>
       `;
@@ -860,10 +826,9 @@ export class TabManager {
     } catch {
       domain = tab.url;
     }
-    const gradient = this.getDomainGradient(domain);
     const siteTitle = tab.title && tab.title !== tab.url ? tab.title : domain;
 
-    // Google / Search engines
+    // 13. Google / Search engines (Monochrome Clean Search)
     if (domain.includes('google') || tab.url.includes('/search') || domain.includes('bing') || domain.includes('duckduckgo')) {
       let query = '';
       try {
@@ -872,177 +837,127 @@ export class TabManager {
       } catch {}
       const displayQuery = query || siteTitle || 'Web Search';
       return `
-        <div class="tab-mock-google">
-          <div class="tab-google-top">
-            <span class="tab-google-logo"><span style="color:#4285f4">G</span><span style="color:#ea4335">o</span><span style="color:#fbbc05">o</span><span style="color:#4285f4">g</span><span style="color:#34a853">l</span><span style="color:#ea4335">e</span></span>
-            <div class="tab-google-searchbar">
-              <i class="fas fa-search" style="font-size:6.5px; color:var(--text-muted);"></i>
-              <span class="tab-google-query">${escapeHtml(displayQuery)}</span>
+        <div class="tab-mock-google" style="background:#000000;">
+          <div class="tab-google-top" style="border-bottom:1px solid rgba(255,255,255,0.08);">
+            <span class="tab-google-logo" style="color:#ffffff; font-weight:700; font-size:12px; letter-spacing:-0.03em;">Google</span>
+            <div class="tab-google-searchbar" style="background:#141416; border:1px solid rgba(255,255,255,0.08);">
+              <i class="fas fa-search" style="font-size:6.5px; color:#a1a1aa;"></i>
+              <span class="tab-google-query" style="color:#ffffff;">${escapeHtml(displayQuery)}</span>
             </div>
           </div>
           <div class="tab-google-results">
-            <div class="tab-google-result-item">
-              <div class="tab-google-cite">${escapeHtml(domain)} › ...</div>
-              <div class="tab-google-heading">${escapeHtml(siteTitle)}</div>
-              <div class="tab-google-snippet">Verified web results, articles, top media, and official resources.</div>
-            </div>
-            <div class="tab-google-result-item" style="opacity:0.85;">
-              <div class="tab-google-cite">news › latest</div>
-              <div class="tab-google-heading">${escapeHtml(siteTitle)} - News &amp; Updates</div>
-              <div class="tab-google-snippet">Recent reports and discussion covering ${escapeHtml(displayQuery)}.</div>
+            <div class="tab-google-result-item" style="background:#121214; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:6px 8px;">
+              <div class="tab-google-cite" style="color:#a1a1aa;">${escapeHtml(domain)} › ...</div>
+              <div class="tab-google-heading" style="color:#ffffff;">${escapeHtml(siteTitle)}</div>
+              <div class="tab-google-snippet" style="color:#71717a;">Verified web results, articles, top media, and official resources.</div>
             </div>
           </div>
           <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#10b981;"></i><span>${escapeHtml(domain)}</span></span>
+            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>${escapeHtml(domain)}</span></span>
           </div>
         </div>
       `;
     }
 
-    // YouTube / Video
+    // 14. YouTube / Video (Monochrome Video Card)
     if (domain.includes('youtube') || domain.includes('youtu.be')) {
       return `
-        <div class="tab-mock-youtube">
-          <div class="tab-yt-topbar">
-            <div class="tab-yt-logo"><i class="fab fa-youtube" style="color:#ff0000; font-size:12px;"></i><span>YouTube</span></div>
-            <i class="fas fa-search" style="font-size:8px; color:var(--text-muted);"></i>
+        <div class="tab-mock-youtube" style="background:#000000;">
+          <div class="tab-yt-topbar" style="border-bottom:1px solid rgba(255,255,255,0.08);">
+            <div class="tab-yt-logo" style="color:#ffffff;"><i class="fab fa-youtube" style="color:#ffffff; font-size:12px;"></i><span>YouTube</span></div>
+            <i class="fas fa-search" style="font-size:8px; color:#a1a1aa;"></i>
           </div>
           <div class="tab-yt-player-box">
-            <div class="tab-yt-player-thumb" style="background:${gradient};">
-              <div class="tab-yt-play-btn"><i class="fas fa-play" style="font-size:9px; margin-left:2px;"></i></div>
-              <span class="tab-yt-duration">12:45</span>
+            <div class="tab-yt-player-thumb" style="background:#141416; border:1px solid rgba(255,255,255,0.08);">
+              <div class="tab-yt-play-btn" style="background:rgba(255,255,255,0.9); color:#000000;"><i class="fas fa-play" style="font-size:9px; margin-left:2px;"></i></div>
+              <span class="tab-yt-duration" style="background:rgba(0,0,0,0.8); color:#ffffff;">12:45</span>
             </div>
-            <div class="tab-yt-progress-line"></div>
           </div>
-          <div class="tab-yt-details">
-            <div class="tab-yt-video-title">${escapeHtml(siteTitle)}</div>
+          <div class="tab-yt-details" style="padding:6px 8px;">
+            <div class="tab-yt-video-title" style="color:#ffffff;">${escapeHtml(siteTitle)}</div>
             <div class="tab-yt-channel-row">
-              <div class="tab-yt-channel-avatar"><i class="fas fa-play-circle" style="color:#ff0000; font-size:11px;"></i></div>
-              <div class="tab-yt-channel-info">
-                <span class="tab-yt-channel-name">Official Channel <i class="fas fa-check-circle" style="font-size:7px; color:#3b82f6;"></i></span>
-                <span class="tab-yt-views">740K views • 2 days ago</span>
-              </div>
+              <span class="tab-yt-channel-name" style="color:#a1a1aa;">Official Channel</span>
             </div>
           </div>
           <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#10b981;"></i><span>youtube.com</span></span>
+            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>youtube.com</span></span>
           </div>
         </div>
       `;
     }
 
-    // Reddit
+    // 15. Reddit (Monochrome Discussion Card)
     if (domain.includes('reddit')) {
       return `
-        <div class="tab-mock-reddit">
-          <div class="tab-reddit-topbar">
-            <div class="tab-reddit-logo"><i class="fab fa-reddit-alien" style="color:#ff4500; font-size:12px;"></i><span>reddit</span></div>
-            <span class="tab-reddit-sub">r/trending</span>
+        <div class="tab-mock-reddit" style="background:#000000;">
+          <div class="tab-reddit-topbar" style="border-bottom:1px solid rgba(255,255,255,0.08);">
+            <div class="tab-reddit-logo" style="color:#ffffff;"><i class="fab fa-reddit-alien" style="color:#ffffff; font-size:12px;"></i><span>reddit</span></div>
+            <span class="tab-reddit-sub" style="color:#a1a1aa;">r/trending</span>
           </div>
-          <div class="tab-reddit-card">
-            <div class="tab-reddit-meta">u/headline • 3h ago</div>
-            <div class="tab-reddit-title">${escapeHtml(siteTitle)}</div>
-            <div class="tab-reddit-actions">
-              <div class="tab-reddit-vote"><i class="fas fa-arrow-up" style="color:#ff4500;"></i><span>4.1k</span><i class="fas fa-arrow-down"></i></div>
-              <div class="tab-reddit-pill"><i class="far fa-comment-alt"></i><span>324</span></div>
-              <div class="tab-reddit-pill"><i class="fas fa-share"></i></div>
+          <div class="tab-reddit-card" style="background:#141416; border:1px solid rgba(255,255,255,0.08); border-radius:8px; margin:6px 8px; padding:6px 8px;">
+            <div class="tab-reddit-meta" style="color:#71717a;">u/headline • 3h ago</div>
+            <div class="tab-reddit-title" style="color:#ffffff; font-size:9.5px; font-weight:600;">${escapeHtml(siteTitle)}</div>
+            <div class="tab-reddit-actions" style="margin-top:6px; display:flex; gap:6px;">
+              <div class="tab-reddit-vote" style="background:rgba(255,255,255,0.06); color:#ffffff; padding:2px 6px; border-radius:4px;"><i class="fas fa-arrow-up" style="color:#ffffff;"></i> <span>4.1k</span></div>
+              <div class="tab-reddit-pill" style="background:rgba(255,255,255,0.06); color:#a1a1aa; padding:2px 6px; border-radius:4px;"><i class="far fa-comment-alt"></i> <span>324</span></div>
             </div>
           </div>
-          <div class="tab-reddit-card" style="opacity:0.75; padding:5px 7px;">
-            <div class="tab-reddit-meta">u/community • 5h ago</div>
-            <div class="tab-reddit-title" style="font-size:9px;">Discussion &amp; Top Comments</div>
-          </div>
           <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#10b981;"></i><span>reddit.com</span></span>
+            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>reddit.com</span></span>
           </div>
         </div>
       `;
     }
 
-    // Wikipedia
-    if (domain.includes('wikipedia')) {
-      return `
-        <div class="tab-mock-wiki">
-          <div class="tab-wiki-topbar">
-            <div class="tab-wiki-logo"><i class="fab fa-wikipedia-w"></i><span>WIKIPEDIA</span></div>
-            <i class="fas fa-search" style="font-size:8px; opacity:0.6;"></i>
-          </div>
-          <div class="tab-wiki-body">
-            <div class="tab-wiki-heading">${escapeHtml(siteTitle)}</div>
-            <div class="tab-wiki-subheading">From Wikipedia, the free encyclopedia</div>
-            <div class="tab-wiki-paragraph">
-              <strong>${escapeHtml(siteTitle)}</strong> is an encyclopedic subject documented with historical overview, scientific analysis, and comprehensive references.
-            </div>
-            <div class="tab-wiki-infobox">
-              <div class="tab-wiki-infobox-header">Quick Facts</div>
-              <div class="tab-wiki-infobox-row"><span>Classification</span><b>Major Article</b></div>
-              <div class="tab-wiki-infobox-row"><span>Status</span><b>Verified</b></div>
-            </div>
-          </div>
-          <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#10b981;"></i><span>wikipedia.org</span></span>
-          </div>
-        </div>
-      `;
-    }
-
-    // GitHub
+    // 16. GitHub (Monochrome Code Card)
     if (domain.includes('github')) {
       return `
-        <div class="tab-mock-github">
-          <div class="tab-gh-topbar">
-            <i class="fab fa-github" style="font-size:13px; color:#fff;"></i>
-            <span class="tab-gh-repo-path">repo / ${escapeHtml(siteTitle)}</span>
+        <div class="tab-mock-github" style="background:#000000;">
+          <div class="tab-gh-topbar" style="border-bottom:1px solid rgba(255,255,255,0.08);">
+            <i class="fab fa-github" style="font-size:13px; color:#ffffff;"></i>
+            <span class="tab-gh-repo-path" style="color:#ffffff;">repo / ${escapeHtml(siteTitle)}</span>
           </div>
           <div class="tab-gh-stats">
-            <span class="tab-gh-badge"><i class="far fa-star"></i> 24.8k</span>
-            <span class="tab-gh-badge"><i class="fas fa-code-fork"></i> 3.2k</span>
-            <span class="tab-gh-badge" style="color:#f1e05a;">● TypeScript</span>
+            <span class="tab-gh-badge" style="background:#141416; color:#a1a1aa; border:1px solid rgba(255,255,255,0.08);"><i class="far fa-star"></i> 24.8k</span>
+            <span class="tab-gh-badge" style="background:#141416; color:#a1a1aa; border:1px solid rgba(255,255,255,0.08);"><i class="fas fa-code-fork"></i> 3.2k</span>
           </div>
-          <div class="tab-gh-file-box">
-            <div class="tab-gh-file-row"><i class="far fa-folder" style="color:#54aeff;"></i><span>src</span><span class="tab-gh-msg">core modules</span></div>
-            <div class="tab-gh-file-row"><i class="far fa-file-code" style="color:#8b949e;"></i><span>package.json</span><span class="tab-gh-msg">release v2.0.0</span></div>
-            <div class="tab-gh-file-row"><i class="far fa-file-alt" style="color:#8b949e;"></i><span>README.md</span><span class="tab-gh-msg">docs &amp; guide</span></div>
+          <div class="tab-gh-file-box" style="background:#141416; border:1px solid rgba(255,255,255,0.08); border-radius:8px; margin:6px 8px; padding:4px;">
+            <div class="tab-gh-file-row"><i class="far fa-folder" style="color:#ffffff;"></i><span>src</span><span class="tab-gh-msg" style="color:#71717a;">core modules</span></div>
+            <div class="tab-gh-file-row"><i class="far fa-file-code" style="color:#a1a1aa;"></i><span>package.json</span><span class="tab-gh-msg" style="color:#71717a;">release v2.0.0</span></div>
           </div>
           <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#10b981;"></i><span>github.com</span></span>
+            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>github.com</span></span>
           </div>
         </div>
       `;
     }
 
-    // E-Commerce / Store
-    if (domain.includes('amazon') || domain.includes('ebay') || domain.includes('walmart') || domain.includes('shopify') || domain.includes('store')) {
+    // 17. Wikipedia (Monochrome Article Card)
+    if (domain.includes('wikipedia')) {
       return `
-        <div class="tab-mock-shop">
-          <div class="tab-shop-topbar">
-            <div class="tab-shop-logo"><i class="fas fa-bag-shopping" style="color:#f59e0b;"></i><span>Marketplace</span></div>
-            <i class="fas fa-cart-shopping" style="font-size:9px; color:var(--text-muted);"></i>
+        <div class="tab-mock-wiki" style="background:#000000;">
+          <div class="tab-wiki-topbar" style="border-bottom:1px solid rgba(255,255,255,0.08);">
+            <div class="tab-wiki-logo" style="color:#ffffff;"><i class="fab fa-wikipedia-w"></i><span>WIKIPEDIA</span></div>
+            <i class="fas fa-search" style="font-size:8px; opacity:0.6; color:#ffffff;"></i>
           </div>
-          <div class="tab-shop-hero" style="background:${gradient};">
-            <div class="tab-shop-prime-badge"><i class="fas fa-check" style="font-size:7px;"></i> Top Choice</div>
-            <div class="tab-shop-stars">★★★★★ <span style="font-size:7px; opacity:0.85;">(4.9)</span></div>
-          </div>
-          <div class="tab-shop-details">
-            <div class="tab-shop-title">${escapeHtml(siteTitle)}</div>
-            <div class="tab-shop-price-row">
-              <span class="tab-shop-price">$39.99</span>
-              <span class="tab-shop-stock">In Stock</span>
+          <div class="tab-wiki-body" style="padding:8px;">
+            <div class="tab-wiki-heading" style="color:#ffffff;">${escapeHtml(siteTitle)}</div>
+            <div class="tab-wiki-subheading" style="color:#a1a1aa;">From Wikipedia, the free encyclopedia</div>
+            <div class="tab-wiki-paragraph" style="color:#71717a; font-size:8px; line-height:1.3; margin-top:4px;">
+              Documented article with encyclopedic analysis and verified references.
             </div>
-            <div class="tab-shop-btn">View Product</div>
           </div>
           <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#10b981;"></i><span>${escapeHtml(domain)}</span></span>
+            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>wikipedia.org</span></span>
           </div>
         </div>
       `;
     }
 
-    // 10. Universal Rich Web Layout (Stunning Landing Page Mockup for all other websites)
+    // 18. Universal Sleek Monochrome Landing Page (All other external websites)
     return `
-      <div class="tab-rich-web-preview">
-        <div class="tab-rich-header" style="background:${gradient};">
-          <div class="tab-rich-header-gloss"></div>
+      <div class="tab-rich-web-preview" style="background:#000000;">
+        <div class="tab-rich-header" style="background:#141416; border-bottom:1px solid rgba(255,255,255,0.08);">
           <div class="tab-rich-nav">
             <div class="tab-rich-favicon-wrap">
               <img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128"
@@ -1054,30 +969,29 @@ export class TabManager {
                 <i class="fas fa-globe"></i>
               </div>
             </div>
-            <span class="tab-rich-nav-brand">${escapeHtml(domain)}</span>
-            <div class="tab-rich-nav-dots"><i class="fas fa-ellipsis"></i></div>
+            <span class="tab-rich-nav-brand" style="color:#ffffff;">${escapeHtml(domain)}</span>
+            <div class="tab-rich-nav-dots" style="color:#a1a1aa;"><i class="fas fa-ellipsis"></i></div>
           </div>
-          <div class="tab-rich-hero-text">
-            <div class="tab-rich-hero-title">${escapeHtml(siteTitle)}</div>
-            <div class="tab-rich-hero-cta">Explore Website</div>
+          <div class="tab-rich-hero-text" style="padding-top:6px;">
+            <div class="tab-rich-hero-title" style="color:#ffffff; font-size:12px;">${escapeHtml(siteTitle)}</div>
+            <div class="tab-rich-hero-cta" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); color:#ffffff; font-size:8px;">Explore Website</div>
           </div>
         </div>
-        <div class="tab-rich-body">
-          <div class="tab-rich-card">
-            <div class="tab-rich-card-accent" style="background:${gradient};"></div>
+        <div class="tab-rich-body" style="padding:8px;">
+          <div class="tab-rich-card" style="background:#121214; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:6px 8px;">
             <div class="tab-rich-card-lines">
-              <div class="tab-rich-text-line" style="width:85%;"></div>
-              <div class="tab-rich-text-line" style="width:60%;"></div>
+              <div class="tab-rich-text-line" style="width:85%; background:rgba(255,255,255,0.12); height:5px; border-radius:3px; margin-bottom:4px;"></div>
+              <div class="tab-rich-text-line" style="width:60%; background:rgba(255,255,255,0.06); height:5px; border-radius:3px;"></div>
             </div>
           </div>
-          <div class="tab-rich-grid">
-            <div class="tab-rich-grid-cell"><i class="fas fa-bolt" style="color:var(--accent-primary); font-size:9px;"></i><span>Features</span></div>
-            <div class="tab-rich-grid-cell"><i class="fas fa-shield-alt" style="color:#10b981; font-size:9px;"></i><span>Security</span></div>
+          <div class="tab-rich-grid" style="display:flex; gap:6px; margin-top:6px;">
+            <div class="tab-rich-grid-cell" style="background:#141416; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:4px 6px; display:flex; align-items:center; gap:4px; font-size:8px; color:#ffffff;"><i class="fas fa-bolt" style="color:#ffffff; font-size:8px;"></i><span>Features</span></div>
+            <div class="tab-rich-grid-cell" style="background:#141416; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:4px 6px; display:flex; align-items:center; gap:4px; font-size:8px; color:#ffffff;"><i class="fas fa-shield" style="color:#a1a1aa; font-size:8px;"></i><span>Secure</span></div>
           </div>
         </div>
         <div class="tab-mockup-footer">
           <span class="tab-mockup-domain-pill">
-            <i class="fas fa-lock" style="font-size:7px; color:#10b981;"></i>
+            <i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i>
             <span>${escapeHtml(domain)}</span>
           </span>
         </div>
@@ -1088,46 +1002,129 @@ export class TabManager {
   renderTabsGrid(gridContainerEl, onSelect) {
     gridContainerEl.innerHTML = '';
 
-    // Update sheet class for layout styling
+    // Synchronize container sheet class with current layout preset
     const sheet = document.getElementById('tabs-tray-sheet');
     if (sheet) {
       sheet.classList.remove('tabs-view-grid', 'tabs-view-stack', 'tabs-view-list');
-      sheet.classList.add(`tabs-view-${this.currentPreset}`);
+      sheet.classList.add(`tabs-view-${this.currentPreset || 'grid'}`);
+    }
+    this.updateViewModeButtonIcon();
+
+    const normalTabs = this.tabs.filter(t => !t.isIncognito);
+    const privateTabs = this.tabs.filter(t => t.isIncognito);
+
+    if (!this.tabFilterMode) {
+      const activeTab = this.getActiveTab();
+      this.tabFilterMode = (activeTab && activeTab.isIncognito) ? 'private' : 'normal';
     }
 
-    // Update preset segmented control active button
-    document.querySelectorAll('#tabs-preset-segmented .tabs-preset-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-preset') === this.currentPreset);
-    });
-
-    // Update count badge in header
-    const countEl = document.getElementById('tabs-tray-count');
-    if (countEl) {
-      const incognitoCount = this.tabs.filter(t => t.isIncognito).length;
-      countEl.textContent = incognitoCount > 0 
-        ? `${this.tabs.length} (${incognitoCount} Private)` 
-        : `${this.tabs.length} ${this.tabs.length === 1 ? 'Tab' : 'Tabs'}`;
+    // Update count labels in segmented buttons and bottom dock badge
+    const normalCountEl = document.getElementById('tabs-normal-count');
+    if (normalCountEl) normalCountEl.textContent = `Tabs (${normalTabs.length})`;
+    const privateCountEl = document.getElementById('tabs-private-count');
+    if (privateCountEl) privateCountEl.textContent = `Private (${privateTabs.length})`;
+    const operaBadge = document.getElementById('opera-tab-badge-count');
+    if (operaBadge) {
+      const activeCount = this.tabFilterMode === 'private' ? privateTabs.length : normalTabs.length;
+      operaBadge.textContent = `${activeCount}`;
     }
 
+    const normalBtn = document.getElementById('tab-mode-normal');
+    const privateBtn = document.getElementById('tab-mode-private');
+    if (normalBtn) normalBtn.classList.toggle('active', this.tabFilterMode === 'normal');
+    if (privateBtn) privateBtn.classList.toggle('active', this.tabFilterMode === 'private');
+
+    // Wire mode buttons
+    if (normalBtn && !normalBtn._hasBound) {
+      normalBtn._hasBound = true;
+      const onNormal = (e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        this.tabFilterMode = 'normal';
+        this.renderTabsGrid(gridContainerEl, onSelect);
+      };
+      normalBtn.addEventListener('click', onNormal);
+      normalBtn.addEventListener('touchend', onNormal);
+    }
+    if (privateBtn && !privateBtn._hasBound) {
+      privateBtn._hasBound = true;
+      const onPrivate = (e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        this.tabFilterMode = 'private';
+        this.renderTabsGrid(gridContainerEl, onSelect);
+      };
+      privateBtn.addEventListener('click', onPrivate);
+      privateBtn.addEventListener('touchend', onPrivate);
+    }
+
+    // Wire Done button
+    const doneBtn = document.getElementById('tabs-done-btn');
+    if (doneBtn && !doneBtn._hasBound) {
+      doneBtn._hasBound = true;
+      doneBtn.addEventListener('click', () => {
+        window.ocalApp?.closeTabsTray?.();
+      });
+    }
+
+    // Wire bottom new tab button
+    const bottomNewTabBtn = document.getElementById('tabs-bottom-nav')?.querySelector('#tabs-nav-new-tab') || document.getElementById('tabs-nav-new-tab');
+    if (bottomNewTabBtn && !bottomNewTabBtn._hasBound) {
+      bottomNewTabBtn._hasBound = true;
+      bottomNewTabBtn.addEventListener('click', () => {
+        this.createTab('ocal://home', this.tabFilterMode === 'private');
+        if (onSelect) onSelect(this.activeTabId);
+      });
+    }
+
+    // Wire search filter
+    const searchInput = document.getElementById('tabs-search-input');
+    const searchQuery = (searchInput?.value || '').toLowerCase().trim();
+
+    let visibleTabs = this.tabFilterMode === 'private' ? privateTabs : normalTabs;
+    if (searchQuery) {
+      visibleTabs = visibleTabs.filter(t => (t.title || '').toLowerCase().includes(searchQuery) || (t.url || '').toLowerCase().includes(searchQuery));
+    }
+
+    // Empty state for private mode when 0 private tabs
+    if (this.tabFilterMode === 'private' && privateTabs.length === 0) {
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'tabs-empty-private-state';
+      emptyDiv.innerHTML = `
+        <div class="tabs-empty-private-icon"><i class="fas fa-user-secret"></i></div>
+        <h3>Private Browsing</h3>
+        <p>Browsing history, search queries, and cookies are not kept when you browse privately in Ocal.</p>
+        <button class="tabs-create-private-btn" id="tabs-create-first-private-btn">
+          <i class="fas fa-plus"></i>
+          <span>Open Private Tab</span>
+        </button>
+      `;
+      emptyDiv.querySelector('#tabs-create-first-private-btn')?.addEventListener('click', () => {
+        this.createTab('ocal://home', true);
+        if (onSelect) onSelect(this.activeTabId);
+      });
+      gridContainerEl.appendChild(emptyDiv);
+      return;
+    }
+
+    // If List View mode is active, render sleek rows
     if (this.currentPreset === 'list') {
-      // Compact Apple / Arc style list rows
-      this.tabs.forEach(tab => {
+      visibleTabs.forEach(tab => {
         const row = document.createElement('div');
         row.className = `tab-list-row ${tab.id === this.activeTabId ? 'active' : ''}`;
         row.setAttribute('data-tab-id', tab.id);
-        row.setAttribute('data-url', tab.url);
 
         const faviconHtml = this.getTabFaviconHtml(tab);
-        let domain = '';
+        const rawTitle = tab.title || tab.url;
+        let displayTitle = rawTitle.startsWith('ocal://')
+          ? (rawTitle === 'ocal://home' ? 'Start Page' : rawTitle.replace('ocal://', '').split('?')[0].replace(/^./, c => c.toUpperCase()))
+          : rawTitle.replace(/^Ocal\s+/i, '');
+        if (displayTitle === 'Home') displayTitle = 'Start Page';
+
+        let cleanUrl = tab.url;
         try {
-          if (!tab.url.startsWith('ocal://')) {
-            domain = new URL(tab.url).hostname.replace(/^www\./i, '');
-          } else {
-            domain = tab.url;
+          if (cleanUrl.startsWith('http')) {
+            cleanUrl = new URL(cleanUrl).hostname.replace(/^www\./i, '');
           }
-        } catch {
-          domain = tab.url;
-        }
+        } catch (_) {}
 
         row.innerHTML = `
           <div class="tab-list-favicon">
@@ -1135,13 +1132,18 @@ export class TabManager {
             ${tab.id === this.activeTabId ? '<div class="tab-list-active-dot"></div>' : ''}
           </div>
           <div class="tab-list-info">
-            <div class="tab-list-title">${escapeHtml(tab.title || tab.url)}</div>
+            <div class="tab-list-title">${escapeHtml(displayTitle)}</div>
             <div class="tab-list-meta">
-              ${tab.isIncognito ? '<span class="tab-incognito-pill"><i class="fas fa-user-secret" style="font-size:8px;"></i> Private</span>' : ''}
-              <span>${escapeHtml(domain)}</span>
+              ${tab.isIncognito ? '<span class="tab-incognito-pill"><i class="fas fa-user-secret" style="font-size:7px;"></i> Private</span>' : ''}
+              <span class="tab-list-url">${escapeHtml(cleanUrl)}</span>
             </div>
           </div>
-          <button class="tab-list-close" data-id="${tab.id}" title="Close Tab"><i class="fas fa-times"></i></button>
+          <button class="tab-list-close" data-id="${tab.id}" title="Close Tab">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         `;
 
         row.addEventListener('click', (e) => {
@@ -1159,68 +1161,92 @@ export class TabManager {
         gridContainerEl.appendChild(row);
       });
 
-      // List "+ New Tab" button
+      // Add New Tab List Item
       const addRow = document.createElement('div');
-      addRow.className = 'tab-list-add-row';
-      addRow.innerHTML = `<i class="fas fa-plus"></i><span>New Tab</span>`;
+      addRow.className = 'tab-list-row tab-list-add-row';
+      addRow.innerHTML = `
+        <div class="tab-list-favicon tab-list-add-favicon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </div>
+        <div class="tab-list-info">
+          <div class="tab-list-title">New ${this.tabFilterMode === 'private' ? 'Private ' : ''}Tab</div>
+          <div class="tab-list-meta"><span class="tab-list-url">Open a new tab</span></div>
+        </div>
+      `;
       addRow.addEventListener('click', () => {
-        this.createTab('ocal://home', this.isIncognitoMode);
+        this.createTab('ocal://home', this.tabFilterMode === 'private');
         if (onSelect) onSelect(this.activeTabId);
       });
       gridContainerEl.appendChild(addRow);
-    } else {
-      // Grid or Stack Card views
-      this.tabs.forEach(tab => {
-        const card = document.createElement('div');
-        card.className = `tab-card ${tab.id === this.activeTabId ? 'active' : ''}`;
-        card.setAttribute('data-tab-id', tab.id);
-        card.setAttribute('data-url', tab.url);
+      return;
+    }
 
-        const faviconHtml = this.getTabFaviconHtml(tab);
-        const previewHtml = this.renderTabPreviewHtml(tab);
+    // Render tab cards in 2-column grid
+    visibleTabs.forEach(tab => {
+      const card = document.createElement('div');
+      card.className = `tab-card ${tab.id === this.activeTabId ? 'active' : ''}`;
+      card.setAttribute('data-tab-id', tab.id);
+      card.setAttribute('data-url', tab.url);
 
-        card.innerHTML = `
-          ${tab.isIncognito ? '<div class="tab-card-incognito-badge"><i class="fas fa-user-secret" style="font-size:7px;"></i> Private</div>' : ''}
-          <div class="tab-card-header">
-            <div class="tab-card-favicon">${faviconHtml}</div>
-            <span class="tab-card-title">${escapeHtml(tab.title || tab.url)}</span>
-            <button class="tab-card-close" data-id="${tab.id}" title="Close Tab"><i class="fas fa-times"></i></button>
-          </div>
+      const faviconHtml = this.getTabFaviconHtml(tab);
+      const previewHtml = this.renderTabPreviewHtml(tab);
+
+      const rawTitle = tab.title || tab.url;
+      let displayTitle = rawTitle.startsWith('ocal://')
+        ? (rawTitle === 'ocal://home' ? 'Start Page' : rawTitle.replace('ocal://', '').split('?')[0].replace(/^./, c => c.toUpperCase()))
+        : rawTitle.replace(/^Ocal\s+/i, '');
+      if (displayTitle === 'Home') displayTitle = 'Start Page';
+
+      card.innerHTML = `
+        ${tab.isIncognito ? '<div class="tab-card-incognito-badge"><i class="fas fa-user-secret" style="font-size:7.5px;"></i> Private</div>' : ''}
+        <div class="tab-card-header">
+          <div class="tab-card-favicon">${faviconHtml}</div>
+          <span class="tab-card-title">${escapeHtml(displayTitle)}</span>
+          <button class="tab-card-close" data-id="${tab.id}" title="Close Tab">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="tab-card-preview-inner">
           <div class="tab-card-preview">${previewHtml}</div>
-        `;
-
-        card.addEventListener('click', (e) => {
-          if (e.target.closest('.tab-card-close')) return;
-          if (onSelect) {
-            onSelect(tab.id);
-          } else {
-            this.switchTab(tab.id);
-          }
-        });
-
-        card.querySelector('.tab-card-close')?.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.closeTab(tab.id);
-          this.renderTabsGrid(gridContainerEl, onSelect);
-        });
-
-        gridContainerEl.appendChild(card);
-      });
-
-      // Dedicated "+ New Tab" Action Card
-      const addCard = document.createElement('div');
-      addCard.className = 'tab-card tab-card-add';
-      addCard.innerHTML = `
-        <div class="tab-add-content">
-          <div class="tab-add-icon"><i class="fas fa-plus"></i></div>
-          <span class="tab-add-label">New Tab</span>
         </div>
       `;
-      addCard.addEventListener('click', () => {
-        this.createTab('ocal://home', this.isIncognitoMode);
-        if (onSelect) onSelect(this.activeTabId);
+
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.tab-card-close')) return;
+        if (onSelect) {
+          onSelect(tab.id);
+        } else {
+          this.switchTab(tab.id);
+        }
       });
-      gridContainerEl.appendChild(addCard);
-    }
+
+      card.querySelector('.tab-card-close')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeTab(tab.id);
+        this.renderTabsGrid(gridContainerEl, onSelect);
+      });
+
+      gridContainerEl.appendChild(card);
+    });
+
+    // "+ New Tab" Action Card styled like Home Page favorites tile
+    const addCard = document.createElement('div');
+    addCard.className = 'tab-card tab-card-add';
+    addCard.innerHTML = `
+      <div class="tab-add-content">
+        <div class="tab-add-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </div>
+        <span class="tab-add-label">New ${this.tabFilterMode === 'private' ? 'Private ' : ''}Tab</span>
+      </div>
+    `;
+    addCard.addEventListener('click', () => {
+      this.createTab('ocal://home', this.tabFilterMode === 'private');
+      if (onSelect) onSelect(this.activeTabId);
+    });
+    gridContainerEl.appendChild(addCard);
   }
 }

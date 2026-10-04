@@ -53,7 +53,7 @@ export class InternalPages {
             </div>
             <div class="subpage-empty-title" style="font-size:18px;">URL Cannot Be Reached</div>
             <p class="subpage-empty-desc">${escapeHtml(url)}</p>
-            <button class="pill-chip" id="error-home-btn" style="background:var(--accent-primary); color:#ffffff; border:none; margin:20px auto 0; padding:10px 24px; font-weight:600; cursor:pointer;">
+            <button class="pill-chip" id="error-home-btn" style="background:#ffffff; color:#000000; border:none; border-radius:9999px; margin:20px auto 0; padding:10px 24px; font-weight:700; cursor:pointer;">
               Return to Start Page
             </button>
           </div>
@@ -546,7 +546,7 @@ export class InternalPages {
           </div>
           <div class="subpage-empty-title">No Bookmarks Saved</div>
           <p class="subpage-empty-desc">Tap the heart icon in the address bar to bookmark any page, or import your bookmarks from another browser.</p>
-          <button class="pill-chip" id="empty-import-bm-btn" style="background:var(--accent-primary); color:#ffffff; border:none; margin:16px auto 0; padding:10px 22px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">
+          <button class="pill-chip" id="empty-import-bm-btn" style="background:#ffffff; color:#000000; border:none; border-radius:9999px; margin:16px auto 0; padding:10px 22px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">
             <i class="fa-solid fa-file-import"></i>
             <span>Import Bookmarks File</span>
           </button>
@@ -719,13 +719,13 @@ export class InternalPages {
     if (passwords.length === 0) {
       contentHtml = `
         <div class="subpage-empty-state">
-          <div class="subpage-empty-icon" style="background:var(--bg-hover); color:var(--accent-primary);">
+          <div class="subpage-empty-icon" style="background:rgba(255,255,255,0.06); color:#ffffff;">
             <i class="fa-solid fa-key" style="font-size:24px;"></i>
           </div>
           <div class="subpage-empty-title">No Saved Logins</div>
           <p class="subpage-empty-desc">Import your passwords directly from Chrome, Firefox, Safari, Edge, or password manager CSV files.</p>
           <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:280px; margin:20px auto 0;">
-            <button class="pill-chip" id="empty-import-pwd-btn" style="background:var(--accent-primary); color:#ffffff; border:none; padding:12px 20px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px;">
+            <button class="pill-chip" id="empty-import-pwd-btn" style="background:#ffffff; color:#000000; border:none; border-radius:9999px; padding:12px 20px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px;">
               <i class="fa-solid fa-file-import"></i>
               <span>Import Passwords CSV</span>
             </button>
@@ -1715,7 +1715,7 @@ export class InternalPages {
                       </div>
                       <div class="dl-progress-stats">
                         <span>${dl.progress}% • ${downloadedFormatted} / ${formattedSize}</span>
-                        <span style="color:var(--accent-primary); font-weight:600;">Downloading</span>
+                        <span style="color:#ffffff; font-weight:600;">Downloading</span>
                       </div>
                     </div>
                   ` : `
@@ -2488,9 +2488,9 @@ export class InternalPages {
               </div>
               <div class="apple-row-content">
                 <div class="apple-row-title">Ocal Mobile Browser</div>
-                <div class="apple-row-subtitle">Version 1.0.4 (WebKit Modern Engine)</div>
+                <div class="apple-row-subtitle">Version 1.9.0 (WebKit Modern Engine)</div>
               </div>
-              <span style="font-size:11.5px; font-weight:600; color:var(--text-subtle); padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.05);">v1.0.4</span>
+              <span style="font-size:11.5px; font-weight:600; color:var(--text-subtle); padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.05);">v1.9.0</span>
             </div>
           </div>
         </div>

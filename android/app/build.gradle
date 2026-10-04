@@ -7,8 +7,8 @@ android {
         applicationId "com.ocal.browser.mobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.1.0"
+        versionCode 19
+        versionName "1.9.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -70,4 +70,26 @@ try {
     }
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
+
+project.afterEvaluate {
+    if (tasks.findByName('assembleRelease')) {
+        tasks.named('assembleRelease').configure {
+            doLast {
+                def releaseApk = file("${buildDir}/outputs/apk/release/app-release.apk")
+                if (releaseApk.exists()) {
+                    def apksDir = file("${rootDir}/../apks")
+                    if (!apksDir.exists()) {
+                        apksDir.mkdirs()
+                    }
+                    copy {
+                        from releaseApk
+                        into apksDir
+                        rename { "Ocal-Browser-v${android.defaultConfig.versionName}.apk" }
+                    }
+                    println ">>> Copied release APK to: ${apksDir}/Ocal-Browser-v${android.defaultConfig.versionName}.apk"
+                }
+            }
+        }
+    }
 }

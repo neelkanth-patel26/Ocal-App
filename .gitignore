@@ -1,11 +1,11 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 .pnp
 .pnp.js
 
 # Build Outputs & APKs
 dist/
-dist-apk/
+apks/
 *.apk
 *.aab
 build/

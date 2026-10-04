@@ -1,6 +1,6 @@
 {
   "name": "ocal-mobile",
-  "version": "1.0.0",
+  "version": "1.9.0",
   "description": "Ocal Browser Mobile Edition - Fast, Private, and Full-Featured",
   "type": "module",
   "scripts": {
@@ -8,6 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "cap-sync": "cap sync",
+    "build:apk": "vite build && cap sync android && cd android && .\\gradlew assembleRelease --no-daemon",
+    "build:apk:debug": "vite build && cap sync android && cd android && .\\gradlew assembleDebug --no-daemon",
     "electron": "electron ./electron/main.cjs"
   },
   "dependencies": {

@@ -104,11 +104,6 @@
       <!-- Autocomplete Suggestions Overlay -->
       <div class="suggestions-dropdown" id="suggestions-dropdown"></div>
 
-      <!-- Loading Progress Bar -->
-      <div class="progress-bar-container">
-        <div class="progress-bar" id="progress-bar"></div>
-      </div>
-
       <!-- Tablet / Large Screen Brand & Home Anchor -->
       <div class="dock-left-brand" id="dock-left-brand" title="Ocal Start Page">
         <span class="brand-logo-text">Ocal</span>
@@ -158,6 +153,10 @@
 
       <!-- Layer 2: Fixed Bottom Nav Bar (Matches Reference Icons: Clock, Pushpin, Plus, [20], Circle-Ellipsis) -->
       <nav class="bottom-nav-bar" id="bottom-nav-bar">
+        <!-- Loading Progress Bar (Monochrome, on top of bottom navbar) -->
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
         <button class="nav-icon-btn" id="nav-history" title="History">
           <i class="far fa-clock"></i>
         </button>
@@ -185,69 +184,93 @@
   <!-- Actual Webpage Blurred Background Snapshot for Context Menu -->
   <div class="context-menu-bg-preview" id="context-menu-bg-preview"></div>
 
-  <!-- Tabs Switcher Bottom Drawer (Matches Reference Screen 3) -->
+  <!-- Tabs Switcher Modal (Opera Flagship Tab Manager Layout with Ocal Monochrome Theme) -->
   <div class="tabs-tray-container" id="tabs-tray-container">
-    <div class="tabs-tray-backdrop" id="tabs-tray-backdrop"></div>
     <div class="tabs-tray-sheet" id="tabs-tray-sheet">
-      <div class="sheet-handle" style="margin:8px auto 2px;"></div>
-      <!-- Tab Manager Header with Title, Count & Preset Selector -->
-      <div class="tabs-tray-header">
-        <div class="tabs-tray-title-group">
-          <span class="tabs-tray-title">Tabs</span>
-          <span class="tabs-count-badge" id="tabs-tray-count">1</span>
-        </div>
-        <div class="tabs-preset-segmented" id="tabs-preset-segmented">
-          <button class="tabs-preset-btn active" data-preset="grid" title="2-Column Grid View">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            <span>Grid</span>
+      <!-- Opera-Style Top Header: "Tabs" / "Private" text navigation with indicator underline & Search icon on right -->
+      <div class="opera-tabs-header">
+        <div class="opera-tabs-nav-group">
+          <button class="opera-tab-nav-btn active" id="tab-mode-normal" title="Normal Tabs">
+            <span class="opera-tab-nav-text">Tabs</span>
+            <span id="tabs-normal-count" style="display:none;">Tabs (1)</span>
+            <div class="opera-tab-nav-indicator"></div>
           </button>
-          <button class="tabs-preset-btn" data-preset="stack" title="Card Stack Carousel View">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M6 3h12"/></svg>
-            <span>Stack</span>
-          </button>
-          <button class="tabs-preset-btn" data-preset="list" title="Compact List View">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            <span>List</span>
+          <button class="opera-tab-nav-btn" id="tab-mode-private" title="Private Browsing">
+            <span class="opera-tab-nav-text"><i class="fas fa-user-secret" style="font-size: 13px; margin-right: 5px;"></i>Private</span>
+            <span id="tabs-private-count" style="display:none;">Private (0)</span>
+            <div class="opera-tab-nav-indicator"></div>
           </button>
         </div>
-        <button class="tabs-tray-close-all" id="tabs-close-all-btn" title="Close All Tabs">
-          <i class="fas fa-trash-can"></i>
-        </button>
+        <div class="opera-tabs-header-right">
+          <button class="opera-header-icon-btn" id="tabs-search-toggle-btn" title="Search open tabs">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- Tab Cards Wrapper (dynamically styled for Grid, Stack, or List) -->
+      <!-- Quick Search Bar (Collapsible, toggled by search button) -->
+      <div class="tabs-search-container" id="tabs-search-container" style="display: none;">
+        <div class="tabs-search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" class="tabs-search-input" id="tabs-search-input" placeholder="Search open tabs..." autocomplete="off">
+          <button class="tabs-search-clear-btn" id="tabs-search-clear-btn" title="Close Search">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2-Column Responsive Card Grid (Opera Layout) -->
       <div class="tabs-carousel-wrapper" id="tabs-carousel-wrapper">
         <div class="tabs-carousel" id="tabs-carousel"></div>
       </div>
 
-      <!-- Pill Search Bar -->
-      <div class="tabs-search-container">
-        <div class="tabs-search-box">
-          <i class="fas fa-search"></i>
-          <input type="text" class="tabs-search-input" id="tabs-search-input" placeholder="Search tabs" autocomplete="off">
+      <!-- Opera-Style Floating Bottom Dock -->
+      <div class="opera-tabs-bottom-dock" id="tabs-bottom-nav">
+        <div class="opera-dock-capsule">
+          <!-- 1. Layout / View Mode switcher (Opera Carousel Cards Icon) -->
+          <button class="opera-dock-btn" id="tabs-nav-view-mode" title="Change layout view">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="7" y="4" width="10" height="16" rx="2.5"></rect>
+              <line x1="3.5" y1="7.5" x2="3.5" y2="16.5"></line>
+              <line x1="20.5" y1="7.5" x2="20.5" y2="16.5"></line>
+            </svg>
+          </button>
+          <!-- 2. History -->
+          <button class="opera-dock-btn" id="tabs-nav-history" title="History">
+            <i class="far fa-clock"></i>
+          </button>
+          <!-- 3. Center Plus Button (Matches Home Page Plus) -->
+          <button class="opera-dock-btn nav-plus-btn" id="tabs-nav-new-tab" title="Open New Tab">
+            <i class="fas fa-plus"></i>
+          </button>
+          <!-- 4. Tab Count Badge (Matches Home Page tab-badge) -->
+          <button class="opera-dock-btn opera-tab-counter-btn" id="tabs-nav-done" title="Close tabs tray">
+            <div class="tab-badge" id="opera-tab-badge-count">1</div>
+          </button>
+          <!-- 5. More Menu Button (Matches Home Page circle-dots-icon) -->
+          <button class="opera-dock-btn" id="tabs-nav-more" title="More options">
+            <div class="circle-dots-icon">
+              <i class="fas fa-ellipsis"></i>
+            </div>
+          </button>
         </div>
       </div>
 
-      <!-- Bottom Nav Bar inside Tabs Tray (Tab icon is solid black active pill) -->
-      <nav class="bottom-nav-bar tabs-bottom-nav" id="tabs-bottom-nav">
-        <button class="nav-icon-btn" id="tabs-nav-history" title="History">
-          <i class="far fa-clock"></i>
+      <!-- Options Popover Menu in Tabs Tray -->
+      <div class="opera-tabs-menu-popover" id="opera-tabs-menu-popover" style="display: none;">
+        <button class="opera-menu-item" id="tabs-close-all-btn">
+          <i class="fas fa-trash-can"></i>
+          <span>Close All Tabs</span>
         </button>
-        <button class="nav-icon-btn" id="tabs-nav-bookmarks" title="Bookmarks">
-          <i class="fas fa-thumbtack"></i>
+        <button class="opera-menu-item" id="tabs-menu-close-inactive">
+          <i class="fas fa-xmark"></i>
+          <span>Close Inactive Tabs</span>
         </button>
-        <button class="nav-icon-btn nav-plus-btn" id="tabs-nav-new-tab" title="New Tab">
-          <i class="fas fa-plus"></i>
+        <button class="opera-menu-item" id="tabs-menu-new-private">
+          <i class="fas fa-user-secret"></i>
+          <span>New Private Tab</span>
         </button>
-        <button class="nav-icon-btn active" id="tabs-nav-tabs" title="Close Tabs">
-          <div class="tab-badge active" id="tabs-counter-badge">1</div>
-        </button>
-        <button class="nav-icon-btn" id="tabs-nav-menu" title="Menu">
-          <div class="circle-dots-icon">
-            <i class="fas fa-ellipsis"></i>
-          </div>
-        </button>
-      </nav>
+      </div>
     </div>
   </div>
 

@@ -163,4 +163,10 @@
 
   --status-success: #00d665;
   --apple-green: #00d665;
+
+  /* Accent Colors (Solid Monochrome Dark Theme) */
+  --accent-primary: #ffffff;
+  --accent-primary-hover: #e4e4e7;
+  --accent-subtle: #27272a;
+  --accent-border: rgba(255, 255, 255, 0.16);
 }

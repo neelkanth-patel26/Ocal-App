@@ -117,7 +117,7 @@ export class CyberShield {
 
         <div class="apple-grouped-row" style="cursor: default;">
           <div class="apple-row-icon mono-item">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11c-2 0-3 1-3 3 0 2.5 2 4.5 3 4.5s3-2 3-4.5c0-2-1-3-3-3z"/><path d="M12 2a9.9 9.9 0 0 0-7 2.9A9.9 9.9 0 0 0 2 12c0 2.8 1.1 5.3 3 7.1"/><path d="M22 12c0-2.8-1.1-5.3-3-7.1A9.9 9.9 0 0 0 12 2"/></svg>
+            <i class="fas fa-fingerprint" style="font-size: 15px;"></i>
           </div>
           <div class="apple-row-content">
             <div class="apple-row-title">Fingerprint Sanitizer</div>

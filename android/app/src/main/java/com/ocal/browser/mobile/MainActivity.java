@@ -77,6 +77,9 @@ public class MainActivity extends BridgeActivity {
     private ImageView backPeekImageView;
     private View backPeekScrim;
     private View leftEdgeShadow;
+    private android.webkit.ValueCallback<Uri[]> uploadMessageCallback = null;
+    private final static int FILE_CHOOSER_REQUEST_CODE = 2001;
+    private final static int PERMISSION_ALL_REQUEST_CODE = 2002;
     private static class PageSnapshotItem {
         final Bitmap bitmap;
         final String url;
@@ -116,6 +119,12 @@ public class MainActivity extends BridgeActivity {
     private volatile boolean isAdBlockerEnabled = true;
     private volatile int currentSiteBlockedCount = 0;
     private volatile boolean isDarkModeEnabled = true;
+    private View statusBarView = null;
+    private int statusBarHeightPx = 0;
+    private int navBarHeightPx = 0;
+    private int keyboardHeightPx = 0;
+    private int currentDetectedPageColor = 0xFF000000;
+    private final Runnable themeColorCheckRunnable = this::detectAndApplyPageThemeColor;
 
     private static final java.util.Set<String> AD_DOMAINS = new java.util.HashSet<>(java.util.Arrays.asList(
         "doubleclick.net", "googlesyndication.com", "googleadservices.com", "adservice.google.com",
@@ -231,6 +240,12 @@ public class MainActivity extends BridgeActivity {
         backPeekContainer.bringToFront();
         if (browserSlideContainer != null) {
             browserSlideContainer.bringToFront();
+        }
+        if (bridge != null && bridge.getWebView() != null) {
+            bridge.getWebView().bringToFront();
+        }
+        if (statusBarView != null) {
+            statusBarView.bringToFront();
         }
     }
 
@@ -490,53 +505,190 @@ public class MainActivity extends BridgeActivity {
         } catch (Throwable ignored) {}
         super.onCreate(savedInstanceState);
         try {
+            int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+            if (resourceId > 0) {
+                statusBarHeightPx = getResources().getDimensionPixelSize(resourceId);
+            }
+            int navResId = getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+            if (navResId > 0) {
+                navBarHeightPx = getResources().getDimensionPixelSize(navResId);
+            }
             WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-            setStatusBarTheme(false, "#ffffff");
-            applyStatusBarInsets();
+            setupStatusBarAndInsets();
             setupBackGestureDispatcher();
+            setStatusBarTheme(isDarkModeEnabled, isDarkModeEnabled ? "#000000" : "#ffffff");
         } catch (Throwable t) {
             android.util.Log.e("OcalBrowser", "Error in onCreate window setup", t);
         }
     }
 
-    private void applyStatusBarInsets() {
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == FILE_CHOOSER_REQUEST_CODE) {
+            if (uploadMessageCallback == null) return;
+            Uri[] results = null;
+            if (resultCode == RESULT_OK && data != null) {
+                String dataString = data.getDataString();
+                android.content.ClipData clipData = data.getClipData();
+                if (clipData != null) {
+                    results = new Uri[clipData.getItemCount()];
+                    for (int i = 0; i < clipData.getItemCount(); i++) {
+                        results[i] = clipData.getItemAt(i).getUri();
+                    }
+                } else if (dataString != null) {
+                    results = new Uri[]{Uri.parse(dataString)};
+                }
+            }
+            uploadMessageCallback.onReceiveValue(results);
+            uploadMessageCallback = null;
+        }
+    }
+
+    private void setupStatusBarAndInsets() {
         runOnUiThread(() -> {
             try {
                 View contentView = findViewById(android.R.id.content);
                 if (contentView != null) {
                     ViewCompat.setOnApplyWindowInsetsListener(contentView, (v, insets) -> {
-                        Insets statusBar = insets.getInsets(WindowInsetsCompat.Type.statusBars());
+                        Insets sb = insets.getInsets(WindowInsetsCompat.Type.statusBars());
+                        Insets nb = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
                         Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
-                        v.setPadding(0, statusBar.top, 0, ime.bottom);
-                        return WindowInsetsCompat.CONSUMED;
+
+                        if (sb.top > 0) {
+                            statusBarHeightPx = sb.top;
+                        }
+                        if (nb.bottom > 0) {
+                            navBarHeightPx = nb.bottom;
+                        }
+                        int imeBottom = ime.bottom;
+                        keyboardHeightPx = Math.max(0, imeBottom);
+
+                        float density = getResources().getDisplayMetrics().density;
+                        int sbDp = (int) (statusBarHeightPx / density);
+                        int nbDp = (int) (navBarHeightPx / density);
+                        int kbDp = (int) (keyboardHeightPx / density);
+
+                        updateStatusBarViewLayout();
+                        updateBrowserMargins();
+
+                        // Notify Capacitor WebView of exact safe areas & keyboard height
+                        if (bridge != null && bridge.getWebView() != null) {
+                            final String js = String.format(java.util.Locale.US,
+                                "(function() { " +
+                                "  var r = document.documentElement; " +
+                                "  r.style.setProperty('--status-bar-height', '%dpx'); " +
+                                "  r.style.setProperty('--safe-top', '%dpx'); " +
+                                "  r.style.setProperty('--nav-bar-height', '%dpx'); " +
+                                "  r.style.setProperty('--safe-bottom', '%dpx'); " +
+                                "  r.style.setProperty('--keyboard-height', '%dpx'); " +
+                                "  if (%d > 60) { document.body.classList.add('keyboard-open-native'); } " +
+                                "  else { document.body.classList.remove('keyboard-open-native'); } " +
+                                "})()",
+                                sbDp, sbDp, nbDp, nbDp, kbDp, kbDp
+                            );
+                            bridge.getWebView().evaluateJavascript(js, null);
+                        }
+
+                        return insets;
                     });
                     contentView.requestApplyInsets();
                 }
             } catch (Throwable t) {
-                android.util.Log.e("OcalBrowser", "Error in applyStatusBarInsets", t);
+                android.util.Log.e("OcalBrowser", "Error in setupStatusBarAndInsets", t);
             }
         });
     }
 
-    public void setStatusBarTheme(boolean isDark, String colorHex) {
+    private void updateStatusBarViewLayout() {
         runOnUiThread(() -> {
             try {
-                int color = android.graphics.Color.parseColor(colorHex);
+                if (statusBarView != null) {
+                    ViewGroup.LayoutParams rawLp = statusBarView.getLayoutParams();
+                    if (rawLp != null) {
+                        int h = Math.max(1, statusBarHeightPx);
+                        if (rawLp.height != h) {
+                            rawLp.height = h;
+                            statusBarView.setLayoutParams(rawLp);
+                        }
+                    }
+                }
+            } catch (Throwable ignored) {}
+        });
+    }
+
+    public static int parseColorSafe(String str, int defaultColor) {
+        if (str == null || str.trim().isEmpty()) return defaultColor;
+        String s = str.trim().toLowerCase();
+        try {
+            if (s.equals("transparent") || s.equals("rgba(0, 0, 0, 0)") || s.equals("rgba(0,0,0,0)")) {
+                return defaultColor;
+            }
+            if (s.equals("black")) return 0xFF000000;
+            if (s.equals("white")) return 0xFFFFFFFF;
+            if (s.equals("gray") || s.equals("grey")) return 0xFF808080;
+
+            if (s.startsWith("#")) {
+                if (s.length() == 4) {
+                    char r = s.charAt(1);
+                    char g = s.charAt(2);
+                    char b = s.charAt(3);
+                    s = "#" + r + r + g + g + b + b;
+                }
+                return android.graphics.Color.parseColor(s);
+            }
+            if (s.startsWith("rgb")) {
+                int openParen = s.indexOf('(');
+                int closeParen = s.indexOf(')');
+                if (openParen != -1 && closeParen != -1) {
+                    String inner = s.substring(openParen + 1, closeParen);
+                    String[] parts = inner.split(",");
+                    if (parts.length >= 3) {
+                        int r = (int) Math.round(Double.parseDouble(parts[0].trim()));
+                        int g = (int) Math.round(Double.parseDouble(parts[1].trim()));
+                        int b = (int) Math.round(Double.parseDouble(parts[2].trim()));
+                        int a = 255;
+                        if (parts.length >= 4) {
+                            double alphaVal = Double.parseDouble(parts[3].trim());
+                            if (alphaVal <= 0.05) return defaultColor;
+                            a = (int) Math.round(Math.min(1.0, Math.max(0.0, alphaVal)) * 255.0);
+                        }
+                        return android.graphics.Color.argb(a, r, g, b);
+                    }
+                }
+            }
+            return android.graphics.Color.parseColor(s);
+        } catch (Throwable t) {
+            return defaultColor;
+        }
+    }
+
+    public static boolean isColorLight(int color) {
+        int r = android.graphics.Color.red(color);
+        int g = android.graphics.Color.green(color);
+        int b = android.graphics.Color.blue(color);
+        double lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0;
+        return lum > 0.55;
+    }
+
+    public void applyStatusBarAppearance(final int color) {
+        runOnUiThread(() -> {
+            try {
+                if (statusBarView != null) {
+                    statusBarView.setBackgroundColor(color);
+                }
                 android.view.Window window = getWindow();
                 if (window != null) {
                     window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
                     window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
                     window.setStatusBarColor(color);
-
-                    try {
-                        window.getDecorView().setBackgroundColor(color);
-                    } catch (Throwable ignored) {}
+                    boolean isLight = isColorLight(color);
 
                     try {
                         WindowInsetsControllerCompat insetsController =
                             WindowCompat.getInsetsController(window, window.getDecorView());
                         if (insetsController != null) {
-                            insetsController.setAppearanceLightStatusBars(!isDark);
+                            insetsController.setAppearanceLightStatusBars(isLight);
                         }
                     } catch (Throwable ignored) {}
 
@@ -544,7 +696,7 @@ public class MainActivity extends BridgeActivity {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
                             android.view.WindowInsetsController wic = window.getInsetsController();
                             if (wic != null) {
-                                int appearance = !isDark ?
+                                int appearance = isLight ?
                                     android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS : 0;
                                 wic.setSystemBarsAppearance(appearance,
                                     android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
@@ -553,7 +705,7 @@ public class MainActivity extends BridgeActivity {
                             View decorView = window.getDecorView();
                             if (decorView != null) {
                                 int flags = decorView.getSystemUiVisibility();
-                                if (!isDark) {
+                                if (isLight) {
                                     flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
                                 } else {
                                     flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
@@ -562,6 +714,65 @@ public class MainActivity extends BridgeActivity {
                             }
                         }
                     } catch (Throwable ignored) {}
+                }
+            } catch (Throwable t) {
+                android.util.Log.e("OcalBrowser", "Error in applyStatusBarAppearance", t);
+            }
+        });
+    }
+
+    public void detectAndApplyPageThemeColor() {
+        if (nativeWebBrowser == null) return;
+        nativeWebBrowser.post(() -> {
+            try {
+                String js = 
+                    "(function() { " +
+                    "  try { " +
+                    "    var meta = document.querySelector('meta[name=\"theme-color\"]'); " +
+                    "    if (meta && meta.content && meta.content.trim() !== '' && meta.content !== 'transparent') { " +
+                    "      return meta.content.trim(); " +
+                    "    } " +
+                    "    var metaApple = document.querySelector('meta[name=\"apple-mobile-web-app-status-bar-style\"]'); " +
+                    "    if (metaApple && metaApple.content === 'black') return '#000000'; " +
+                    "    var topEl = document.elementFromPoint(Math.floor(window.innerWidth / 2), 6); " +
+                    "    var elements = [topEl, document.querySelector('header'), document.querySelector('nav'), document.querySelector('[role=\"banner\"]'), document.body, document.documentElement]; " +
+                    "    for (var i = 0; i < elements.length; i++) { " +
+                    "      var el = elements[i]; " +
+                    "      while (el && el !== document) { " +
+                    "        var bg = window.getComputedStyle(el).backgroundColor; " +
+                    "        if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') { " +
+                    "          return bg; " +
+                    "        } " +
+                    "        el = el.parentElement; " +
+                    "      } " +
+                    "    } " +
+                    "    return ''; " +
+                    "  } catch(e) { return ''; } " +
+                    "})()";
+                nativeWebBrowser.evaluateJavascript(js, value -> {
+                    int fallback = isDarkModeEnabled ? 0xFF000000 : 0xFFFFFFFF;
+                    if (value != null && !value.equals("null") && !value.equals("\"\"")) {
+                        String cleanColor = value.replace("\"", "").trim();
+                        int parsed = parseColorSafe(cleanColor, fallback);
+                        currentDetectedPageColor = parsed;
+                    } else {
+                        currentDetectedPageColor = fallback;
+                    }
+                    if (nativeWebBrowser != null && nativeWebBrowser.getVisibility() == View.VISIBLE && !hasWebOverlayOpen) {
+                        applyStatusBarAppearance(currentDetectedPageColor);
+                    }
+                });
+            } catch (Throwable ignored) {}
+        });
+    }
+
+    public void setStatusBarTheme(boolean isDark, String colorHex) {
+        runOnUiThread(() -> {
+            try {
+                int fallback = isDark ? 0xFF000000 : 0xFFFFFFFF;
+                int color = parseColorSafe(colorHex, fallback);
+                if (nativeWebBrowser == null || nativeWebBrowser.getVisibility() != View.VISIBLE || hasWebOverlayOpen) {
+                    applyStatusBarAppearance(color);
                 }
             } catch (Throwable t) {
                 android.util.Log.e("OcalBrowser", "Error in setStatusBarTheme", t);
@@ -666,6 +877,11 @@ public class MainActivity extends BridgeActivity {
                     "    if (window.__ocalMediaListeners && window.__ocalMediaListeners.size > 0) { " +
                     "      window.__ocalMediaListeners.forEach(function(l) { try { l({ matches: isDark, media: '(prefers-color-scheme: dark)' }); } catch(e){} }); " +
                     "    } " +
+                    "    if (!document.getElementById('ocal-ad-killer')) { " +
+                    "      var adStyle = document.createElement('style'); adStyle.id = 'ocal-ad-killer'; " +
+                    "      adStyle.innerHTML = '#tvcap, #taw, #bottomads, .commercial-unit-mobile-top, .commercial-unit-mobile-bottom, iframe[id^=\"aswift_\"], iframe[name^=\"google_ads_\"], [id*=\"wix-ads\"], [class*=\"wix-ads\"], #WIX_ADS, .adsbygoogle, [id^=\"google_ads_\"], [id^=\"div-gpt-ad\"], .ad-banner, .advertisement, [data-ad-client], [data-ad-slot], [data-google-query-id], .taboola, .outbrain, .sponsor-badge, [id*=\"ad-container\"], [class*=\"ad-container\"] { display: none !important; height: 0 !important; min-height: 0 !important; max-height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: hidden !important; visibility: hidden !important; }'; " +
+                    "      (document.head || document.documentElement).appendChild(adStyle); " +
+                    "    } " +
                     "  } catch(err) {} " +
                     "})()";
                 view.evaluateJavascript(js, null);
@@ -676,7 +892,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void load() {
         super.load();
-        applyStatusBarInsets();
+        setupStatusBarAndInsets();
 
         if (bridge != null && bridge.getWebView() != null) {
             WebView capWebView = bridge.getWebView();
@@ -810,6 +1026,7 @@ public class MainActivity extends BridgeActivity {
                         cachedCanGoForward = view.canGoForward();
                         updateSearchEngineThemeCookies(isDarkModeEnabled);
                         evaluatePageThemeScript(view, isDarkModeEnabled);
+                        detectAndApplyPageThemeColor();
                         if (!isNavigatingBack) {
                             if (lastRenderedPageSnapshot != null && !lastRenderedPageSnapshot.isRecycled()
                                 && lastRenderedPageUrl != null && !lastRenderedPageUrl.equals(url)) {
@@ -835,6 +1052,7 @@ public class MainActivity extends BridgeActivity {
                         cachedCanGoBack = view.canGoBack();
                         cachedCanGoForward = view.canGoForward();
                         evaluatePageThemeScript(view, isDarkModeEnabled);
+                        detectAndApplyPageThemeColor();
                         if (isCommitSlideAnimating) {
                             pageCommittedDuringSlide = true;
                         } else {
@@ -854,16 +1072,19 @@ public class MainActivity extends BridgeActivity {
                         }
                         notifyWebEvent("PAGE_FINISHED", url, view.getTitle());
                         evaluatePageThemeScript(view, isDarkModeEnabled);
+                        detectAndApplyPageThemeColor();
+                        view.postDelayed(MainActivity.this::detectAndApplyPageThemeColor, 300);
+                        view.postDelayed(MainActivity.this::detectAndApplyPageThemeColor, 800);
                         view.evaluateJavascript(
                             "(function() { " +
                             "  if (!document.getElementById('ocal-dock-padding')) { " +
                             "    var s = document.createElement('style'); s.id = 'ocal-dock-padding'; " +
-                            "    s.innerHTML = 'html, body { min-height: 100%; } body { padding-bottom: 130px !important; }'; " +
+                            "    s.innerHTML = 'body { padding-bottom: 60px !important; }'; " +
                             "    (document.head || document.documentElement).appendChild(s); " +
                             "  } " +
                             "  if (!document.getElementById('ocal-ad-killer')) { " +
                             "    var adStyle = document.createElement('style'); adStyle.id = 'ocal-ad-killer'; " +
-                            "    adStyle.innerHTML = '.adsbygoogle, [id^=\"google_ads_\"], [id^=\"div-gpt-ad\"], .ad-banner, .advertisement, [data-ad-client], .taboola, .outbrain, .sponsor-badge { display: none !important; height: 0 !important; max-height: 0 !important; overflow: hidden !important; visibility: hidden !important; }'; " +
+                            "    adStyle.innerHTML = '#tvcap, #taw, #bottomads, .commercial-unit-mobile-top, .commercial-unit-mobile-bottom, iframe[id^=\"aswift_\"], iframe[name^=\"google_ads_\"], [id*=\"wix-ads\"], [class*=\"wix-ads\"], #WIX_ADS, .adsbygoogle, [id^=\"google_ads_\"], [id^=\"div-gpt-ad\"], .ad-banner, .advertisement, [data-ad-client], [data-ad-slot], [data-google-query-id], .taboola, .outbrain, .sponsor-badge, [id*=\"ad-container\"], [class*=\"ad-container\"] { display: none !important; height: 0 !important; min-height: 0 !important; max-height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; overflow: hidden !important; visibility: hidden !important; }'; " +
                             "    (document.head || document.documentElement).appendChild(adStyle); " +
                             "  } " +
                             "})()",
@@ -915,6 +1136,22 @@ public class MainActivity extends BridgeActivity {
                         }
                         return super.shouldInterceptRequest(view, request);
                     }
+
+                    @Override
+                    public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                        super.onReceivedError(view, errorCode, description, failingUrl);
+                        notifyWebEvent("PAGE_ERROR", failingUrl, description);
+                    }
+
+                    @Override
+                    public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
+                        super.onReceivedError(view, request, error);
+                        if (request != null && request.isForMainFrame()) {
+                            String desc = error != null && error.getDescription() != null ? error.getDescription().toString() : "Connection failed";
+                            String url = request.getUrl() != null ? request.getUrl().toString() : "";
+                            notifyWebEvent("PAGE_ERROR", url, desc);
+                        }
+                    }
                 });
 
                 nativeWebBrowser.setWebChromeClient(new WebChromeClient() {
@@ -928,6 +1165,82 @@ public class MainActivity extends BridgeActivity {
                     public void onProgressChanged(WebView view, int newProgress) {
                         super.onProgressChanged(view, newProgress);
                         notifyWebProgress(newProgress);
+                    }
+
+                    @Override
+                    public void onGeolocationPermissionsShowPrompt(final String origin, final android.webkit.GeolocationPermissions.Callback callback) {
+                        runOnUiThread(() -> {
+                            try {
+                                if (androidx.core.content.ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                    androidx.core.app.ActivityCompat.requestPermissions(MainActivity.this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, 1098);
+                                }
+                                callback.invoke(origin, true, false);
+                            } catch (Throwable t) {
+                                callback.invoke(origin, false, false);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onPermissionRequest(final android.webkit.PermissionRequest request) {
+                        runOnUiThread(() -> {
+                            try {
+                                ArrayList<String> needed = new ArrayList<>();
+                                for (String res : request.getResources()) {
+                                    if (android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(res)) {
+                                        if (androidx.core.content.ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                            needed.add(android.Manifest.permission.CAMERA);
+                                        }
+                                    } else if (android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(res)) {
+                                        if (androidx.core.content.ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                            needed.add(android.Manifest.permission.RECORD_AUDIO);
+                                        }
+                                    }
+                                }
+                                if (!needed.isEmpty()) {
+                                    androidx.core.app.ActivityCompat.requestPermissions(MainActivity.this, needed.toArray(new String[0]), 1099);
+                                }
+                                request.grant(request.getResources());
+                            } catch (Throwable t) {
+                                super.onPermissionRequest(request);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public boolean onShowFileChooser(WebView webView, android.webkit.ValueCallback<Uri[]> filePathCallback, WebChromeClient.FileChooserParams fileChooserParams) {
+                        if (uploadMessageCallback != null) {
+                            uploadMessageCallback.onReceiveValue(null);
+                            uploadMessageCallback = null;
+                        }
+                        uploadMessageCallback = filePathCallback;
+                        try {
+                            Intent intent = null;
+                            if (fileChooserParams != null) {
+                                intent = fileChooserParams.createIntent();
+                            }
+                            if (intent == null) {
+                                intent = new Intent(Intent.ACTION_GET_CONTENT);
+                                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                                intent.setType("*/*");
+                            }
+                            startActivityForResult(intent, FILE_CHOOSER_REQUEST_CODE);
+                            return true;
+                        } catch (Throwable t) {
+                            try {
+                                Intent fallback = new Intent(Intent.ACTION_GET_CONTENT);
+                                fallback.addCategory(Intent.CATEGORY_OPENABLE);
+                                fallback.setType("*/*");
+                                startActivityForResult(Intent.createChooser(fallback, "Select File"), FILE_CHOOSER_REQUEST_CODE);
+                                return true;
+                            } catch (Throwable e) {
+                                if (uploadMessageCallback != null) {
+                                    uploadMessageCallback.onReceiveValue(null);
+                                    uploadMessageCallback = null;
+                                }
+                                return false;
+                            }
+                        }
                     }
                 });
 
@@ -1020,6 +1333,16 @@ public class MainActivity extends BridgeActivity {
                     }
                 });
 
+                // Add scroll change listener for live status bar color updates on sticky headers
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    nativeWebBrowser.setOnScrollChangeListener((view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+                        if (Math.abs(scrollY - oldScrollY) > 24) {
+                            view.removeCallbacks(themeColorCheckRunnable);
+                            view.postDelayed(themeColorCheckRunnable, 160);
+                        }
+                    });
+                }
+
                 // Construct sliding container and back peek view
                 browserSlideContainer = new FrameLayout(this);
                 browserSlideContainer.setClipChildren(false);
@@ -1029,7 +1352,7 @@ public class MainActivity extends BridgeActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 );
-                containerLp.topMargin = 0;
+                containerLp.topMargin = statusBarHeightPx;
                 containerLp.bottomMargin = 0;
                 browserSlideContainer.setLayoutParams(containerLp);
                 browserSlideContainer.setPadding(0, 0, 0, 0);
@@ -1056,7 +1379,7 @@ public class MainActivity extends BridgeActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 );
-                peekLp.topMargin = 0;
+                peekLp.topMargin = statusBarHeightPx;
                 peekLp.bottomMargin = 0;
                 backPeekContainer.setLayoutParams(peekLp);
                 backPeekContainer.setPadding(0, 0, 0, 0);
@@ -1082,8 +1405,30 @@ public class MainActivity extends BridgeActivity {
                 if (browserSlideContainer.getParent() == null) {
                     parent.addView(browserSlideContainer, 0);
                 }
+
+                // Dedicated Seamless Status Bar Background View
+                if (statusBarView == null) {
+                    statusBarView = new View(this);
+                    FrameLayout.LayoutParams sbLp = new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        Math.max(1, statusBarHeightPx)
+                    );
+                    sbLp.gravity = android.view.Gravity.TOP;
+                    statusBarView.setLayoutParams(sbLp);
+                    statusBarView.setBackgroundColor(isDarkModeEnabled ? 0xFF000000 : 0xFFFFFFFF);
+                    statusBarView.setClickable(false);
+                    statusBarView.setFocusable(false);
+                }
+                if (statusBarView.getParent() == null) {
+                    parent.addView(statusBarView);
+                }
+                statusBarView.bringToFront();
+
                 if (capWebView != null) {
                     capWebView.bringToFront();
+                    if (statusBarView != null) {
+                        statusBarView.bringToFront();
+                    }
                     capWebView.setOnTouchListener(new View.OnTouchListener() {
                         private boolean isForwardingToWeb = false;
 
@@ -1100,20 +1445,27 @@ public class MainActivity extends BridgeActivity {
                                 int h = v.getHeight();
                                 boolean inDock = false;
                                 if (isDockTop) {
-                                    inDock = (y <= dockHeightPx);
+                                    inDock = (y <= (dockHeightPx + statusBarHeightPx));
                                 } else {
                                     inDock = (y >= (h - dockHeightPx));
                                 }
 
                                 if (!inDock) {
                                     isForwardingToWeb = true;
-                                    return nativeWebBrowser.dispatchTouchEvent(event);
+                                    MotionEvent shifted = MotionEvent.obtain(event);
+                                    shifted.offsetLocation(0, -statusBarHeightPx);
+                                    boolean handled = nativeWebBrowser.dispatchTouchEvent(shifted);
+                                    shifted.recycle();
+                                    return handled;
                                 } else {
                                     isForwardingToWeb = false;
                                     return false;
                                 }
                             } else if (isForwardingToWeb) {
-                                boolean handled = nativeWebBrowser.dispatchTouchEvent(event);
+                                MotionEvent shifted = MotionEvent.obtain(event);
+                                shifted.offsetLocation(0, -statusBarHeightPx);
+                                boolean handled = nativeWebBrowser.dispatchTouchEvent(shifted);
+                                shifted.recycle();
                                 if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
                                     isForwardingToWeb = false;
                                 }
@@ -1133,12 +1485,14 @@ public class MainActivity extends BridgeActivity {
     private void updateBrowserMargins() {
         runOnUiThread(() -> {
             try {
+                int topOffset = statusBarHeightPx;
+                int bottomOffset = 0;
                 if (browserSlideContainer != null) {
                     ViewGroup.LayoutParams rawLp = browserSlideContainer.getLayoutParams();
                     if (rawLp instanceof ViewGroup.MarginLayoutParams) {
                         ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) rawLp;
-                        lp.topMargin = 0;
-                        lp.bottomMargin = 0;
+                        lp.topMargin = topOffset;
+                        lp.bottomMargin = bottomOffset;
                         browserSlideContainer.setLayoutParams(lp);
                     }
                 }
@@ -1146,9 +1500,19 @@ public class MainActivity extends BridgeActivity {
                     ViewGroup.LayoutParams rawLp = backPeekContainer.getLayoutParams();
                     if (rawLp instanceof ViewGroup.MarginLayoutParams) {
                         ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) rawLp;
-                        lp.topMargin = 0;
-                        lp.bottomMargin = 0;
+                        lp.topMargin = topOffset;
+                        lp.bottomMargin = bottomOffset;
                         backPeekContainer.setLayoutParams(lp);
+                    }
+                }
+                if (statusBarView != null) {
+                    ViewGroup.LayoutParams rawLp = statusBarView.getLayoutParams();
+                    if (rawLp != null) {
+                        int h = Math.max(1, statusBarHeightPx);
+                        if (rawLp.height != h) {
+                            rawLp.height = h;
+                            statusBarView.setLayoutParams(rawLp);
+                        }
                     }
                 }
             } catch (Throwable ignored) {}
@@ -1483,10 +1847,14 @@ public class MainActivity extends BridgeActivity {
                             browserSlideContainer.setVisibility(View.VISIBLE);
                         }
                         nativeWebBrowser.setVisibility(View.VISIBLE);
+                        nativeWebBrowser.setBackgroundColor(isDarkModeEnabled ? 0xFF000000 : 0xFFFFFFFF);
                         final WebView capWebView = bridge != null ? bridge.getWebView() : null;
                         if (capWebView != null) {
                             capWebView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                             capWebView.bringToFront();
+                        }
+                        if (statusBarView != null) {
+                            statusBarView.bringToFront();
                         }
 
                         String current = nativeWebBrowser.getUrl();
@@ -1512,11 +1880,15 @@ public class MainActivity extends BridgeActivity {
                         }
                         if (nativeWebBrowser != null) {
                             nativeWebBrowser.setVisibility(View.VISIBLE);
+                            nativeWebBrowser.setBackgroundColor(isDarkModeEnabled ? 0xFF000000 : 0xFFFFFFFF);
                         }
                         final WebView capWebView = bridge != null ? bridge.getWebView() : null;
                         if (capWebView != null) {
                             capWebView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
                             capWebView.bringToFront();
+                        }
+                        if (statusBarView != null) {
+                            statusBarView.bringToFront();
                         }
                     } else {
                         if (browserSlideContainer != null) {
@@ -1527,6 +1899,12 @@ public class MainActivity extends BridgeActivity {
                         }
                         if (backPeekContainer != null) {
                             backPeekContainer.setVisibility(View.GONE);
+                        }
+                        if (bridge != null && bridge.getWebView() != null) {
+                            bridge.getWebView().bringToFront();
+                        }
+                        if (statusBarView != null) {
+                            statusBarView.bringToFront();
                         }
                     }
                 } catch (Throwable ignored) {}
@@ -1563,6 +1941,12 @@ public class MainActivity extends BridgeActivity {
                 MainActivity.this.hasWebOverlayOpen = hasOverlayOpen;
                 MainActivity.this.webCanGoBack = canGoBack;
                 MainActivity.this.webIsAtRoot = isAtRoot;
+                if (bridge != null && bridge.getWebView() != null) {
+                    bridge.getWebView().bringToFront();
+                }
+                if (statusBarView != null) {
+                    statusBarView.bringToFront();
+                }
             });
         }
 
@@ -1570,6 +1954,30 @@ public class MainActivity extends BridgeActivity {
         public void setOverlayOpen(boolean open) {
             runOnUiThread(() -> {
                 MainActivity.this.hasWebOverlayOpen = open;
+                if (bridge != null && bridge.getWebView() != null) {
+                    bridge.getWebView().bringToFront();
+                }
+                if (statusBarView != null) {
+                    statusBarView.bringToFront();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void setWebBlurred(boolean blurred) {
+            runOnUiThread(() -> {
+                try {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                        if (browserSlideContainer != null) {
+                            if (blurred) {
+                                RenderEffect blur = RenderEffect.createBlurEffect(28f, 28f, Shader.TileMode.CLAMP);
+                                browserSlideContainer.setRenderEffect(blur);
+                            } else {
+                                browserSlideContainer.setRenderEffect(null);
+                            }
+                        }
+                    }
+                } catch (Throwable ignored) {}
             });
         }
 
@@ -1822,6 +2230,54 @@ public class MainActivity extends BridgeActivity {
                     androidx.core.app.ActivityCompat.requestPermissions(MainActivity.this, new String[]{android.Manifest.permission.CAMERA}, 1099);
                 }
             });
+        }
+
+        @JavascriptInterface
+        public void requestAllPermissions() {
+            runOnUiThread(() -> {
+                try {
+                    ArrayList<String> perms = new ArrayList<>();
+                    if (android.os.Build.VERSION.SDK_INT >= 33) {
+                        perms.add(android.Manifest.permission.POST_NOTIFICATIONS);
+                        perms.add(android.Manifest.permission.READ_MEDIA_IMAGES);
+                        perms.add(android.Manifest.permission.READ_MEDIA_VIDEO);
+                        perms.add(android.Manifest.permission.READ_MEDIA_AUDIO);
+                    } else {
+                        perms.add(android.Manifest.permission.READ_EXTERNAL_STORAGE);
+                        perms.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    }
+                    perms.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
+                    perms.add(android.Manifest.permission.ACCESS_COARSE_LOCATION);
+                    perms.add(android.Manifest.permission.CAMERA);
+                    perms.add(android.Manifest.permission.RECORD_AUDIO);
+
+                    ArrayList<String> missing = new ArrayList<>();
+                    for (String p : perms) {
+                        if (androidx.core.content.ContextCompat.checkSelfPermission(MainActivity.this, p) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            missing.add(p);
+                        }
+                    }
+                    if (!missing.isEmpty()) {
+                        androidx.core.app.ActivityCompat.requestPermissions(MainActivity.this, missing.toArray(new String[0]), PERMISSION_ALL_REQUEST_CODE);
+                    }
+                } catch (Throwable t) {
+                    android.util.Log.e("OcalBrowser", "Error requesting all permissions", t);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String getPermissionsStatus() {
+            try {
+                JSONObject obj = new JSONObject();
+                obj.put("notifications", android.os.Build.VERSION.SDK_INT < 33 || androidx.core.content.ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED);
+                obj.put("location", androidx.core.content.ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED);
+                obj.put("camera", androidx.core.content.ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED);
+                obj.put("microphone", androidx.core.content.ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED);
+                return obj.toString();
+            } catch (Throwable t) {
+                return "{}";
+            }
         }
     }
 
