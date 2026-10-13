@@ -4078,7 +4078,7 @@ body.search-active .suggestions-dropdown {
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.32);
+  background-color: rgba(0, 0, 0, 0.34);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   z-index: 150;
@@ -4086,7 +4086,8 @@ body.search-active .suggestions-dropdown {
   pointer-events: none;
   cursor: pointer;
   touch-action: manipulation;
-  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 0.32s ease, -webkit-backdrop-filter 0.32s ease;
+  transition: opacity 0.32s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.32s ease, -webkit-backdrop-filter 0.32s ease;
+  will-change: opacity;
 }
 
 .drawer-backdrop.visible {
@@ -4095,7 +4096,7 @@ body.search-active .suggestions-dropdown {
 }
 
 [data-theme="dark"] .drawer-backdrop {
-  background-color: rgba(0, 0, 0, 0.58);
+  background-color: rgba(0, 0, 0, 0.54);
 }
 
 .bottom-sheet {
@@ -4108,17 +4109,17 @@ body.search-active .suggestions-dropdown {
   background-color: var(--sheet-bg);
   backdrop-filter: blur(var(--sheet-blur-val, var(--app-blur-val, 28px))) saturate(190%);
   -webkit-backdrop-filter: blur(var(--sheet-blur-val, var(--app-blur-val, 28px))) saturate(190%);
-  border-top-left-radius: 26px;
-  border-top-right-radius: 26px;
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
   border-top: 1px solid var(--sheet-border);
-  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.4), 0 -2px 10px rgba(0, 0, 0, 0.15);
   z-index: 160;
   display: flex;
   flex-direction: column;
   transform: translate3d(0, 100%, 0);
   opacity: 0;
   pointer-events: none;
-  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.24s cubic-bezier(0.32, 0.72, 0, 1);
   overflow: hidden;
   padding-bottom: var(--safe-bottom);
   color: var(--text-main);
@@ -4133,25 +4134,25 @@ body.search-active .suggestions-dropdown {
 
 #menu-sheet.visible .apple-menu-grid,
 #menu-sheet.visible .apple-grouped-table {
-  animation: sheetContentFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: sheetContentFadeUp 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 #menu-sheet.visible .apple-menu-grid {
-  animation-delay: 0.05s;
+  animation-delay: 0.03s;
 }
 
 #menu-sheet.visible .apple-grouped-table:nth-of-type(1) {
-  animation-delay: 0.09s;
+  animation-delay: 0.07s;
 }
 
 #menu-sheet.visible .apple-grouped-table:nth-of-type(2) {
-  animation-delay: 0.13s;
+  animation-delay: 0.11s;
 }
 
 @keyframes sheetContentFadeUp {
   from {
     opacity: 0;
-    transform: translate3d(0, 12px, 0);
+    transform: translate3d(0, 10px, 0);
   }
   to {
     opacity: 1;
@@ -4167,10 +4168,11 @@ body.search-active .suggestions-dropdown {
 }
 
 .sheet-handle {
-  width: 38px;
-  height: 5px;
+  width: 36px;
+  height: 4.5px;
   border-radius: var(--radius-full);
   background-color: var(--handle-color);
+  opacity: 0.7;
 }
 
 .sheet-header {
@@ -4197,14 +4199,14 @@ body.search-active .suggestions-dropdown {
 
 /* Inset Grouped Table (Apple HIG Compact Style for Menu & Settings) */
 #menu-sheet {
-  max-height: 82vh;
-  border-top-left-radius: 26px;
-  border-top-right-radius: 26px;
+  max-height: 84vh;
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
   background-color: var(--sheet-bg);
   backdrop-filter: blur(var(--sheet-blur-val, var(--app-blur-val, 28px))) saturate(190%);
   -webkit-backdrop-filter: blur(var(--sheet-blur-val, var(--app-blur-val, 28px))) saturate(190%);
   border-top: 1px solid var(--glass-border);
-  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.35);
 }
 
 #menu-sheet .sheet-handle-bar {
@@ -6116,17 +6118,18 @@ input:checked + .toggle-slider:before {
   background-size: cover;
   background-position: top center;
   background-repeat: no-repeat;
-  filter: blur(28px) saturate(140%);
-  -webkit-filter: blur(28px) saturate(140%);
-  transform: scale(1.04);
+  filter: blur(24px) saturate(150%) brightness(0.92);
+  -webkit-filter: blur(24px) saturate(150%) brightness(0.92);
+  transform: scale(1.06);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: opacity;
 }
 
 [data-theme="light"] .context-menu-bg-preview {
-  filter: blur(24px) saturate(120%);
-  -webkit-filter: blur(24px) saturate(120%);
+  filter: blur(24px) saturate(130%) brightness(1.02);
+  -webkit-filter: blur(24px) saturate(130%) brightness(1.02);
 }
 
 .context-menu-bg-preview.visible {
@@ -6134,7 +6137,7 @@ input:checked + .toggle-slider:before {
 }
 
 .drawer-backdrop.context-menu-active {
-  background: rgba(0, 0, 0, 0.25) !important;
+  background: rgba(0, 0, 0, 0.35) !important;
   backdrop-filter: blur(28px) saturate(160%) !important;
   -webkit-backdrop-filter: blur(28px) saturate(160%) !important;
   opacity: 1 !important;
@@ -6146,19 +6149,23 @@ input:checked + .toggle-slider:before {
 
 #context-menu-sheet {
   background: rgba(18, 18, 22, 0.88) !important;
-  backdrop-filter: blur(35px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(35px) saturate(140%) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 -16px 45px rgba(0, 0, 0, 0.65), 0 -4px 18px rgba(0, 0, 0, 0.4) !important;
-  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  backdrop-filter: blur(35px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(35px) saturate(150%) !important;
+  border-top-left-radius: 28px !important;
+  border-top-right-radius: 28px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 -18px 52px rgba(0, 0, 0, 0.7), 0 -4px 18px rgba(0, 0, 0, 0.45) !important;
+  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.24s cubic-bezier(0.32, 0.72, 0, 1) !important;
 }
 
 [data-theme="light"] #context-menu-sheet {
   background: rgba(255, 255, 255, 0.92) !important;
-  backdrop-filter: blur(35px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(35px) saturate(140%) !important;
+  backdrop-filter: blur(35px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(35px) saturate(150%) !important;
+  border-top-left-radius: 28px !important;
+  border-top-right-radius: 28px !important;
   border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 -16px 45px rgba(0, 0, 0, 0.15), 0 -4px 18px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 -18px 52px rgba(0, 0, 0, 0.15), 0 -4px 18px rgba(0, 0, 0, 0.08) !important;
 }
 
 #context-menu-sheet .apple-grouped-table {

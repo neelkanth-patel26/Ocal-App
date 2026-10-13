@@ -14,6 +14,7 @@
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
         <item name="android:fitsSystemWindows">false</item>
+        <item name="android:hardwareAccelerated">true</item>
     </style>
 
 

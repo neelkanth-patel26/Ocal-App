@@ -1444,12 +1444,27 @@ export class InternalPages {
       });
 
       // 7. Disconnect
-      container.querySelector('#sync-disconnect-row')?.addEventListener('click', async () => {
-        if (confirm('Disconnect from desktop browser?')) {
-          await syncClient.unpair();
-          cleanup();
-          if (onNavigate) onNavigate('ocal://sync');
-        }
+      container.querySelector('#sync-disconnect-row')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        InternalPages.showConfirmModal({
+          title: 'Disconnect Desktop PC?',
+          message: 'Are you sure you want to unpair from this desktop? Real-time tabs, clipboard sync, and session sharing will stop.',
+          confirmText: 'Disconnect',
+          confirmDanger: true,
+          onConfirm: async () => {
+            const titleEl = container.querySelector('#sync-disconnect-row .apple-row-title');
+            if (titleEl) titleEl.textContent = 'Disconnecting...';
+            try {
+              await syncClient.unpair();
+            } catch (err) {
+              console.warn('[Sync] Unpair error:', err);
+            }
+            cleanup();
+            window.ocalApp?.showToast?.('Disconnected from Desktop PC', 'check');
+            if (onNavigate) onNavigate('ocal://sync');
+          }
+        });
       });
     } else {
       // Camera Scanner, Torch, Flip & Manual PIN
@@ -1871,289 +1886,376 @@ export class InternalPages {
   static renderHistory(onNavigate) {
     const container = document.createElement('div');
     container.className = 'subpage-container';
-    const history = JSON.parse(localStorage.getItem('ocal-history') || '[]');
-    let currentView = localStorage.getItem('ocal-history-view') || 'date';
 
-    let contentHtml = '';
-    if (history.length === 0) {
-      contentHtml = `
-        <div class="subpage-empty-state">
-          <div class="subpage-empty-icon history">
-            <i class="fas fa-clock-rotate-left"></i>
-          </div>
-          <div class="subpage-empty-title">History is Clean</div>
-          <p class="subpage-empty-desc">Websites and searches you visit will appear here.</p>
-        </div>
-      `;
-    } else {
-      // 1. Compute Date Grouping
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      const startOfYesterday = startOfToday - 86400000;
-      const startOfWeek = startOfToday - 6 * 86400000;
+    try {
+      let rawHistory = [];
+      try {
+        rawHistory = JSON.parse(localStorage.getItem('ocal-history') || '[]');
+        if (!Array.isArray(rawHistory)) rawHistory = [];
+      } catch {
+        rawHistory = [];
+      }
 
-      const dateGroups = [
-        { id: 'today', title: 'Today', items: [] },
-        { id: 'yesterday', title: 'Yesterday', items: [] },
-        { id: 'week', title: 'Previous 7 Days', items: [] },
-        { id: 'older', title: 'Older', items: [] }
-      ];
+      // Defensive sanitization: ensure every item is valid, has string url, has numeric timestamp
+      const history = [];
+      rawHistory.forEach(item => {
+        if (!item || typeof item !== 'object') return;
+        const rawUrl = typeof item.url === 'string' ? item.url.trim() : '';
+        if (!rawUrl || rawUrl.startsWith('ocal://') || rawUrl === 'about:blank') return;
 
-      history.forEach((item, index) => {
-        const ts = item.timestamp || 0;
-        if (ts >= startOfToday) {
-          dateGroups[0].items.push({ item, index });
-        } else if (ts >= startOfYesterday) {
-          dateGroups[1].items.push({ item, index });
-        } else if (ts >= startOfWeek) {
-          dateGroups[2].items.push({ item, index });
-        } else {
-          dateGroups[3].items.push({ item, index });
+        let ts = item.timestamp || item.visitedAt || item.lastVisitTime || item.date || 0;
+        if (typeof ts === 'string') {
+          const parsed = Date.parse(ts);
+          ts = !isNaN(parsed) ? parsed : Number(ts);
         }
+        if (!ts || isNaN(ts) || typeof ts !== 'number' || ts <= 0) {
+          ts = Date.now();
+        }
+
+        history.push({
+          id: item.id || ('h_' + Math.random().toString(36).substring(2, 8)),
+          url: rawUrl,
+          title: String(item.title || item.name || '').trim(),
+          timestamp: ts,
+          visitedAt: ts
+        });
       });
 
-      // 2. Compute Site Grouping
-      const siteMap = new Map();
-      history.forEach((item, index) => {
-        let domain = 'other';
-        try {
-          domain = new URL(item.url).hostname.replace(/^(www\.|html\.)/i, '');
-        } catch {
-          domain = item.url.replace(/^https?:\/\//i, '').split('/')[0] || 'other';
-        }
-        if (!siteMap.has(domain)) {
-          siteMap.set(domain, []);
-        }
-        siteMap.get(domain).push({ item, index });
-      });
+      let currentView = localStorage.getItem('ocal-history-view') || 'date';
 
-      const siteGroups = Array.from(siteMap.entries()).sort((a, b) => b[1].length - a[1].length);
-
-      // Render helper for an individual history row
-      const renderRow = (item, index) => {
-        const formatted = formatSmartHistoryItem(item);
-        const initial = (formatted.domain || 'W')[0].toUpperCase();
-        return `
-          <div class="history-item-row" data-url="${escapeHtml(item.url)}" data-index="${index}" data-title="${escapeHtml(formatted.title.toLowerCase())}">
-            <div class="apple-row-icon ${formatted.isSearch ? 'mono-search' : 'mono-domain'}">
-              ${formatted.isSearch 
-                ? '<i class="fa-solid fa-magnifying-glass" style="font-size:13px;"></i>' 
-                : `<span style="font-size:13px; font-weight:700;">${escapeHtml(initial)}</span>`}
+      let contentHtml = '';
+      if (history.length === 0) {
+        contentHtml = `
+          <div class="subpage-empty-state">
+            <div class="subpage-empty-icon history">
+              <i class="fas fa-clock-rotate-left"></i>
             </div>
-            <div class="history-content">
-              <div class="history-title">${escapeHtml(formatted.title)}</div>
-              <div class="history-meta">
-                <span class="history-domain-pill">${escapeHtml(formatted.domain || 'web')}</span>
-                <span class="history-separator">•</span>
-                <span>${formatted.isSearch ? 'Search' : escapeHtml(formatted.url.replace(/^https?:\/\/(www\.)?/, '').substring(0, 36))}</span>
-                <span class="history-separator">•</span>
-                <span class="history-time-tag">${escapeHtml(formatted.timeStr)}</span>
-              </div>
-            </div>
-            <button class="history-delete-btn" data-url="${escapeHtml(item.url)}" title="Remove">
-              <i class="fa-solid fa-xmark" style="font-size:13px;"></i>
-            </button>
+            <div class="subpage-empty-title">History is Clean</div>
+            <p class="subpage-empty-desc">Websites and searches you visit will appear here.</p>
           </div>
         `;
-      };
+      } else {
+        // 1. Compute Date Grouping
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const startOfYesterday = startOfToday - 86400000;
+        const startOfWeek = startOfToday - 6 * 86400000;
 
-      contentHtml = `
-        <div class="history-search-container">
-          <div class="history-search-bar">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" class="history-search-input" id="history-filter-input" placeholder="Search pages, domains and links..." autocomplete="off" />
-          </div>
-        </div>
+        const dateGroups = [
+          { id: 'today', title: 'Today', items: [] },
+          { id: 'yesterday', title: 'Yesterday', items: [] },
+          { id: 'week', title: 'Previous 7 Days', items: [] },
+          { id: 'older', title: 'Older', items: [] }
+        ];
 
-        <!-- Segmented Switcher: By Date vs By Site -->
-        <div class="history-view-segmented" id="history-view-segmented">
-          <button class="history-segment-btn ${currentView === 'date' ? 'active' : ''}" data-view="date">
-            <i class="far fa-calendar"></i>
-            <span>By Date</span>
-          </button>
-          <button class="history-segment-btn ${currentView === 'site' ? 'active' : ''}" data-view="site">
-            <i class="fas fa-globe"></i>
-            <span>By Site</span>
-          </button>
-        </div>
+        history.forEach((item, index) => {
+          const ts = Number(item.timestamp) || 0;
+          if (ts >= startOfToday) {
+            dateGroups[0].items.push({ item, index });
+          } else if (ts >= startOfYesterday) {
+            dateGroups[1].items.push({ item, index });
+          } else if (ts >= startOfWeek) {
+            dateGroups[2].items.push({ item, index });
+          } else {
+            dateGroups[3].items.push({ item, index });
+          }
+        });
 
-        <!-- 1. By Date Container -->
-        <div id="history-date-view-container" style="display: ${currentView === 'date' ? 'block' : 'none'};">
-          ${dateGroups.filter(g => g.items.length > 0).map(group => `
-            <div class="history-date-section" data-group="${group.id}">
-              <div class="history-date-header">
-                <span class="history-date-title">${group.title}</span>
-                <span class="history-date-badge">${group.items.length}</span>
-              </div>
-              <div class="apple-grouped-table">
-                ${group.items.map(entry => renderRow(entry.item, entry.index)).join('')}
-              </div>
-            </div>
-          `).join('')}
-        </div>
+        // 2. Compute Site Grouping
+        const siteMap = new Map();
+        history.forEach((item, index) => {
+          let domain = 'web';
+          try {
+            if (item.url) {
+              domain = new URL(item.url).hostname.replace(/^(www\.|html\.)/i, '');
+            }
+          } catch {
+            domain = (item.url || '').replace(/^https?:\/\//i, '').split('/')[0] || 'web';
+          }
+          domain = (domain || 'web').trim();
+          if (!domain) domain = 'web';
+          if (!siteMap.has(domain)) {
+            siteMap.set(domain, []);
+          }
+          siteMap.get(domain).push({ item, index });
+        });
 
-        <!-- 2. By Site Container -->
-        <div id="history-site-view-container" style="display: ${currentView === 'site' ? 'block' : 'none'};">
-          ${siteGroups.map(([domain, items]) => {
-            const initial = domain[0].toUpperCase();
+        const siteGroups = Array.from(siteMap.entries()).sort((a, b) => b[1].length - a[1].length);
+
+        // Render helper for an individual history row
+        const renderRow = (item, index) => {
+          try {
+            const formatted = formatSmartHistoryItem(item);
+            const domainStr = formatted.domain || 'web';
+            const initial = (domainStr.charAt(0) || 'W').toUpperCase();
+            const cleanDisplayUrl = (formatted.url || '').replace(/^https?:\/\/(www\.)?/, '').substring(0, 36);
             return `
-              <div class="history-site-card" data-domain="${escapeHtml(domain.toLowerCase())}">
-                <div class="history-site-header">
-                  <div class="history-site-icon">${escapeHtml(initial)}</div>
-                  <div class="history-site-info">
-                    <div class="history-site-domain">${escapeHtml(domain)}</div>
-                    <div class="history-site-count">${items.length} ${items.length === 1 ? 'visit' : 'visits'}</div>
-                  </div>
-                  <div class="history-site-actions">
-                    <button class="history-site-delete-btn" data-domain="${escapeHtml(domain)}" title="Clear all for this site">
-                      <i class="fa-regular fa-trash-can"></i>
-                    </button>
-                    <div class="history-site-chevron"><i class="fas fa-chevron-right"></i></div>
+              <div class="history-item-row" data-url="${escapeHtml(item.url || '')}" data-index="${index}" data-title="${escapeHtml((formatted.title || '').toLowerCase())}">
+                <div class="apple-row-icon ${formatted.isSearch ? 'mono-search' : 'mono-domain'}">
+                  ${formatted.isSearch 
+                    ? '<i class="fa-solid fa-magnifying-glass" style="font-size:13px;"></i>' 
+                    : `<span style="font-size:13px; font-weight:700;">${escapeHtml(initial)}</span>`}
+                </div>
+                <div class="history-content">
+                  <div class="history-title">${escapeHtml(formatted.title || 'Page')}</div>
+                  <div class="history-meta">
+                    <span class="history-domain-pill">${escapeHtml(domainStr)}</span>
+                    <span class="history-separator">•</span>
+                    <span>${formatted.isSearch ? 'Search' : escapeHtml(cleanDisplayUrl)}</span>
+                    <span class="history-separator">•</span>
+                    <span class="history-time-tag">${escapeHtml(formatted.timeStr)}</span>
                   </div>
                 </div>
-                <div class="history-site-items">
-                  <div class="apple-grouped-table" style="border:none; border-radius:0;">
-                    ${items.map(entry => renderRow(entry.item, entry.index)).join('')}
-                  </div>
-                </div>
+                <button class="history-delete-btn" data-url="${escapeHtml(item.url || '')}" title="Remove">
+                  <i class="fa-solid fa-xmark" style="font-size:13px;"></i>
+                </button>
               </div>
             `;
-          }).join('')}
+          } catch (err) {
+            console.warn('[History] Error rendering history row:', err);
+            return '';
+          }
+        };
+
+        contentHtml = `
+          <div class="history-search-container">
+            <div class="history-search-bar">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" class="history-search-input" id="history-filter-input" placeholder="Search pages, domains and links..." autocomplete="off" />
+            </div>
+          </div>
+
+          <!-- Segmented Switcher: By Date vs By Site -->
+          <div class="history-view-segmented" id="history-view-segmented">
+            <button class="history-segment-btn ${currentView === 'date' ? 'active' : ''}" data-view="date">
+              <i class="far fa-calendar"></i>
+              <span>By Date</span>
+            </button>
+            <button class="history-segment-btn ${currentView === 'site' ? 'active' : ''}" data-view="site">
+              <i class="fas fa-globe"></i>
+              <span>By Site</span>
+            </button>
+          </div>
+
+          <!-- 1. By Date Container -->
+          <div id="history-date-view-container" style="display: ${currentView === 'date' ? 'block' : 'none'};">
+            ${dateGroups.filter(g => g.items.length > 0).map(group => `
+              <div class="history-date-section" data-group="${group.id}">
+                <div class="history-date-header">
+                  <span class="history-date-title">${group.title}</span>
+                  <span class="history-date-badge">${group.items.length}</span>
+                </div>
+                <div class="apple-grouped-table">
+                  ${group.items.map(entry => renderRow(entry.item, entry.index)).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- 2. By Site Container -->
+          <div id="history-site-view-container" style="display: ${currentView === 'site' ? 'block' : 'none'};">
+            ${siteGroups.map(([domain, items]) => {
+              const safeDomain = domain || 'web';
+              const initial = (safeDomain.charAt(0) || 'W').toUpperCase();
+              return `
+                <div class="history-site-card" data-domain="${escapeHtml(safeDomain.toLowerCase())}">
+                  <div class="history-site-header">
+                    <div class="history-site-icon">${escapeHtml(initial)}</div>
+                    <div class="history-site-info">
+                      <div class="history-site-domain">${escapeHtml(safeDomain)}</div>
+                      <div class="history-site-count">${items.length} ${items.length === 1 ? 'visit' : 'visits'}</div>
+                    </div>
+                    <div class="history-site-actions">
+                      <button class="history-site-delete-btn" data-domain="${escapeHtml(safeDomain)}" title="Clear all for this site">
+                        <i class="fa-regular fa-trash-can"></i>
+                      </button>
+                      <div class="history-site-chevron"><i class="fas fa-chevron-right"></i></div>
+                    </div>
+                  </div>
+                  <div class="history-site-items">
+                    <div class="apple-grouped-table" style="border:none; border-radius:0;">
+                      ${items.map(entry => renderRow(entry.item, entry.index)).join('')}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="subpage-header">
+          <button class="subpage-back-btn" id="history-back-btn"><i class="fas fa-chevron-left"></i></button>
+          <div class="subpage-header-title">Browsing History</div>
+          ${history.length > 0 ? '<button class="subpage-action-btn danger" id="clear-history-btn">Clear All</button>' : '<div style="width:36px;"></div>'}
+        </div>
+
+        <div class="subpage-content">
+          ${contentHtml}
         </div>
       `;
-    }
 
-    container.innerHTML = `
-      <div class="subpage-header">
-        <button class="subpage-back-btn" id="history-back-btn"><i class="fas fa-chevron-left"></i></button>
-        <div class="subpage-header-title">Browsing History</div>
-        ${history.length > 0 ? '<button class="subpage-action-btn danger" id="clear-history-btn">Clear All</button>' : '<div style="width:36px;"></div>'}
-      </div>
-
-      <div class="subpage-content">
-        ${contentHtml}
-      </div>
-    `;
-
-    container.querySelector('#history-back-btn')?.addEventListener('click', () => {
-      if (onNavigate) onNavigate('ocal://home');
-    });
-
-    // View switcher (By Date vs By Site)
-    container.querySelectorAll('.history-segment-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const view = btn.getAttribute('data-view');
-        currentView = view;
-        try { localStorage.setItem('ocal-history-view', view); } catch (_) {}
-        container.querySelectorAll('.history-segment-btn').forEach(b => b.classList.toggle('active', b === btn));
-        const dateContainer = container.querySelector('#history-date-view-container');
-        const siteContainer = container.querySelector('#history-site-view-container');
-        if (dateContainer) dateContainer.style.display = view === 'date' ? 'block' : 'none';
-        if (siteContainer) siteContainer.style.display = view === 'site' ? 'block' : 'none';
+      container.querySelector('#history-back-btn')?.addEventListener('click', () => {
+        if (onNavigate) onNavigate('ocal://home');
       });
-    });
 
-    // Site card accordion toggle
-    container.querySelectorAll('.history-site-header').forEach(header => {
-      header.addEventListener('click', (e) => {
-        if (e.target.closest('.history-site-delete-btn')) return;
-        const card = header.closest('.history-site-card');
-        card?.classList.toggle('expanded');
+      // View switcher (By Date vs By Site)
+      container.querySelectorAll('.history-segment-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const view = btn.getAttribute('data-view');
+          currentView = view;
+          try { localStorage.setItem('ocal-history-view', view); } catch (_) {}
+          container.querySelectorAll('.history-segment-btn').forEach(b => b.classList.toggle('active', b === btn));
+          const dateContainer = container.querySelector('#history-date-view-container');
+          const siteContainer = container.querySelector('#history-site-view-container');
+          if (dateContainer) dateContainer.style.display = view === 'date' ? 'block' : 'none';
+          if (siteContainer) siteContainer.style.display = view === 'site' ? 'block' : 'none';
+        });
       });
-    });
 
-    // Clear whole site history
-    container.querySelectorAll('.history-site-delete-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const targetDomain = btn.getAttribute('data-domain');
-        if (!targetDomain) return;
-        if (confirm(`Remove all history entries for "${targetDomain}"?`)) {
-          const curHistory = JSON.parse(localStorage.getItem('ocal-history') || '[]');
-          const updated = curHistory.filter(h => {
-            try {
-              const d = new URL(h.url).hostname.replace(/^(www\.|html\.)/i, '');
-              return d.toLowerCase() !== targetDomain.toLowerCase();
-            } catch {
-              return true;
+      // Site card accordion toggle
+      container.querySelectorAll('.history-site-header').forEach(header => {
+        header.addEventListener('click', (e) => {
+          if (e.target.closest('.history-site-delete-btn')) return;
+          const card = header.closest('.history-site-card');
+          card?.classList.toggle('expanded');
+        });
+      });
+
+      // Clear whole site history
+      container.querySelectorAll('.history-site-delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const targetDomain = btn.getAttribute('data-domain');
+          if (!targetDomain) return;
+          InternalPages.showConfirmModal({
+            title: `Remove ${targetDomain}?`,
+            message: `Remove all saved history visits for "${targetDomain}"?`,
+            confirmText: 'Remove',
+            confirmDanger: true,
+            onConfirm: () => {
+              const curHistory = JSON.parse(localStorage.getItem('ocal-history') || '[]');
+              const updated = curHistory.filter(h => {
+                try {
+                  const d = new URL(h.url).hostname.replace(/^(www\.|html\.)/i, '');
+                  return d.toLowerCase() !== targetDomain.toLowerCase();
+                } catch {
+                  return true;
+                }
+              });
+              localStorage.setItem('ocal-history', JSON.stringify(updated));
+              if (onNavigate) onNavigate('ocal://history');
             }
           });
+        });
+      });
+
+      // Row clicks
+      container.querySelectorAll('.history-item-row').forEach(row => {
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('.history-delete-btn')) return;
+          const u = row.getAttribute('data-url');
+          if (u && onNavigate) onNavigate(u);
+        });
+      });
+
+      // Individual delete
+      container.querySelectorAll('.history-delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const targetUrl = btn.getAttribute('data-url');
+          const curHistory = JSON.parse(localStorage.getItem('ocal-history') || '[]');
+          const updated = curHistory.filter(h => h.url !== targetUrl);
           localStorage.setItem('ocal-history', JSON.stringify(updated));
           if (onNavigate) onNavigate('ocal://history');
-        }
-      });
-    });
-
-    // Row clicks
-    container.querySelectorAll('.history-item-row').forEach(row => {
-      row.addEventListener('click', (e) => {
-        if (e.target.closest('.history-delete-btn')) return;
-        const u = row.getAttribute('data-url');
-        if (u && onNavigate) onNavigate(u);
-      });
-    });
-
-    // Individual delete
-    container.querySelectorAll('.history-delete-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const targetUrl = btn.getAttribute('data-url');
-        const curHistory = JSON.parse(localStorage.getItem('ocal-history') || '[]');
-        const updated = curHistory.filter(h => h.url !== targetUrl);
-        localStorage.setItem('ocal-history', JSON.stringify(updated));
-        if (onNavigate) onNavigate('ocal://history');
-      });
-    });
-
-    // Search filter input
-    const filterInput = container.querySelector('#history-filter-input');
-    if (filterInput) {
-      filterInput.addEventListener('input', (e) => {
-        const val = e.target.value.trim().toLowerCase();
-
-        // 1. Date View Filter
-        container.querySelectorAll('#history-date-view-container .history-item-row').forEach(row => {
-          const rowTitle = row.getAttribute('data-title') || '';
-          const rowUrl = (row.getAttribute('data-url') || '').toLowerCase();
-          const match = !val || rowTitle.includes(val) || rowUrl.includes(val);
-          row.style.display = match ? 'flex' : 'none';
         });
+      });
 
-        container.querySelectorAll('#history-date-view-container .history-date-section').forEach(sec => {
-          const hasVisible = Array.from(sec.querySelectorAll('.history-item-row')).some(r => r.style.display !== 'none');
-          sec.style.display = hasVisible ? 'block' : 'none';
-        });
+      // Search filter input
+      const filterInput = container.querySelector('#history-filter-input');
+      if (filterInput) {
+        filterInput.addEventListener('input', (e) => {
+          const val = e.target.value.trim().toLowerCase();
 
-        // 2. Site View Filter
-        container.querySelectorAll('#history-site-view-container .history-site-card').forEach(card => {
-          const domain = (card.getAttribute('data-domain') || '').toLowerCase();
-          let hasMatchingChild = false;
-          card.querySelectorAll('.history-item-row').forEach(row => {
+          // 1. Date View Filter
+          container.querySelectorAll('#history-date-view-container .history-item-row').forEach(row => {
             const rowTitle = row.getAttribute('data-title') || '';
             const rowUrl = (row.getAttribute('data-url') || '').toLowerCase();
             const match = !val || rowTitle.includes(val) || rowUrl.includes(val);
             row.style.display = match ? 'flex' : 'none';
-            if (match) hasMatchingChild = true;
           });
 
-          if (!val) {
-            card.style.display = 'block';
-          } else if (domain.includes(val) || hasMatchingChild) {
-            card.style.display = 'block';
-            card.classList.add('expanded'); // Auto-expand matching site
-          } else {
-            card.style.display = 'none';
+          container.querySelectorAll('#history-date-view-container .history-date-section').forEach(sec => {
+            const hasVisible = Array.from(sec.querySelectorAll('.history-item-row')).some(r => r.style.display !== 'none');
+            sec.style.display = hasVisible ? 'block' : 'none';
+          });
+
+          // 2. Site View Filter
+          container.querySelectorAll('#history-site-view-container .history-site-card').forEach(card => {
+            const domain = (card.getAttribute('data-domain') || '').toLowerCase();
+            let hasMatchingChild = false;
+            card.querySelectorAll('.history-item-row').forEach(row => {
+              const rowTitle = row.getAttribute('data-title') || '';
+              const rowUrl = (row.getAttribute('data-url') || '').toLowerCase();
+              const match = !val || rowTitle.includes(val) || rowUrl.includes(val);
+              row.style.display = match ? 'flex' : 'none';
+              if (match) hasMatchingChild = true;
+            });
+
+            if (!val) {
+              card.style.display = 'block';
+            } else if (domain.includes(val) || hasMatchingChild) {
+              card.style.display = 'block';
+              card.classList.add('expanded'); // Auto-expand matching site
+            } else {
+              card.style.display = 'none';
+            }
+          });
+        });
+      }
+
+      container.querySelector('#clear-history-btn')?.addEventListener('click', () => {
+        InternalPages.showConfirmModal({
+          title: 'Clear All History?',
+          message: 'Are you sure you want to delete all browsing history? This cannot be undone.',
+          confirmText: 'Clear All',
+          confirmDanger: true,
+          onConfirm: () => {
+            localStorage.setItem('ocal-history', '[]');
+            window.ocalApp?.showToast?.('Browsing history cleared', 'check');
+            if (onNavigate) onNavigate('ocal://history');
           }
         });
       });
-    }
 
-    container.querySelector('#clear-history-btn')?.addEventListener('click', () => {
-      if (confirm('Clear all browsing history?')) {
+    } catch (err) {
+      console.error('[InternalPages] renderHistory fatal error:', err);
+      container.innerHTML = `
+        <div class="subpage-header">
+          <button class="subpage-back-btn" id="history-back-btn"><i class="fas fa-chevron-left"></i></button>
+          <div class="subpage-header-title">Browsing History</div>
+          <div style="width:36px;"></div>
+        </div>
+        <div class="subpage-content">
+          <div class="subpage-empty-state">
+            <div class="subpage-empty-icon danger"><i class="fas fa-circle-exclamation"></i></div>
+            <div class="subpage-empty-title">History Sync Reset</div>
+            <p class="subpage-empty-desc">Your history contains incompatible data from desktop sync. Tap below to repair.</p>
+            <button class="pill-chip" id="history-repair-btn" style="background:#ffffff; color:#000000; border:none; border-radius:9999px; margin:20px auto 0; padding:10px 24px; font-weight:700; cursor:pointer;">
+              Reset &amp; Clean History
+            </button>
+          </div>
+        </div>
+      `;
+      container.querySelector('#history-back-btn')?.addEventListener('click', () => {
+        if (onNavigate) onNavigate('ocal://home');
+      });
+      container.querySelector('#history-repair-btn')?.addEventListener('click', () => {
         localStorage.setItem('ocal-history', '[]');
         if (onNavigate) onNavigate('ocal://history');
-      }
-    });
+      });
+    }
 
     return container;
   }
@@ -2488,9 +2590,9 @@ export class InternalPages {
               </div>
               <div class="apple-row-content">
                 <div class="apple-row-title">Ocal Mobile Browser</div>
-                <div class="apple-row-subtitle">Version 1.9.0 (WebKit Modern Engine)</div>
+                <div class="apple-row-subtitle">Version 2.0.0 (WebKit Modern Engine)</div>
               </div>
-              <span style="font-size:11.5px; font-weight:600; color:var(--text-subtle); padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.05);">v1.9.0</span>
+              <span style="font-size:11.5px; font-weight:600; color:var(--text-subtle); padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.05);">v2.0.0</span>
             </div>
           </div>
         </div>
@@ -2691,6 +2793,50 @@ export class InternalPages {
 
     return container;
   }
+
+  // Universal in-app confirmation modal (bypasses broken/blocked WebView window.confirm)
+  static showConfirmModal({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', confirmDanger = false, onConfirm }) {
+    const existing = document.getElementById('ocal-confirm-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'ocal-confirm-modal';
+    overlay.style.zIndex = '999999';
+
+    overlay.innerHTML = `
+      <div class="modal-dialog-card" style="max-width:340px; text-align:center; padding:22px 18px 18px;">
+        <div style="width:48px; height:48px; border-radius:50%; background:${confirmDanger ? 'rgba(255, 59, 48, 0.12)' : 'rgba(255, 255, 255, 0.1)'}; color:${confirmDanger ? '#ff3b30' : 'var(--text-main)'}; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; font-size:20px;">
+          <i class="fa-solid ${confirmDanger ? 'fa-triangle-exclamation' : 'fa-circle-question'}"></i>
+        </div>
+        <div style="font-size:17px; font-weight:700; color:var(--text-main); margin-bottom:8px;">${escapeHtml(title)}</div>
+        <p style="font-size:13px; color:var(--text-muted); line-height:1.45; margin:0 0 20px;">${escapeHtml(message)}</p>
+        <div style="display:flex; gap:10px; width:100%;">
+          <button class="modal-btn secondary" id="modal-cancel-action" style="flex:1; border-radius:12px; padding:11px 0; font-size:14px; font-weight:600; cursor:pointer;">${escapeHtml(cancelText)}</button>
+          <button class="modal-btn primary" id="modal-confirm-action" style="flex:1; border-radius:12px; padding:11px 0; font-size:14px; font-weight:700; ${confirmDanger ? 'background:#ff3b30 !important; color:#fff !important; border:none !important;' : ''} cursor:pointer;">${escapeHtml(confirmText)}</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const close = () => {
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.remove(), 150);
+    };
+
+    overlay.querySelector('#modal-cancel-action')?.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+
+    overlay.querySelector('#modal-confirm-action')?.addEventListener('click', async () => {
+      close();
+      if (typeof onConfirm === 'function') {
+        try { await onConfirm(); } catch (err) { console.warn('[ConfirmModal] Error in onConfirm:', err); }
+      }
+    });
+  }
 }
 
 function escapeHtml(str) {
@@ -2702,37 +2848,53 @@ function escapeHtml(str) {
 }
 
 function formatSmartHistoryItem(item) {
-  let title = item.title || '';
-  let url = item.url || '';
-  let domain = '';
+  if (!item || typeof item !== 'object') {
+    return { title: 'Web Page', url: '', domain: 'web', isSearch: false, query: '', timeStr: 'Recent' };
+  }
+  let title = String(item.title || item.name || '').trim();
+  let url = String(item.url || '').trim();
+  let domain = 'web';
   let isSearch = false;
   let query = '';
 
   try {
-    const u = new URL(url);
-    domain = u.hostname.replace(/^(www\.|html\.)/i, '');
-    const q = u.searchParams.get('q');
-    if (q && (u.pathname.includes('/search') || u.pathname.includes('/html') || domain.includes('google') || domain.includes('duckduckgo') || domain.includes('bing') || domain.includes('brave'))) {
-      isSearch = true;
-      try {
-        query = decodeURIComponent(q.replace(/\+/g, ' '));
-      } catch {
-        query = q;
+    if (url) {
+      const u = new URL(url);
+      domain = u.hostname ? u.hostname.replace(/^(www\.|html\.)/i, '') : 'web';
+      if (!domain) domain = 'web';
+      const q = u.searchParams.get('q');
+      if (q && (u.pathname.includes('/search') || u.pathname.includes('/html') || domain.includes('google') || domain.includes('duckduckgo') || domain.includes('bing') || domain.includes('brave'))) {
+        isSearch = true;
+        try {
+          query = decodeURIComponent(q.replace(/\+/g, ' '));
+        } catch {
+          query = q;
+        }
+        title = query;
+      } else if (!title || title === 'Start Page' || title.startsWith('Ocal ') || title === 'Untitled Tab') {
+        const path = u.pathname !== '/' ? u.pathname.split('/').filter(Boolean)[0] : '';
+        title = path ? `${domain} / ${path}` : domain;
       }
-      title = query;
-    } else if (!title || title === 'Start Page' || title.startsWith('Ocal ') || title === 'Untitled Tab') {
-      const path = u.pathname !== '/' ? u.pathname.split('/').filter(Boolean)[0] : '';
-      title = path ? `${domain} / ${path}` : domain;
     }
   } catch {
-    domain = url.replace(/^https?:\/\//i, '').split('/')[0];
-    if (!title || title === 'Start Page' || title.startsWith('Ocal ')) title = domain || url;
+    domain = (url.replace(/^https?:\/\//i, '').split('/')[0] || 'web').replace(/^(www\.|html\.)/i, '');
+    if (!domain) domain = 'web';
+    if (!title || title === 'Start Page' || title.startsWith('Ocal ')) title = domain || url || 'Web Page';
   }
 
-  // Format relative time
+  if (!domain) domain = 'web';
+  if (!title) title = domain || url || 'Web Page';
+
+  // Format relative time safely supporting timestamps as numbers, ISO strings, visitedAt, etc.
   let timeStr = 'Recent';
-  if (item.timestamp) {
-    const diffMin = Math.floor((Date.now() - item.timestamp) / 60000);
+  let ts = item.timestamp || item.visitedAt || item.lastVisitTime || item.date || 0;
+  if (typeof ts === 'string') {
+    const parsed = Date.parse(ts);
+    ts = !isNaN(parsed) ? parsed : Number(ts);
+  }
+  ts = Number(ts) || 0;
+  if (ts > 0) {
+    const diffMin = Math.floor((Date.now() - ts) / 60000);
     if (diffMin < 1) timeStr = 'Just now';
     else if (diffMin < 60) timeStr = `${diffMin}m ago`;
     else if (diffMin < 1440) timeStr = `${Math.floor(diffMin / 60)}h ago`;

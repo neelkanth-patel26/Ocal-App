@@ -1026,12 +1026,23 @@ class OcalMobileApp {
       if (!isDragging) return;
       isDragging = false;
       const deltaY = currentY - startY;
-      sheet.style.transition = '';
       if (deltaY > 60) {
-        sheet.style.transform = '';
-        this.closeAllSheets();
+        sheet.style.transition = 'transform 0.26s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease';
+        sheet.style.transform = 'translate3d(0, 100%, 0)';
+        sheet.style.opacity = '0';
+        setTimeout(() => {
+          sheet.style.transition = '';
+          sheet.style.opacity = '';
+          sheet.style.transform = '';
+          this.closeAllSheets();
+        }, 260);
       } else {
-        sheet.style.transform = '';
+        sheet.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.9, 0.1, 1)';
+        sheet.style.transform = 'translate3d(0, 0, 0)';
+        setTimeout(() => {
+          sheet.style.transition = '';
+          sheet.style.transform = '';
+        }, 280);
       }
     };
 
@@ -1048,6 +1059,7 @@ class OcalMobileApp {
       sheet.classList.remove('visible');
       sheet.style.transform = '';
       void sheet.offsetHeight;
+      this.showWebBlurBackdrop();
       requestAnimationFrame(() => {
         sheet.classList.add('visible');
         document.getElementById('drawer-backdrop')?.classList.add('visible');
@@ -1055,9 +1067,10 @@ class OcalMobileApp {
       this.setupSheetDragDismiss(sheet);
       if (window.OcalNative) {
         window.OcalNative.setOverlayOpen?.(true);
-        window.OcalNative.setWebVisible(false);
+        window.OcalNative.setWebBlurred?.(true);
       }
       this.syncNativeNavigationState();
+      this.syncOverlayState();
     }
   }
 
@@ -1418,6 +1431,7 @@ class OcalMobileApp {
       sheet.classList.remove('visible');
       sheet.style.transform = '';
       void sheet.offsetHeight;
+      this.showWebBlurBackdrop();
       requestAnimationFrame(() => {
         sheet.classList.add('visible');
         document.getElementById('drawer-backdrop')?.classList.add('visible');
@@ -1432,6 +1446,38 @@ class OcalMobileApp {
     }
   }
 
+  showWebBlurBackdrop() {
+    const bgPreview = document.getElementById('context-menu-bg-preview');
+    if (!bgPreview) return;
+    let snapshot = '';
+    if (window.OcalNative && window.OcalNative.captureCurrentThumbnailImmediate) {
+      try {
+        snapshot = window.OcalNative.captureCurrentThumbnailImmediate(this.tabManager?.activeTabId || '');
+      } catch {}
+    }
+    if (!snapshot && window.OcalNative && window.OcalNative.getLastTabThumbnail) {
+      try {
+        snapshot = window.OcalNative.getLastTabThumbnail();
+      } catch {}
+    }
+    if (!snapshot) {
+      const activeTab = this.tabManager?.getActiveTab();
+      if (activeTab?.thumbnail) snapshot = activeTab.thumbnail;
+    }
+    if (snapshot && snapshot.startsWith('data:image/')) {
+      bgPreview.style.backgroundImage = `url("${snapshot}")`;
+      bgPreview.classList.add('visible');
+    }
+  }
+
+  hideWebBlurBackdrop() {
+    const bgPreview = document.getElementById('context-menu-bg-preview');
+    if (bgPreview) {
+      bgPreview.classList.remove('visible');
+      bgPreview.style.backgroundImage = '';
+    }
+  }
+
   closeAllSheets() {
     document.querySelectorAll('.bottom-sheet').forEach(s => {
       s.classList.remove('visible');
@@ -1439,11 +1485,7 @@ class OcalMobileApp {
     });
     document.getElementById('shield-popover')?.classList.remove('visible');
     document.getElementById('dl-quick-popover')?.classList.remove('visible');
-    const bgPreview = document.getElementById('context-menu-bg-preview');
-    if (bgPreview) {
-      bgPreview.classList.remove('visible');
-      bgPreview.style.backgroundImage = '';
-    }
+    this.hideWebBlurBackdrop();
     const backdrop = document.getElementById('drawer-backdrop');
     backdrop?.classList.remove('visible');
     backdrop?.classList.remove('context-menu-active');
@@ -2585,20 +2627,7 @@ class OcalMobileApp {
       this.closeAllSheets();
     });
 
-    const bgPreview = document.getElementById('context-menu-bg-preview');
-    const snapshot = data?.snapshot || activeTab?.thumbnail || (window.OcalNative ? window.OcalNative.getLastTabThumbnail() : '') || '';
-    if (bgPreview) {
-      if (snapshot && snapshot.startsWith('data:image/')) {
-        bgPreview.style.backgroundImage = `url("${snapshot}")`;
-        bgPreview.classList.add('visible');
-      } else {
-        bgPreview.classList.remove('visible');
-        bgPreview.style.backgroundImage = '';
-      }
-    }
-    if (snapshot) {
-      this.updateWebBgSnapshot(snapshot);
-    }
+    this.showWebBlurBackdrop();
 
     if (window.OcalNative) {
       window.OcalNative.setOverlayOpen?.(true);

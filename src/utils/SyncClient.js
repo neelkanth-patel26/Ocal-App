@@ -473,7 +473,14 @@ export class SyncClient {
     if (!this.isPaired()) throw new Error('Not paired with a desktop browser.');
     const { host, port, sessionKey } = this.session;
 
-    const localHistory = JSON.parse(localStorage.getItem('ocal-history') || '[]');
+    let localHistory = [];
+    try {
+      localHistory = JSON.parse(localStorage.getItem('ocal-history') || '[]');
+      if (!Array.isArray(localHistory)) localHistory = [];
+    } catch {
+      localHistory = [];
+    }
+
     const res = await fetch(`http://${host}:${port}/api/sync/history`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -484,9 +491,55 @@ export class SyncClient {
     const data = await res.json();
 
     if (Array.isArray(data.history)) {
-      localStorage.setItem('ocal-history', JSON.stringify(data.history));
+      // Defensively sanitize and normalize every history entry
+      const sanitized = data.history
+        .filter(item => item && typeof item === 'object' && typeof item.url === 'string' && item.url.trim().length > 0 && !item.url.startsWith('ocal://'))
+        .map(item => {
+          const rawUrl = item.url.trim();
+          let ts = item.timestamp || item.visitedAt || item.lastVisitTime || item.date;
+          if (typeof ts === 'string') {
+            const parsed = Date.parse(ts);
+            ts = !isNaN(parsed) ? parsed : Number(ts);
+          }
+          if (!ts || isNaN(ts) || typeof ts !== 'number' || ts <= 0) {
+            ts = Date.now();
+          }
+
+          let safeTitle = String(item.title || item.name || '').trim();
+          if (!safeTitle) {
+            try {
+              safeTitle = new URL(rawUrl).hostname.replace(/^(www\.|html\.)/i, '');
+            } catch {
+              safeTitle = rawUrl.replace(/^https?:\/\//i, '').split('/')[0] || 'Web Page';
+            }
+          }
+
+          return {
+            id: item.id || ('hist_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7)),
+            title: safeTitle,
+            url: rawUrl,
+            timestamp: ts,
+            visitedAt: ts
+          };
+        });
+
+      // Deduplicate by URL, keeping newest timestamp
+      const urlMap = new Map();
+      sanitized.forEach(item => {
+        const u = item.url.toLowerCase();
+        if (!urlMap.has(u) || (urlMap.get(u).timestamp < item.timestamp)) {
+          urlMap.set(u, item);
+        }
+      });
+
+      const cleanList = Array.from(urlMap.values())
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+        .slice(0, 1000);
+
+      localStorage.setItem('ocal-history', JSON.stringify(cleanList));
+      return cleanList;
     }
-    return data.history || [];
+    return [];
   }
 
   // Execute full sync
@@ -501,23 +554,41 @@ export class SyncClient {
 
   // Unpair device
   async unpair() {
-    if (this.session) {
-      try {
-        const { host, port, sessionKey } = this.session;
-        await fetch(`http://${host}:${port}/api/unpair`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionKey })
-        });
-      } catch (e) {}
-    }
+    const savedSession = this.session;
 
+    // 1. Terminate all local connections and clear saved session immediately
     if (this.eventSource) {
       try { this.eventSource.close(); } catch (e) {}
       this.eventSource = null;
     }
     clearTimeout(this.reconnectTimeout);
-    this._saveSession(null);
+    this.reconnectTimeout = null;
+    this.session = null;
+    this.reconnectAttempts = 0;
+    try {
+      localStorage.removeItem(this.storageKey);
+    } catch (e) {}
+    this.connectionStatus = 'not-paired';
+    this._notifyListeners('unpaired', null);
+    this._notifyListeners('session-changed', null);
+    this._notifyListeners('status', 'not-paired');
+
+    // 2. Best-effort notify PC desktop server with short timeout
+    if (savedSession && savedSession.host && savedSession.port) {
+      try {
+        const ctrl = new AbortController();
+        const timeout = setTimeout(() => ctrl.abort(), 1200);
+        await fetch(`http://${savedSession.host}:${savedSession.port}/api/unpair`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionKey: savedSession.sessionKey }),
+          signal: ctrl.signal
+        });
+        clearTimeout(timeout);
+      } catch (e) {
+        // Desktop unreachable or closed; local unpair is already complete
+      }
+    }
   }
 }
 

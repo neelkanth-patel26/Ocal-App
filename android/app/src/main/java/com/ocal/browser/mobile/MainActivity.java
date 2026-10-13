@@ -8,6 +8,7 @@ import android.util.Base64;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
@@ -120,6 +121,7 @@ public class MainActivity extends BridgeActivity {
     private volatile int currentSiteBlockedCount = 0;
     private volatile boolean isDarkModeEnabled = true;
     private View statusBarView = null;
+    private ImageView nativeBlurOverlay = null;
     private int statusBarHeightPx = 0;
     private int navBarHeightPx = 0;
     private int keyboardHeightPx = 0;
@@ -514,6 +516,10 @@ public class MainActivity extends BridgeActivity {
                 navBarHeightPx = getResources().getDimensionPixelSize(navResId);
             }
             WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+            getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+            );
             setupStatusBarAndInsets();
             setupBackGestureDispatcher();
             setStatusBarTheme(isDarkModeEnabled, isDarkModeEnabled ? "#000000" : "#ffffff");
@@ -949,6 +955,31 @@ public class MainActivity extends BridgeActivity {
                         }
                     });
                 }
+
+                @Override
+                public boolean onJsConfirm(WebView view, String url, String message, android.webkit.JsResult result) {
+                    new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Ocal Browser")
+                        .setMessage(message != null ? message : "Are you sure?")
+                        .setPositiveButton(android.R.string.ok, (dialog, which) -> result.confirm())
+                        .setNegativeButton(android.R.string.cancel, (dialog, which) -> result.cancel())
+                        .setOnCancelListener(dialog -> result.cancel())
+                        .setCancelable(false)
+                        .show();
+                    return true;
+                }
+
+                @Override
+                public boolean onJsAlert(WebView view, String url, String message, android.webkit.JsResult result) {
+                    new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Ocal Browser")
+                        .setMessage(message != null ? message : "")
+                        .setPositiveButton(android.R.string.ok, (dialog, which) -> result.confirm())
+                        .setOnCancelListener(dialog -> result.cancel())
+                        .setCancelable(false)
+                        .show();
+                    return true;
+                }
             });
         }
     }
@@ -1242,6 +1273,31 @@ public class MainActivity extends BridgeActivity {
                             }
                         }
                     }
+
+                    @Override
+                    public boolean onJsConfirm(WebView view, String url, String message, android.webkit.JsResult result) {
+                        new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Ocal Browser")
+                            .setMessage(message != null ? message : "Are you sure?")
+                            .setPositiveButton(android.R.string.ok, (dialog, which) -> result.confirm())
+                            .setNegativeButton(android.R.string.cancel, (dialog, which) -> result.cancel())
+                            .setOnCancelListener(dialog -> result.cancel())
+                            .setCancelable(false)
+                            .show();
+                        return true;
+                    }
+
+                    @Override
+                    public boolean onJsAlert(WebView view, String url, String message, android.webkit.JsResult result) {
+                        new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Ocal Browser")
+                            .setMessage(message != null ? message : "")
+                            .setPositiveButton(android.R.string.ok, (dialog, which) -> result.confirm())
+                            .setOnCancelListener(dialog -> result.cancel())
+                            .setCancelable(false)
+                            .show();
+                        return true;
+                    }
                 });
 
                 nativeWebBrowser.setDownloadListener(new DownloadListener() {
@@ -1372,6 +1428,16 @@ public class MainActivity extends BridgeActivity {
                 nativeWebBrowser.setBackgroundColor(0xFFFFFFFF);
                 nativeWebBrowser.setPadding(0, 0, 0, 0);
                 browserSlideContainer.addView(nativeWebBrowser);
+
+                // Add nativeBlurOverlay directly above nativeWebBrowser for guaranteed hardware/MIUI blur
+                nativeBlurOverlay = new ImageView(this);
+                nativeBlurOverlay.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                nativeBlurOverlay.setScaleType(ImageView.ScaleType.FIT_XY);
+                nativeBlurOverlay.setVisibility(View.GONE);
+                nativeBlurOverlay.setAlpha(0f);
+                nativeBlurOverlay.setClickable(false);
+                nativeBlurOverlay.setFocusable(false);
+                browserSlideContainer.addView(nativeBlurOverlay);
 
                 // Construct backPeekContainer
                 backPeekContainer = new FrameLayout(this);
@@ -1777,6 +1843,223 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
+    private Bitmap captureFastPageBitmap() {
+        try {
+            if (nativeWebBrowser == null || nativeWebBrowser.getWidth() <= 0 || nativeWebBrowser.getHeight() <= 0) {
+                return null;
+            }
+            int w = nativeWebBrowser.getWidth();
+            int h = nativeWebBrowser.getHeight();
+            float scale = 0.25f;
+            int sw = Math.max(1, (int) (w * scale));
+            int sh = Math.max(1, (int) (h * scale));
+
+            Bitmap bmp = Bitmap.createBitmap(sw, sh, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bmp);
+            canvas.scale(scale, scale);
+            nativeWebBrowser.draw(canvas);
+            return bmp;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private Bitmap applyFastBlur(Bitmap sentBitmap, int radius) {
+        if (sentBitmap == null || radius < 1) return sentBitmap;
+        try {
+            Bitmap bitmap = sentBitmap.copy(sentBitmap.getConfig(), true);
+            int w = bitmap.getWidth();
+            int h = bitmap.getHeight();
+            int[] pix = new int[w * h];
+            bitmap.getPixels(pix, 0, w, 0, 0, w, h);
+
+            int wm = w - 1;
+            int hm = h - 1;
+            int wh = w * h;
+            int div = radius + radius + 1;
+
+            int[] r = new int[wh];
+            int[] g = new int[wh];
+            int[] b = new int[wh];
+            int rsum, gsum, bsum, x, y, i, p, yp, yi, yw;
+            int[] vmin = new int[Math.max(w, h)];
+
+            int divsum = (div + 1) >> 1;
+            divsum *= divsum;
+            int[] dv = new int[256 * divsum];
+            for (i = 0; i < 256 * divsum; i++) {
+                dv[i] = (i / divsum);
+            }
+
+            yw = yi = 0;
+            int[][] stack = new int[div][3];
+            int stackpointer;
+            int stackstart;
+            int[] sir;
+            int rbs;
+            int routsum, goutsum, boutsum;
+            int rinsum, ginsum, binsum;
+
+            for (y = 0; y < h; y++) {
+                rinsum = ginsum = binsum = routsum = goutsum = boutsum = rsum = gsum = bsum = 0;
+                for (i = -radius; i <= radius; i++) {
+                    p = pix[yi + Math.min(wm, Math.max(i, 0))];
+                    sir = stack[i + radius];
+                    sir[0] = (p & 0xff0000) >> 16;
+                    sir[1] = (p & 0x00ff00) >> 8;
+                    sir[2] = (p & 0x0000ff);
+                    rbs = radius + 1 - Math.abs(i);
+                    rsum += sir[0] * rbs;
+                    gsum += sir[1] * rbs;
+                    bsum += sir[2] * rbs;
+                    if (i > 0) {
+                        rinsum += sir[0];
+                        ginsum += sir[1];
+                        binsum += sir[2];
+                    } else {
+                        routsum += sir[0];
+                        goutsum += sir[1];
+                        boutsum += sir[2];
+                    }
+                }
+                stackpointer = radius;
+
+                for (x = 0; x < w; x++) {
+                    r[yi] = dv[rsum];
+                    g[yi] = dv[gsum];
+                    b[yi] = dv[bsum];
+
+                    rsum -= routsum;
+                    gsum -= goutsum;
+                    bsum -= boutsum;
+
+                    stackstart = stackpointer - radius + div;
+                    sir = stack[stackstart % div];
+
+                    routsum -= sir[0];
+                    goutsum -= sir[1];
+                    boutsum -= sir[2];
+
+                    if (y == 0) {
+                        vmin[x] = Math.min(x + radius + 1, wm);
+                    }
+                    p = pix[yw + vmin[x]];
+
+                    sir[0] = (p & 0xff0000) >> 16;
+                    sir[1] = (p & 0x00ff00) >> 8;
+                    sir[2] = (p & 0x0000ff);
+
+                    rinsum += sir[0];
+                    ginsum += sir[1];
+                    binsum += sir[2];
+
+                    rsum += rinsum;
+                    gsum += ginsum;
+                    bsum += binsum;
+
+                    stackpointer = (stackpointer + 1) % div;
+                    sir = stack[stackpointer % div];
+
+                    routsum += sir[0];
+                    goutsum += sir[1];
+                    boutsum += sir[2];
+
+                    rinsum -= sir[0];
+                    ginsum -= sir[1];
+                    binsum -= sir[2];
+
+                    yi++;
+                }
+                yw += w;
+            }
+
+            for (x = 0; x < w; x++) {
+                rinsum = ginsum = binsum = routsum = goutsum = boutsum = rsum = gsum = bsum = 0;
+                yp = -radius * w;
+                for (i = -radius; i <= radius; i++) {
+                    yi = Math.max(0, yp) + x;
+
+                    sir = stack[i + radius];
+
+                    sir[0] = r[yi];
+                    sir[1] = g[yi];
+                    sir[2] = b[yi];
+
+                    rbs = radius + 1 - Math.abs(i);
+
+                    rsum += r[yi] * rbs;
+                    gsum += g[yi] * rbs;
+                    bsum += b[yi] * rbs;
+
+                    if (i > 0) {
+                        rinsum += sir[0];
+                        ginsum += sir[1];
+                        binsum += sir[2];
+                    } else {
+                        routsum += sir[0];
+                        goutsum += sir[1];
+                        boutsum += sir[2];
+                    }
+
+                    if (i < hm) {
+                        yp += w;
+                    }
+                }
+                yi = x;
+                stackpointer = radius;
+                for (y = 0; y < h; y++) {
+                    pix[yi] = (0xff000000 & pix[yi]) | (dv[rsum] << 16) | (dv[gsum] << 8) | dv[bsum];
+
+                    rsum -= routsum;
+                    gsum -= goutsum;
+                    bsum -= boutsum;
+
+                    stackstart = stackpointer - radius + div;
+                    sir = stack[stackstart % div];
+
+                    routsum -= sir[0];
+                    goutsum -= sir[1];
+                    boutsum -= sir[2];
+
+                    if (x == 0) {
+                        vmin[y] = Math.min(y + radius + 1, hm) * w;
+                    }
+                    p = x + vmin[y];
+
+                    sir[0] = r[p];
+                    sir[1] = g[p];
+                    sir[2] = b[p];
+
+                    rinsum += sir[0];
+                    ginsum += sir[1];
+                    binsum += sir[2];
+
+                    rsum += rinsum;
+                    gsum += ginsum;
+                    bsum += binsum;
+
+                    stackpointer = (stackpointer + 1) % div;
+                    sir = stack[stackpointer % div];
+
+                    routsum += sir[0];
+                    goutsum += sir[1];
+                    boutsum += sir[2];
+
+                    rinsum -= sir[0];
+                    ginsum -= sir[1];
+                    binsum -= sir[2];
+
+                    yi += w;
+                }
+            }
+
+            bitmap.setPixels(pix, 0, w, 0, 0, w, h);
+            return bitmap;
+        } catch (Throwable t) {
+            return sentBitmap;
+        }
+    }
+
     public class OcalNativeBridge {
         @JavascriptInterface
         public void setAdBlockEnabled(boolean enabled) {
@@ -1967,14 +2250,59 @@ public class MainActivity extends BridgeActivity {
         public void setWebBlurred(boolean blurred) {
             runOnUiThread(() -> {
                 try {
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                        if (browserSlideContainer != null) {
-                            if (blurred) {
-                                RenderEffect blur = RenderEffect.createBlurEffect(28f, 28f, Shader.TileMode.CLAMP);
-                                browserSlideContainer.setRenderEffect(blur);
-                            } else {
-                                browserSlideContainer.setRenderEffect(null);
+                    if (blurred) {
+                        // 1. Hardware RenderEffect for devices supporting it (Pixel, Samsung, etc.)
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            try {
+                                RenderEffect blur = RenderEffect.createBlurEffect(32f, 32f, Shader.TileMode.CLAMP);
+                                if (browserSlideContainer != null) {
+                                    browserSlideContainer.setRenderEffect(blur);
+                                }
+                                if (nativeWebBrowser != null) {
+                                    nativeWebBrowser.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+                                    nativeWebBrowser.setRenderEffect(blur);
+                                }
+                            } catch (Throwable ignored) {}
+                        }
+
+                        // 2. Guaranteed Native Blur Overlay for MI / Xiaomi / Redmi / Poco & devices where RenderEffect is disabled
+                        if (nativeBlurOverlay != null && nativeWebBrowser != null && nativeWebBrowser.getVisibility() == View.VISIBLE) {
+                            Bitmap snap = captureFastPageBitmap();
+                            if (snap != null) {
+                                Bitmap blurredBmp = applyFastBlur(snap, 14);
+                                nativeBlurOverlay.setImageBitmap(blurredBmp);
+                                nativeBlurOverlay.setVisibility(View.VISIBLE);
+                                nativeBlurOverlay.animate().cancel();
+                                nativeBlurOverlay.setAlpha(0f);
+                                nativeBlurOverlay.animate()
+                                    .alpha(1f)
+                                    .setDuration(240)
+                                    .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+                                    .start();
                             }
+                        }
+                    } else {
+                        // Dismiss blur cleanly
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            try {
+                                if (browserSlideContainer != null) {
+                                    browserSlideContainer.setRenderEffect(null);
+                                }
+                                if (nativeWebBrowser != null) {
+                                    nativeWebBrowser.setRenderEffect(null);
+                                }
+                            } catch (Throwable ignored) {}
+                        }
+                        if (nativeBlurOverlay != null && nativeBlurOverlay.getVisibility() == View.VISIBLE) {
+                            nativeBlurOverlay.animate().cancel();
+                            nativeBlurOverlay.animate()
+                                .alpha(0f)
+                                .setDuration(200)
+                                .withEndAction(() -> {
+                                    nativeBlurOverlay.setVisibility(View.GONE);
+                                    nativeBlurOverlay.setImageBitmap(null);
+                                })
+                                .start();
                         }
                     }
                 } catch (Throwable ignored) {}
