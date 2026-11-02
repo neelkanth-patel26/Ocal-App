@@ -42,6 +42,9 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import java.util.Locale;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
@@ -127,6 +130,92 @@ public class MainActivity extends BridgeActivity {
     private int keyboardHeightPx = 0;
     private int currentDetectedPageColor = 0xFF000000;
     private final Runnable themeColorCheckRunnable = this::detectAndApplyPageThemeColor;
+
+    private TextToSpeech ttsEngine = null;
+    private boolean isTtsReady = false;
+
+    private void initTts(Runnable onReady) {
+        if (ttsEngine != null && isTtsReady) {
+            if (onReady != null) onReady.run();
+            return;
+        }
+        runOnUiThread(() -> {
+            try {
+                if (ttsEngine != null) {
+                    try { ttsEngine.shutdown(); } catch (Throwable ignored) {}
+                }
+                ttsEngine = new TextToSpeech(MainActivity.this, status -> {
+                    if (status == TextToSpeech.SUCCESS) {
+                        isTtsReady = true;
+                        try {
+                            ttsEngine.setLanguage(Locale.getDefault());
+                        } catch (Throwable ignored) {}
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                            try {
+                                java.util.Set<android.speech.tts.Voice> voices = ttsEngine.getVoices();
+                                if (voices != null && !voices.isEmpty()) {
+                                    Locale cur = Locale.getDefault();
+                                    android.speech.tts.Voice best = null;
+                                    for (android.speech.tts.Voice v : voices) {
+                                        if (v.getLocale() != null && v.getLocale().getLanguage().equalsIgnoreCase(cur.getLanguage())) {
+                                            if (!v.isNetworkConnectionRequired()) {
+                                                if (best == null || v.getQuality() > best.getQuality()) {
+                                                    best = v;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (best != null) {
+                                        ttsEngine.setVoice(best);
+                                    }
+                                }
+                            } catch (Throwable ignored) {}
+                        }
+                        ttsEngine.setPitch(1.0f);
+                        ttsEngine.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                            @Override
+                            public void onStart(String utteranceId) {
+                                runOnUiThread(() -> {
+                                    if (bridge != null && bridge.getWebView() != null) {
+                                        bridge.getWebView().evaluateJavascript(
+                                            "if (window.onNativeTtsStart) window.onNativeTtsStart('" + utteranceId + "');", null);
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onDone(String utteranceId) {
+                                runOnUiThread(() -> {
+                                    if (bridge != null && bridge.getWebView() != null) {
+                                        bridge.getWebView().evaluateJavascript(
+                                            "if (window.onNativeTtsDone) window.onNativeTtsDone('" + utteranceId + "');", null);
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onError(String utteranceId) {
+                                runOnUiThread(() -> {
+                                    if (bridge != null && bridge.getWebView() != null) {
+                                        bridge.getWebView().evaluateJavascript(
+                                            "if (window.onNativeTtsError) window.onNativeTtsError('" + utteranceId + "');", null);
+                                    }
+                                });
+                            }
+                        });
+                        if (onReady != null) {
+                            runOnUiThread(onReady);
+                        }
+                    } else {
+                        isTtsReady = false;
+                        android.util.Log.e("OcalBrowser", "TextToSpeech init failed with status: " + status);
+                    }
+                });
+            } catch (Throwable t) {
+                android.util.Log.e("OcalBrowser", "Error initializing TextToSpeech", t);
+            }
+        });
+    }
 
     private static final java.util.Set<String> AD_DOMAINS = new java.util.HashSet<>(java.util.Arrays.asList(
         "doubleclick.net", "googlesyndication.com", "googleadservices.com", "adservice.google.com",
@@ -2366,15 +2455,60 @@ public class MainActivity extends BridgeActivity {
             runOnUiThread(() -> {
                 try {
                     if (nativeWebBrowser != null && nativeWebBrowser.getVisibility() == View.VISIBLE) {
-                        nativeWebBrowser.evaluateJavascript(
-                            "(function() { try { var txt = (document.body ? (document.body.innerText || '') : ''); if (txt.length > 6000) txt = txt.slice(0, 6000); return JSON.stringify({ title: document.title || '', url: location.href || '', text: txt }); } catch(e) { return JSON.stringify({ title: document.title || '', url: location.href || '', text: '' }); } })()",
-                            value -> {
-                                if (bridge != null && bridge.getWebView() != null && value != null) {
-                                    String js = "if (window.onNativePageContent) window.onNativePageContent(" + value + ");";
-                                    bridge.getWebView().evaluateJavascript(js, null);
-                                }
+                        String extractScript = "(function() { try { " +
+                            "var doc = document; " +
+                            "var title = (doc.querySelector('meta[property=\"og:title\"]') && doc.querySelector('meta[property=\"og:title\"]').content) || doc.title || ''; " +
+                            "var author = (doc.querySelector('meta[name=\"author\"]') && doc.querySelector('meta[name=\"author\"]').content) || (doc.querySelector('[rel=\"author\"], .author, .byline') ? doc.querySelector('[rel=\"author\"], .author, .byline').innerText.trim() : ''); " +
+                            "var siteName = (doc.querySelector('meta[property=\"og:site_name\"]') && doc.querySelector('meta[property=\"og:site_name\"]').content) || location.hostname.replace(/^www\\./, ''); " +
+                            "var article = doc.querySelector('article, [role=\"main\"], .post-content, .article-content, .entry-content, main'); " +
+                            "if (!article) article = doc.body; " +
+                            "var clone = article ? article.cloneNode(true) : null; " +
+                            "var cleanHtml = ''; " +
+                            "var plainText = ''; " +
+                            "if (clone) { " +
+                            "  var bad = clone.querySelectorAll('script, style, noscript, nav, header, footer, aside, form, svg, iframe, .hatnote, .dablink, .metadata, .ambox, .infobox, .navbox, .sidebar, .mw-editsection, .reference, sup.reference, .reflist, .toc, #toc, .catlinks, .mw-jump-link, .noprint, .mw-empty-elt, .mw-cite-backlink, [role=\"navigation\"], [class*=\"ad-\"], [class*=\"advert\"], [id*=\"ad-\"], [id*=\"google_ads\"], [class*=\"share\"], [class*=\"social\"], [class*=\"comment\"], [class*=\"subscribe\"], [class*=\"banner\"]'); " +
+                            "  for (var i = 0; i < bad.length; i++) bad[i].remove(); " +
+                            "  var nodes = clone.querySelectorAll('h1, h2, h3, h4, p, ul, ol, blockquote, pre, img'); " +
+                            "  var outDiv = doc.createElement('div'); " +
+                            "  for (var j = 0; j < nodes.length; j++) { " +
+                            "    var n = nodes[j]; " +
+                            "    var tn = n.tagName.toLowerCase(); " +
+                            "    if (tn === 'img') { " +
+                            "      var src = n.getAttribute('src') || n.getAttribute('data-src'); " +
+                            "      if (src && !src.startsWith('data:')) { " +
+                            "        var img = doc.createElement('img'); " +
+                            "        img.src = src; " +
+                            "        img.alt = n.getAttribute('alt') || ''; " +
+                            "        img.loading = 'lazy'; " +
+                            "        outDiv.appendChild(img); " +
+                            "      } " +
+                            "    } else if (tn === 'p' || tn.indexOf('h') === 0 || tn === 'blockquote' || tn === 'pre' || tn === 'ul' || tn === 'ol') { " +
+                            "      var t = (n.innerText || '').trim(); " +
+                            "      if (t.length > 0) { " +
+                            "        var el = doc.createElement(tn); " +
+                            "        el.innerHTML = n.innerHTML; " +
+                            "        outDiv.appendChild(el); " +
+                            "      } " +
+                            "    } " +
+                            "  } " +
+                            "  cleanHtml = outDiv.innerHTML; " +
+                            "  plainText = (clone.innerText || '').trim(); " +
+                            "} " +
+                            "if (!plainText && doc.body) plainText = (doc.body.innerText || '').trim(); " +
+                            "if (plainText.length > 30000) plainText = plainText.slice(0, 30000); " +
+                            "if (cleanHtml.length > 80000) cleanHtml = cleanHtml.slice(0, 80000); " +
+                            "var words = plainText.split(/\\s+/).filter(Boolean).length; " +
+                            "var readMins = Math.max(1, Math.ceil(words / 220)); " +
+                            "return JSON.stringify({ title: title, url: location.href || '', author: author, siteName: siteName, text: plainText, html: cleanHtml, wordCount: words, readingTime: readMins }); " +
+                            "} catch(e) { " +
+                            "return JSON.stringify({ title: document.title || '', url: location.href || '', author: '', siteName: '', text: (document.body ? document.body.innerText.slice(0, 5000) : ''), html: '', wordCount: 0, readingTime: 1 }); " +
+                            "} })()";
+                        nativeWebBrowser.evaluateJavascript(extractScript, value -> {
+                            if (bridge != null && bridge.getWebView() != null && value != null) {
+                                String js = "if (window.onNativePageContent) window.onNativePageContent(" + value + ");";
+                                bridge.getWebView().evaluateJavascript(js, null);
                             }
-                        );
+                        });
                     } else {
                         if (bridge != null && bridge.getWebView() != null) {
                             bridge.getWebView().evaluateJavascript("if (window.onNativePageContent) window.onNativePageContent(null);", null);
@@ -2607,6 +2741,42 @@ public class MainActivity extends BridgeActivity {
                 return "{}";
             }
         }
+
+        @JavascriptInterface
+        public void speak(String text, float rate, String utteranceId) {
+            if (text == null || text.trim().isEmpty()) return;
+            initTts(() -> {
+                try {
+                    if (ttsEngine != null) {
+                        float finalRate = rate > 0 ? (rate * 0.98f) : 0.98f;
+                        ttsEngine.setSpeechRate(finalRate);
+                        ttsEngine.setPitch(1.0f);
+                        android.os.Bundle params = new android.os.Bundle();
+                        String id = (utteranceId != null && !utteranceId.isEmpty()) ? utteranceId : "tts_" + System.currentTimeMillis();
+                        params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, id);
+                        ttsEngine.speak(text, TextToSpeech.QUEUE_FLUSH, params, id);
+                    }
+                } catch (Throwable t) {
+                    android.util.Log.e("OcalBrowser", "Error in speak", t);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void stopSpeaking() {
+            runOnUiThread(() -> {
+                try {
+                    if (ttsEngine != null) {
+                        ttsEngine.stop();
+                    }
+                } catch (Throwable ignored) {}
+            });
+        }
+
+        @JavascriptInterface
+        public boolean isTtsAvailable() {
+            return true;
+        }
     }
 
     private WebResourceResponse handleSuggestRequest(Uri uri) {
@@ -2650,5 +2820,16 @@ public class MainActivity extends BridgeActivity {
         Map<String, String> headers = new HashMap<>();
         headers.put("Access-Control-Allow-Origin", "*");
         return new WebResourceResponse("text/html", "UTF-8", 200, "OK", headers, new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Override
+    public void onDestroy() {
+        try {
+            if (ttsEngine != null) {
+                ttsEngine.stop();
+                ttsEngine.shutdown();
+            }
+        } catch (Throwable ignored) {}
+        super.onDestroy();
     }
 }

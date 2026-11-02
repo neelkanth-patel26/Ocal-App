@@ -143,6 +143,9 @@
             <path class="dl-ball-check" id="dl-ball-check" d="M9.5 14.2l3 3 6-6" style="display:none;" />
           </svg>
         </button>
+        <button class="capsule-icon-btn capsule-reader-btn" id="capsule-reader-btn" title="Zen Reader Mode" style="display: none;" aria-label="Zen Reader Mode">
+          <span>Aa</span>
+        </button>
         <button class="capsule-shield-btn" id="capsule-shield-btn" title="CyberShield Ad Blocker">
           <div class="shield-badge-dot" id="shield-badge-dot">
             <i class="fas fa-bolt"></i>
@@ -187,17 +190,21 @@
   <!-- Tabs Switcher Modal (Opera Flagship Tab Manager Layout with Ocal Monochrome Theme) -->
   <div class="tabs-tray-container" id="tabs-tray-container">
     <div class="tabs-tray-sheet" id="tabs-tray-sheet">
+      <div class="tabs-manager-heading">
+        <div><h2>Your tabs</h2><p id="tabs-manager-summary" aria-live="polite">Pick up where you left off</p></div>
+        <button class="subpage-action-btn" id="tabs-done-btn">Done</button>
+      </div>
       <!-- Opera-Style Top Header: "Tabs" / "Private" text navigation with indicator underline & Search icon on right -->
       <div class="opera-tabs-header">
         <div class="opera-tabs-nav-group">
           <button class="opera-tab-nav-btn active" id="tab-mode-normal" title="Normal Tabs">
             <span class="opera-tab-nav-text">Tabs</span>
-            <span id="tabs-normal-count" style="display:none;">Tabs (1)</span>
+            <span id="tabs-normal-count" class="tabs-mode-count">1</span>
             <div class="opera-tab-nav-indicator"></div>
           </button>
           <button class="opera-tab-nav-btn" id="tab-mode-private" title="Private Browsing">
             <span class="opera-tab-nav-text"><i class="fas fa-user-secret" style="font-size: 13px; margin-right: 5px;"></i>Private</span>
-            <span id="tabs-private-count" style="display:none;">Private (0)</span>
+            <span id="tabs-private-count" class="tabs-mode-count">0</span>
             <div class="opera-tab-nav-indicator"></div>
           </button>
         </div>

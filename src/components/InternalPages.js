@@ -3,14 +3,16 @@ import { DownloadsManager } from './DownloadsManager.js';
 import { DataImporter, PasswordManager } from '../utils/DataImporter.js';
 import { syncClient } from '../utils/SyncClient.js';
 import { QrScanner } from '../utils/QrScanner.js';
+import { accentChoices, applyAccent } from '../utils/appearance.js';
+import { getSearchEngine, searchEngineKey } from '../utils/searchPreferences.js';
 
 export class InternalPages {
-  static render(url, onNavigate) {
+  static render(url, onNavigate, isIncognito = false) {
     const raw = (url || 'ocal://home').toLowerCase();
     const clean = raw.replace('ocal://', '').replace('https://', '').replace('http://', '').replace('www.', '');
 
     if (clean === 'home' || clean === '') {
-      return this.renderHome(onNavigate);
+      return isIncognito ? this.renderPrivateHome(onNavigate) : this.renderHome(onNavigate);
     } else if (clean.startsWith('dineinstyle') || clean.includes('dineinstyle.com')) {
       return this.renderDineInStyle(onNavigate);
     } else if (clean.startsWith('twitter') || clean.includes('twitter.com') || clean.includes('x.com')) {
@@ -26,7 +28,7 @@ export class InternalPages {
     } else if (clean === 'volume') {
       return this.renderVolumeBooster(onNavigate);
     } else if (clean === 'bookmarks') {
-      return this.renderBookmarks(onNavigate);
+      return this.renderBookmarks(onNavigate, isIncognito);
     } else if (clean === 'downloads') {
       return this.renderDownloads(onNavigate);
     } else if (clean === 'sync') {
@@ -34,9 +36,9 @@ export class InternalPages {
     } else if (clean === 'passwords') {
       return this.renderPasswords(onNavigate);
     } else if (clean === 'history') {
-      return this.renderHistory(onNavigate);
+      return this.renderHistory(onNavigate, isIncognito);
     } else if (clean === 'settings') {
-      return this.renderSettings(onNavigate);
+      return this.renderSettings(onNavigate, isIncognito);
     }
 
     return `
@@ -62,6 +64,116 @@ export class InternalPages {
     `;
   }
 
+  // 1.0 Ocal Private Browsing Start Page (Stealth Obsidian & Violet Design System)
+  static renderPrivateHome(onNavigate) {
+    const container = document.createElement('div');
+    container.className = 'internal-page-container home-page-container private-home-container';
+
+    container.innerHTML = `
+      <div class="opera-home-view private-home-view">
+        <!-- Minimal Brand Hero in Stealth Obsidian & Violet -->
+        <div class="opera-hero-container">
+          <div class="opera-logo-badge private-logo-badge">
+            <i class="fas fa-user-secret private-hero-mask-icon"></i>
+          </div>
+          <h1 class="opera-wordmark private-wordmark">Ocal</h1>
+          <div class="private-mode-pill">
+            <span class="private-dot"></span>
+            <span>Private Browsing</span>
+          </div>
+        </div>
+
+        <!-- Section: Favorites (Squircle Monochrome Grid in Plum & Milk) -->
+        <div class="opera-section-header">
+          <div class="opera-section-label">Favorites</div>
+          <span class="opera-section-count">8 Sites</span>
+        </div>
+        <div class="opera-speed-dial">
+          <div class="opera-dial-item" data-url="https://dineinstyle.com">
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            </div>
+            <span class="opera-dial-title">Dine Style</span>
+          </div>
+          <div class="opera-dial-item" data-url="https://duckduckgo.com">
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
+            </div>
+            <span class="opera-dial-title">DuckDuckGo</span>
+          </div>
+          <div class="opera-dial-item" data-url="https://twitter.com">
+            <div class="opera-dial-tile">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </div>
+            <span class="opera-dial-title">X / Twitter</span>
+          </div>
+          <div class="opera-dial-item" data-url="https://reddit.com">
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.56 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.56 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+            </div>
+            <span class="opera-dial-title">Reddit</span>
+          </div>
+          <div class="opera-dial-item" data-url="https://discord.com">
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+            </div>
+            <span class="opera-dial-title">Discord</span>
+          </div>
+          <div class="opera-dial-item" data-url="https://github.com">
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            </div>
+            <span class="opera-dial-title">GitHub</span>
+          </div>
+          <div class="opera-dial-item" data-url="https://en.m.wikipedia.org">
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.09 13.119c-.936 1.932-2.217 4.548-2.853 5.728-.616 1.074-1.127.931-1.532.029-1.406-3.321-4.293-9.144-5.651-12.409-.251-.601-.441-.987-.619-1.139-.181-.15-.554-.24-1.122-.271C.103 5.033 0 4.982 0 4.898v-.455l.052-.045c.924-.005 5.401 0 5.401 0l.051.045v.434c0 .119-.075.176-.225.176l-.564.031c-.485.029-.727.164-.727.436 0 .135.053.33.166.601 1.082 2.646 4.818 10.521 4.818 10.521l.136.046 2.411-4.81-.482-1.067-1.658-3.264s-.318-.654-.428-.872c-.728-1.443-.712-1.518-1.447-1.617-.207-.023-.313-.05-.313-.149v-.468l.06-.045h4.292l.113.037v.451c0 .105-.076.15-.227.15l-.308.047c-.792.061-.661.381-.136 1.422l1.582 3.252 1.758-3.504c.293-.64.233-.801.111-.947-.07-.084-.305-.22-.812-.24l-.201-.021c-.052 0-.098-.015-.145-.051-.045-.031-.067-.076-.067-.129v-.427l.061-.045c1.247-.008 4.043 0 4.043 0l.059.045v.436c0 .121-.059.178-.193.178-.646.03-.782.095-1.023.439-.12.186-.375.589-.646 1.039l-2.301 4.273-.065.135 2.792 5.712.17.048 4.396-10.438c.154-.422.129-.722-.064-.895-.197-.172-.346-.273-.857-.295l-.42-.016c-.061 0-.105-.014-.152-.045-.043-.029-.072-.075-.072-.119v-.436l.059-.045h4.961l.041.045v.437c0 .119-.074.18-.209.18-.648.03-1.127.18-1.443.421-.314.255-.557.616-.736 1.067 0 0-4.043 9.258-5.426 12.339-.525 1.007-1.053.917-1.503-.031-.571-1.171-1.773-3.786-2.646-5.71l.053-.036z"/></svg>
+            </div>
+            <span class="opera-dial-title">Wikipedia</span>
+          </div>
+          <div class="opera-dial-item" data-url="https://youtube.com">
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            </div>
+            <span class="opera-dial-title">YouTube</span>
+          </div>
+        </div>
+
+        <!-- Section: Minimalist Focus Quick Cards in Plum & Milk -->
+        <div class="opera-feature-strip">
+          <div class="opera-strip-card" data-action="private-search">
+            <div class="strip-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <div class="strip-info">
+              <div class="strip-title">Private &amp; Untracked</div>
+              <div class="strip-desc">History, cookies, and search queries are never saved</div>
+            </div>
+            <div class="strip-pill">Protected</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Bind clicks with subtle haptic response
+    container.querySelectorAll('.opera-dial-item').forEach(item => {
+      item.addEventListener('click', () => {
+        try { if (navigator.vibrate) navigator.vibrate(10); } catch {}
+        const u = item.getAttribute('data-url');
+        if (u && onNavigate) onNavigate(u);
+      });
+    });
+
+    container.querySelector('.opera-strip-card')?.addEventListener('click', () => {
+      try { if (navigator.vibrate) navigator.vibrate(10); } catch {}
+      if (onNavigate) onNavigate('https://duckduckgo.com');
+    });
+
+    return container;
+  }
+
   // 1. Ocal Minimalist Start Page (Wordmark, Speed Dial & Editorial News)
   static renderHome(onNavigate) {
     const container = document.createElement('div');
@@ -69,7 +181,7 @@ export class InternalPages {
 
     container.innerHTML = `
       <div class="opera-home-view">
-        <!-- Minimal Brand Logo & Wordmark -->
+        <!-- Minimal Monochrome Brand Hero -->
         <div class="opera-hero-container">
           <div class="opera-logo-badge">
             <img src="/assets/Light.png" alt="Ocal Logo" class="opera-brand-logo-img light-logo" />
@@ -78,67 +190,93 @@ export class InternalPages {
           <h1 class="opera-wordmark">Ocal</h1>
         </div>
 
-        <!-- Section: Favorites -->
-        <div class="opera-section-label">Favorites</div>
+        <!-- Section: Favorites (Squircle Monochrome Grid) -->
+        <div class="opera-section-header">
+          <div class="opera-section-label">Favorites</div>
+          <span class="opera-section-count">8 Sites</span>
+        </div>
         <div class="opera-speed-dial">
           <div class="opera-dial-item" data-url="https://dineinstyle.com">
-            <div class="opera-dial-tile" style="color:var(--text-main);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             </div>
-            <span class="opera-dial-title">Dine in Style</span>
+            <span class="opera-dial-title">Dine Style</span>
           </div>
           <div class="opera-dial-item" data-url="https://duckduckgo.com">
-            <div class="opera-dial-tile" style="color:var(--text-main);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
             </div>
             <span class="opera-dial-title">DuckDuckGo</span>
           </div>
           <div class="opera-dial-item" data-url="https://twitter.com">
-            <div class="opera-dial-tile" style="color:var(--text-main);">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            <div class="opera-dial-tile">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             </div>
-            <span class="opera-dial-title">Twitter</span>
+            <span class="opera-dial-title">X / Twitter</span>
           </div>
           <div class="opera-dial-item" data-url="https://reddit.com">
-            <div class="opera-dial-tile" style="color:var(--text-main);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.56 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.56 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.56 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.56 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
             </div>
             <span class="opera-dial-title">Reddit</span>
           </div>
           <div class="opera-dial-item" data-url="https://discord.com">
-            <div class="opera-dial-tile" style="color:var(--text-main);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
             </div>
             <span class="opera-dial-title">Discord</span>
           </div>
           <div class="opera-dial-item" data-url="https://github.com">
-            <div class="opera-dial-tile" style="color:var(--text-main);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
             </div>
             <span class="opera-dial-title">GitHub</span>
           </div>
           <div class="opera-dial-item" data-url="https://en.m.wikipedia.org">
-            <div class="opera-dial-tile" style="color:var(--text-main);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12.09 13.119c-.936 1.932-2.217 4.548-2.853 5.728-.616 1.074-1.127.931-1.532.029-1.406-3.321-4.293-9.144-5.651-12.409-.251-.601-.441-.987-.619-1.139-.181-.15-.554-.24-1.122-.271C.103 5.033 0 4.982 0 4.898v-.455l.052-.045c.924-.005 5.401 0 5.401 0l.051.045v.434c0 .119-.075.176-.225.176l-.564.031c-.485.029-.727.164-.727.436 0 .135.053.33.166.601 1.082 2.646 4.818 10.521 4.818 10.521l.136.046 2.411-4.81-.482-1.067-1.658-3.264s-.318-.654-.428-.872c-.728-1.443-.712-1.518-1.447-1.617-.207-.023-.313-.05-.313-.149v-.468l.06-.045h4.292l.113.037v.451c0 .105-.076.15-.227.15l-.308.047c-.792.061-.661.381-.136 1.422l1.582 3.252 1.758-3.504c.293-.64.233-.801.111-.947-.07-.084-.305-.22-.812-.24l-.201-.021c-.052 0-.098-.015-.145-.051-.045-.031-.067-.076-.067-.129v-.427l.061-.045c1.247-.008 4.043 0 4.043 0l.059.045v.436c0 .121-.059.178-.193.178-.646.03-.782.095-1.023.439-.12.186-.375.589-.646 1.039l-2.301 4.273-.065.135 2.792 5.712.17.048 4.396-10.438c.154-.422.129-.722-.064-.895-.197-.172-.346-.273-.857-.295l-.42-.016c-.061 0-.105-.014-.152-.045-.043-.029-.072-.075-.072-.119v-.436l.059-.045h4.961l.041.045v.437c0 .119-.074.18-.209.18-.648.03-1.127.18-1.443.421-.314.255-.557.616-.736 1.067 0 0-4.043 9.258-5.426 12.339-.525 1.007-1.053.917-1.503-.031-.571-1.171-1.773-3.786-2.646-5.71l.053-.036z"/></svg>
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.09 13.119c-.936 1.932-2.217 4.548-2.853 5.728-.616 1.074-1.127.931-1.532.029-1.406-3.321-4.293-9.144-5.651-12.409-.251-.601-.441-.987-.619-1.139-.181-.15-.554-.24-1.122-.271C.103 5.033 0 4.982 0 4.898v-.455l.052-.045c.924-.005 5.401 0 5.401 0l.051.045v.434c0 .119-.075.176-.225.176l-.564.031c-.485.029-.727.164-.727.436 0 .135.053.33.166.601 1.082 2.646 4.818 10.521 4.818 10.521l.136.046 2.411-4.81-.482-1.067-1.658-3.264s-.318-.654-.428-.872c-.728-1.443-.712-1.518-1.447-1.617-.207-.023-.313-.05-.313-.149v-.468l.06-.045h4.292l.113.037v.451c0 .105-.076.15-.227.15l-.308.047c-.792.061-.661.381-.136 1.422l1.582 3.252 1.758-3.504c.293-.64.233-.801.111-.947-.07-.084-.305-.22-.812-.24l-.201-.021c-.052 0-.098-.015-.145-.051-.045-.031-.067-.076-.067-.129v-.427l.061-.045c1.247-.008 4.043 0 4.043 0l.059.045v.436c0 .121-.059.178-.193.178-.646.03-.782.095-1.023.439-.12.186-.375.589-.646 1.039l-2.301 4.273-.065.135 2.792 5.712.17.048 4.396-10.438c.154-.422.129-.722-.064-.895-.197-.172-.346-.273-.857-.295l-.42-.016c-.061 0-.105-.014-.152-.045-.043-.029-.072-.075-.072-.119v-.436l.059-.045h4.961l.041.045v.437c0 .119-.074.18-.209.18-.648.03-1.127.18-1.443.421-.314.255-.557.616-.736 1.067 0 0-4.043 9.258-5.426 12.339-.525 1.007-1.053.917-1.503-.031-.571-1.171-1.773-3.786-2.646-5.71l.053-.036z"/></svg>
             </div>
             <span class="opera-dial-title">Wikipedia</span>
           </div>
           <div class="opera-dial-item" data-url="https://youtube.com">
-            <div class="opera-dial-tile" style="color:var(--text-main);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            <div class="opera-dial-tile">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
             </div>
             <span class="opera-dial-title">YouTube</span>
+          </div>
+        </div>
+
+        <!-- Section: Minimalist Focus Quick Cards -->
+        <div class="opera-feature-strip">
+          <div class="opera-strip-card" data-action="zen-guide">
+            <div class="strip-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+            </div>
+            <div class="strip-info">
+              <div class="strip-title">Zen Reader &amp; Audio Voice</div>
+              <div class="strip-desc">Read articles without ads or listen hands-free</div>
+            </div>
+            <div class="strip-pill">New</div>
           </div>
         </div>
       </div>
     `;
 
-    // Bind clicks
+    // Bind clicks with subtle haptic response
     container.querySelectorAll('.opera-dial-item').forEach(item => {
       item.addEventListener('click', () => {
+        try { if (navigator.vibrate) navigator.vibrate(10); } catch {}
         const u = item.getAttribute('data-url');
         if (u && onNavigate) onNavigate(u);
       });
+    });
+
+    container.querySelector('.opera-strip-card')?.addEventListener('click', () => {
+      try { if (navigator.vibrate) navigator.vibrate(10); } catch {}
+      if (onNavigate) onNavigate('https://en.m.wikipedia.org/wiki/Special:Random');
     });
 
     return container;
@@ -532,7 +670,10 @@ export class InternalPages {
   }
 
   // 7. Bookmarks Manager
-  static renderBookmarks(onNavigate) {
+  static renderBookmarks(onNavigate, isIncognito = false) {
+    if (isIncognito) {
+      return this.renderPrivateBookmarks(onNavigate);
+    }
     const container = document.createElement('div');
     container.className = 'subpage-container';
     const bookmarks = JSON.parse(localStorage.getItem('ocal-bookmarks') || '[]');
@@ -701,6 +842,165 @@ export class InternalPages {
         const idx = parseInt(btn.getAttribute('data-index'), 10);
         bookmarks.splice(idx, 1);
         localStorage.setItem('ocal-bookmarks', JSON.stringify(bookmarks));
+        window.ocalApp?.checkCurrentTabBookmarked?.();
+        if (onNavigate) onNavigate('ocal://bookmarks');
+      });
+    });
+
+    return container;
+  }
+
+  // 7.1 Dedicated Private Bookmarks Vault
+  static renderPrivateBookmarks(onNavigate) {
+    const container = document.createElement('div');
+    container.className = 'subpage-container private-subpage-container';
+
+    let bookmarks = [];
+    try {
+      bookmarks = JSON.parse(localStorage.getItem('ocal-private-bookmarks') || '[]');
+      if (!Array.isArray(bookmarks)) bookmarks = [];
+    } catch {
+      bookmarks = [];
+    }
+
+    let contentHtml = '';
+    if (bookmarks.length === 0) {
+      contentHtml = `
+        <div class="subpage-empty-state private-empty-state">
+          <div class="subpage-empty-icon private-empty-icon">
+            <i class="fas fa-user-secret"></i>
+          </div>
+          <div class="subpage-empty-title private-empty-title">Private Vault is Empty</div>
+          <p class="subpage-empty-desc private-empty-desc">
+            Bookmarks saved while browsing in Private Mode stay in this private vault. They are never visible in standard mode.
+          </p>
+          <button class="private-session-btn secondary" id="priv-bm-add-current-btn" style="max-width:260px; margin:18px auto 0;">
+            <i class="fas fa-heart"></i>
+            <span>Bookmark Active Page</span>
+          </button>
+        </div>
+      `;
+    } else {
+      contentHtml = `
+        <div class="history-search-container private-search-container">
+          <div class="history-search-bar private-search-bar">
+            <i class="fa-solid fa-magnifying-glass" style="color:#94a3b8;"></i>
+            <input type="text" class="history-search-input private-search-input" id="priv-bm-filter-input" placeholder="Search private bookmarks..." autocomplete="off" />
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px;">
+          <div class="private-section-title" style="margin-bottom:0;">
+            <span>Private Links</span>
+            <span class="private-section-count">${bookmarks.length}</span>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="private-pill-btn" id="priv-export-bm-btn">
+              <i class="fa-solid fa-file-export" style="font-size:11px;"></i> Export
+            </button>
+          </div>
+        </div>
+
+        <div class="apple-grouped-table private-grouped-table" id="priv-bookmarks-list">
+          ${bookmarks.map((bm, index) => {
+            let domain = '';
+            try { domain = new URL(bm.url).hostname.replace(/^(www\.|html\.)/i, ''); } catch { domain = bm.url; }
+            const initial = (domain || 'P')[0].toUpperCase();
+            return `
+              <div class="history-item-row bookmark-item-row private-bm-row" data-url="${escapeHtml(bm.url)}" data-title="${escapeHtml((bm.title || bm.url).toLowerCase())}">
+                <div class="apple-row-icon mono-domain private-row-icon">
+                  <span style="font-size:13px; font-weight:700;">${escapeHtml(initial)}</span>
+                </div>
+                <div class="history-content">
+                  <div class="history-title private-item-title">${escapeHtml(bm.title || bm.url)}</div>
+                  <div class="history-meta private-item-meta">
+                    <span class="history-domain-pill private-domain-pill">${escapeHtml(domain)}</span>
+                    <span class="history-separator" style="color:rgba(255,255,255,0.3);">•</span>
+                    <span style="color:rgba(255,255,255,0.6);">${escapeHtml(bm.url.replace(/^https?:\/\/(www\.)?/, '').substring(0, 42))}</span>
+                  </div>
+                </div>
+                <button class="history-delete-btn delete-priv-bm-btn" data-index="${index}" title="Remove Private Bookmark">
+                  <i class="fa-solid fa-xmark" style="font-size:13px;"></i>
+                </button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <div class="subpage-header private-subpage-header">
+        <button class="subpage-back-btn private-back-btn" id="priv-bm-back-btn"><i class="fas fa-chevron-left"></i></button>
+        <div class="subpage-header-title private-header-title">
+          <i class="fas fa-user-secret" style="margin-right:6px;"></i>Private Bookmarks
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${bookmarks.length > 0 ? '<button class="subpage-action-btn danger private-danger-btn" id="priv-clear-bm-btn">Clear</button>' : '<div style="width:36px;"></div>'}
+        </div>
+      </div>
+
+      <div class="subpage-content private-subpage-content">
+        ${contentHtml}
+      </div>
+    `;
+
+    container.querySelector('#priv-bm-back-btn')?.addEventListener('click', () => {
+      if (onNavigate) onNavigate('ocal://home');
+    });
+
+    container.querySelector('#priv-clear-bm-btn')?.addEventListener('click', () => {
+      if (confirm('Clear all private bookmarks?')) {
+        localStorage.setItem('ocal-private-bookmarks', '[]');
+        window.ocalApp?.checkCurrentTabBookmarked?.();
+        if (onNavigate) onNavigate('ocal://bookmarks');
+      }
+    });
+
+    container.querySelector('#priv-bm-add-current-btn')?.addEventListener('click', () => {
+      window.ocalApp?.bookmarkCurrentTab?.();
+      if (onNavigate) onNavigate('ocal://bookmarks');
+    });
+
+    container.querySelector('#priv-export-bm-btn')?.addEventListener('click', () => {
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(bookmarks, null, 2));
+      const dl = document.createElement('a');
+      dl.setAttribute('href', dataStr);
+      dl.setAttribute('download', 'ocal-private-bookmarks.json');
+      dl.click();
+      window.ocalApp?.showToast?.('Exported private bookmarks', 'download');
+    });
+
+    const filterInput = container.querySelector('#priv-bm-filter-input');
+    if (filterInput) {
+      filterInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim().toLowerCase();
+        container.querySelectorAll('.private-bm-row').forEach(row => {
+          const title = row.getAttribute('data-title') || '';
+          const url = (row.getAttribute('data-url') || '').toLowerCase();
+          if (!val || title.includes(val) || url.includes(val)) {
+            row.style.display = 'flex';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+    }
+
+    container.querySelectorAll('.private-bm-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.delete-priv-bm-btn')) return;
+        const u = row.getAttribute('data-url');
+        if (u && onNavigate) onNavigate(u);
+      });
+    });
+
+    container.querySelectorAll('.delete-priv-bm-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-index'), 10);
+        bookmarks.splice(idx, 1);
+        localStorage.setItem('ocal-private-bookmarks', JSON.stringify(bookmarks));
         window.ocalApp?.checkCurrentTabBookmarked?.();
         if (onNavigate) onNavigate('ocal://bookmarks');
       });
@@ -1096,7 +1396,7 @@ export class InternalPages {
   // 7.45 Ocal Connect & Device Sync
   static renderSync(onNavigate) {
     const container = document.createElement('div');
-    container.className = 'subpage-container';
+    container.className = 'subpage-container connect-page';
 
     const isPaired = syncClient.isPaired();
     const session = syncClient.getSession();
@@ -1221,8 +1521,8 @@ export class InternalPages {
           <h2 class="sync-hero-title">Ocal Connect</h2>
           <p class="sync-hero-subtitle">Pair with Ocal on your PC for seamless tabs and history</p>
           <div class="sync-hero-pill">
-            <span class="sync-status-indicator online"></span>
-            <span>Same Wi-Fi Network</span>
+            <i class="fas fa-wifi" aria-hidden="true"></i>
+            <span>Use the same Wi-Fi network</span>
           </div>
         </div>
 
@@ -1274,16 +1574,16 @@ export class InternalPages {
         <div class="subpage-section-title">Manual PIN Connection</div>
         <div class="apple-grouped-table sync-manual-table">
           <div class="sync-input-group">
-            <label class="sync-input-label">Desktop IP Address</label>
+            <label class="sync-input-label" for="manual-sync-ip">Desktop IP Address</label>
             <input type="text" class="sync-input" id="manual-sync-ip" placeholder="e.g. 192.168.1.5" />
           </div>
           <div class="sync-input-row">
             <div class="sync-input-group flex-2">
-              <label class="sync-input-label">6-Digit PIN</label>
-              <input type="text" class="sync-input pin-input" id="manual-sync-pin" placeholder="740887" maxlength="6" />
+              <label class="sync-input-label" for="manual-sync-pin">6-Digit PIN</label>
+              <input type="text" class="sync-input pin-input" id="manual-sync-pin" placeholder="000000" inputmode="numeric" maxlength="6" />
             </div>
             <div class="sync-input-group flex-1">
-              <label class="sync-input-label">Port</label>
+              <label class="sync-input-label" for="manual-sync-port">Port</label>
               <input type="number" class="sync-input" id="manual-sync-port" value="9876" />
             </div>
           </div>
@@ -1313,8 +1613,8 @@ export class InternalPages {
 
     container.innerHTML = `
       <div class="subpage-header">
-        <button class="subpage-back-btn" id="sync-back-btn"><i class="fas fa-chevron-left"></i></button>
-        <div class="subpage-header-title">Ocal Connect &amp; Sync</div>
+        <button class="subpage-back-btn" id="sync-back-btn" aria-label="Back"><i class="fas fa-chevron-left"></i></button>
+        <div class="subpage-header-title">Pair &amp; Connect</div>
         <div style="width:36px;"></div>
       </div>
 
@@ -1322,6 +1622,32 @@ export class InternalPages {
         ${contentHtml}
       </div>
     `;
+
+    // Keep each heading with its content at every screen size.
+    const connectContent = container.querySelector('.subpage-content');
+    connectContent.querySelectorAll(':scope > .subpage-section-title').forEach(heading => {
+      const table = heading.nextElementSibling;
+      const section = document.createElement('section');
+      section.className = 'connect-section';
+      heading.before(section);
+      section.append(heading);
+      if (table) section.append(table);
+    });
+    if (!isPaired) {
+      connectContent.classList.add('connect-pairing-layout');
+      const instructions = container.querySelector('.sync-instructions-table').parentElement;
+      instructions.classList.add('connect-setup');
+      instructions.querySelector('.subpage-section-title').textContent = '1. Prepare your desktop';
+      container.querySelector('.sync-minimal-hero').after(instructions);
+      const scanner = container.querySelector('.scanner-card');
+      const scanHeading = document.createElement('div');
+      scanHeading.className = 'subpage-section-title';
+      scanHeading.textContent = '2. Scan to connect';
+      scanner.prepend(scanHeading);
+      const manual = container.querySelector('.sync-manual-table').parentElement;
+      manual.classList.add('connect-manual');
+      manual.querySelector('.subpage-section-title').textContent = 'Or enter connection details';
+    }
 
     // Clean teardown when leaving page
     let unsubSync = null;
@@ -1883,7 +2209,10 @@ export class InternalPages {
   }
 
   // 8. Browsing History Grouped by Date & Site
-  static renderHistory(onNavigate) {
+  static renderHistory(onNavigate, isIncognito = false) {
+    if (isIncognito) {
+      return this.renderPrivateHistory(onNavigate);
+    }
     const container = document.createElement('div');
     container.className = 'subpage-container';
 
@@ -2260,12 +2589,152 @@ export class InternalPages {
     return container;
   }
 
-  // 9. Apple Inset Grouped Settings (Complete Redesign)
-  static renderSettings(onNavigate) {
+  // 8.1 Dedicated Private Session & Zero-Tracking History View
+  static renderPrivateHistory(onNavigate) {
     const container = document.createElement('div');
-    container.className = 'subpage-container';
+    container.className = 'subpage-container private-subpage-container';
+
+    const privateTabs = window.ocalApp?.tabManager?.tabs?.filter(t => t.isIncognito) || [];
+
+    let tabsListHtml = '';
+    if (privateTabs.length > 0) {
+      tabsListHtml = `
+        <div class="private-history-section">
+          <div class="private-section-title">
+            <span>Active Private Tabs</span>
+            <span class="private-section-count">${privateTabs.length}</span>
+          </div>
+          <div class="private-history-tabs-list">
+            ${privateTabs.map(t => {
+              let domain = '';
+              try { domain = new URL(t.url).hostname.replace(/^(www\.|html\.)/i, ''); } catch { domain = t.url; }
+              const isHome = t.url === 'ocal://home' || !t.url;
+              const displayTitle = isHome ? 'Private Start' : (t.title || domain || 'Webpage');
+              const displayUrl = isHome ? 'ocal://home' : t.url;
+              return `
+                <div class="private-history-tab-item" data-id="${escapeHtml(t.id)}">
+                  <div class="private-tab-item-icon">
+                    <i class="${isHome ? 'fas fa-user-secret' : 'fas fa-globe'}"></i>
+                  </div>
+                  <div class="private-tab-item-info">
+                    <div class="private-tab-item-title">${escapeHtml(displayTitle)}</div>
+                    <div class="private-tab-item-url">${escapeHtml(displayUrl)}</div>
+                  </div>
+                  <button class="private-tab-item-action switch-tab-btn" data-id="${escapeHtml(t.id)}" title="Switch to Tab">
+                    <i class="fas fa-arrow-right"></i>
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <div class="subpage-header private-subpage-header">
+        <button class="subpage-back-btn private-back-btn" id="priv-hist-back-btn"><i class="fas fa-chevron-left"></i></button>
+        <div class="subpage-header-title private-header-title">
+          <i class="fas fa-user-secret" style="margin-right:6px;"></i>Private Session
+        </div>
+        ${privateTabs.length > 0 ? `
+          <button class="subpage-action-btn danger private-danger-btn" id="priv-hist-erase-btn">
+            <i class="fas fa-trash-can" style="margin-right:4px;"></i>Erase
+          </button>
+        ` : '<div style="width:36px;"></div>'}
+      </div>
+
+      <div class="subpage-content private-subpage-content">
+        <!-- Hero Zero-History Shield Banner -->
+        <div class="private-shield-hero-card">
+          <div class="private-shield-hero-icon">
+            <i class="fas fa-shield-halved"></i>
+          </div>
+          <div class="private-shield-hero-tag">ZERO TRACKING ACTIVE</div>
+          <h2 class="private-shield-hero-title">Browsing History is Off</h2>
+          <p class="private-shield-hero-desc">
+            In Private Mode, Ocal never records your visited websites, search keywords, or form inputs. Normal browsing history is completely isolated and hidden.
+          </p>
+        </div>
+
+        <!-- Privacy Pillars -->
+        <div class="private-pillars-grid">
+          <div class="private-pillar-card">
+            <div class="private-pillar-icon"><i class="fas fa-clock-rotate-left"></i></div>
+            <div class="private-pillar-text">
+              <div class="private-pillar-heading">No History Log</div>
+              <div class="private-pillar-body">Visited URLs disappear as soon as tabs close</div>
+            </div>
+          </div>
+          <div class="private-pillar-card">
+            <div class="private-pillar-icon"><i class="fas fa-cookie-bite"></i></div>
+            <div class="private-pillar-text">
+              <div class="private-pillar-heading">Isolated Cookies</div>
+              <div class="private-pillar-body">Stored in temporary memory; destroyed on exit</div>
+            </div>
+          </div>
+          <div class="private-pillar-card">
+            <div class="private-pillar-icon"><i class="fas fa-fingerprint"></i></div>
+            <div class="private-pillar-text">
+              <div class="private-pillar-heading">Anti-Tracking</div>
+              <div class="private-pillar-body">Ad trackers & tracking parameters are blocked</div>
+            </div>
+          </div>
+        </div>
+
+        ${tabsListHtml}
+
+        <div class="private-session-actions">
+          <button class="private-session-btn danger" id="priv-close-all-btn">
+            <i class="fas fa-power-off"></i>
+            <span>Close All Private Tabs &amp; Erase Session</span>
+          </button>
+          <button class="private-session-btn secondary" id="priv-new-tab-btn">
+            <i class="fas fa-plus"></i>
+            <span>Open New Private Tab</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    container.querySelector('#priv-hist-back-btn')?.addEventListener('click', () => {
+      if (onNavigate) onNavigate('ocal://home');
+    });
+
+    container.querySelector('#priv-hist-erase-btn')?.addEventListener('click', () => {
+      if (confirm('Erase current private session and close all private tabs?')) {
+        window.ocalApp?.tabManager?.closeAllTabs('private');
+        window.ocalApp?.showToast?.('Private session erased', 'shield-check');
+      }
+    });
+
+    container.querySelector('#priv-close-all-btn')?.addEventListener('click', () => {
+      window.ocalApp?.tabManager?.closeAllTabs('private');
+      window.ocalApp?.showToast?.('Private session closed', 'shield-check');
+    });
+
+    container.querySelector('#priv-new-tab-btn')?.addEventListener('click', () => {
+      const tab = window.ocalApp?.tabManager?.createTab('ocal://home', true);
+      if (tab) window.ocalApp?.tabManager?.switchTab(tab.id);
+    });
+
+    container.querySelectorAll('.private-history-tab-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const id = item.getAttribute('data-id');
+        if (id) window.ocalApp?.tabManager?.switchTab(id);
+      });
+    });
+
+    return container;
+  }
+
+  // 9. Apple Inset Grouped Settings (Complete Redesign)
+  static renderSettings(onNavigate, isIncognito = false) {
+    const container = document.createElement('div');
+    container.className = `subpage-container settings-page${isIncognito ? ' private-subpage-container private-settings-page' : ''}`;
+    const currentAccent = applyAccent();
     const currentTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('ocal-theme') || 'light';
-    const currentEngine = localStorage.getItem('ocal-engine') || 'Google';
+    const currentEngine = getSearchEngine(isIncognito);
     const isAdBlock = localStorage.getItem('ocal-shield-adblock') !== 'false';
     const isHttps = localStorage.getItem('ocal-shield-https') !== 'false';
     const isSuggestions = localStorage.getItem('ocal-suggestions') !== 'false';
@@ -2273,7 +2742,7 @@ export class InternalPages {
     const passwordsCount = PasswordManager.getPasswords().length;
     const aiKey = localStorage.getItem('ocal_ai_api_key') || '';
 
-    const currentBlur = parseInt(localStorage.getItem('ocal-blur-density') ?? '24', 10);
+    const currentBlur = parseInt(localStorage.getItem('ocal-blur-density') ?? '0', 10);
 
     const SETTINGS_ICONS = {
       back: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`,
@@ -2315,12 +2784,20 @@ export class InternalPages {
               </div>
               <div class="apple-row-content">
                 <div class="apple-row-title">Dark Mode</div>
-                <div class="apple-row-subtitle">Solid midnight slate theme</div>
+                <div class="apple-row-subtitle">A softer view in low light</div>
               </div>
               <label class="toggle-switch" style="margin-left: auto;">
-                <input type="checkbox" id="theme-toggle" ${currentTheme === 'dark' ? 'checked' : ''}>
+                <input type="checkbox" id="theme-toggle" aria-label="Dark mode" ${currentTheme === 'dark' ? 'checked' : ''}>
                 <span class="toggle-slider"></span>
               </label>
+            </div>
+
+            <div class="appearance-colors">
+              <div class="apple-row-title" id="accent-label">Accent color</div>
+              <div class="apple-row-subtitle">A little color for highlights and controls. Saved automatically.</div>
+              <div class="accent-options" role="group" aria-labelledby="accent-label">
+                ${accentChoices.map(({ id, label }) => `<button type="button" class="blur-chip-btn accent-option" data-accent="${id}" aria-pressed="${currentAccent === id}"><span class="accent-dot" aria-hidden="true"></span>${label}<span class="accent-check" aria-hidden="true">✓</span></button>`).join('')}
+              </div>
             </div>
 
             <!-- Glass Blur Master Toggle -->
@@ -2333,7 +2810,7 @@ export class InternalPages {
                 <div class="apple-row-subtitle" id="blur-mode-status-text">${currentBlur === 0 ? 'Disabled — Pure solid color surfaces active' : 'Enabled — Frosted glass across menus & navigation'}</div>
               </div>
               <label class="toggle-switch" style="margin-left: auto;">
-                <input type="checkbox" id="blur-master-toggle" ${currentBlur > 0 ? 'checked' : ''}>
+                <input type="checkbox" id="blur-master-toggle" aria-label="Glass blur and translucency" ${currentBlur > 0 ? 'checked' : ''}>
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -2352,7 +2829,7 @@ export class InternalPages {
                 <button class="blur-chip-btn ${currentBlur === 48 ? 'active' : ''}" data-blur="48">Ultra (48px)</button>
               </div>
               <div class="blur-slider-row">
-                <input type="range" class="blur-range-input" id="blur-range-slider" min="0" max="48" step="2" value="${currentBlur}">
+                <input type="range" class="blur-range-input" id="blur-range-slider" aria-label="Blur intensity" min="0" max="48" step="2" value="${currentBlur}">
               </div>
               <div style="font-size: 11px; color: var(--text-subtle); margin-top: 8px; line-height: 1.4;">
                 Adjusts blur across URL capsule, bottom dock, menu drawers, tab tray, and dialogs. When toggled off, all components render with high-contrast, pure solid colors.
@@ -2590,9 +3067,17 @@ export class InternalPages {
               </div>
               <div class="apple-row-content">
                 <div class="apple-row-title">Ocal Mobile Browser</div>
-                <div class="apple-row-subtitle">Version 2.0.0 (WebKit Modern Engine)</div>
+                <div class="apple-row-subtitle">A calmer space for everyday browsing</div>
               </div>
-              <span style="font-size:11.5px; font-weight:600; color:var(--text-subtle); padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.05);">v2.0.0</span>
+              <span style="font-size:11.5px; font-weight:600; color:var(--text-subtle); padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.05);">v2.5.00</span>
+            </div>
+            <div class="about-browser-details">
+              <h3>Our goal</h3>
+              <p>Make everyday browsing fast, simple, and focused, with privacy and user control at its core. Ocal brings browsing, reading, and connecting your devices into one comfortable space.</p>
+              <h3>Developed by</h3>
+              <p class="about-developer-name">Ocal Software</p>
+              <p>From Gaming Network Studio (GN Studio), Ahmedabad, India.</p>
+              <button type="button" class="blur-chip-btn about-website-btn" id="about-website-btn">Visit Ocal Software <span aria-hidden="true">↗</span></button>
             </div>
           </div>
         </div>
@@ -2601,6 +3086,47 @@ export class InternalPages {
       <input type="file" id="settings-bm-file-input" accept=".html,.htm,.json" style="display:none;" />
       <input type="file" id="settings-pwd-file-input" accept=".csv,.json,.txt" style="display:none;" />
     `;
+
+    const settingsContent = container.querySelector('.subpage-content');
+    if (isIncognito) {
+      container.querySelector('.subpage-header').classList.add('private-subpage-header');
+      container.querySelector('.subpage-header-title').textContent = 'Private Settings';
+      const privateSections = new Set(['Default Search Engine', 'Privacy & Security', 'Browsing Preferences', 'About']);
+      settingsContent.querySelectorAll(':scope > div').forEach(section => {
+        if (!privateSections.has(section.querySelector('.subpage-section-title')?.textContent)) section.remove();
+      });
+      container.querySelector('#clear-all-data-row')?.remove();
+    }
+    const shortcuts = document.createElement('nav');
+    shortcuts.className = 'settings-shortcuts';
+    shortcuts.setAttribute('aria-label', 'Settings sections');
+    const sectionLabels = { 'Appearance & Customization': 'Appearance', 'Default Search Engine': 'Search', 'Privacy & Security': 'Privacy', 'Browsing Preferences': 'Browsing', 'AI Intelligence': 'AI', 'Connected Devices': 'Devices', 'Passwords & Data Import': 'Passwords & Data', 'About': 'About' };
+    settingsContent.querySelectorAll(':scope > div').forEach((section, index) => {
+      const heading = section.querySelector('.subpage-section-title');
+      if (!heading) return;
+      section.classList.add('settings-section');
+      section.id = `settings-section-${index}`;
+      const shortcut = document.createElement('button');
+      shortcut.className = 'blur-chip-btn';
+      shortcut.textContent = sectionLabels[heading.textContent] || heading.textContent;
+      shortcut.setAttribute('aria-label', heading.textContent);
+      shortcut.addEventListener('click', () => {
+        section.scrollIntoView({ block: 'start' });
+        heading.tabIndex = -1;
+        heading.focus({ preventScroll: true });
+      });
+      shortcuts.append(shortcut);
+    });
+    settingsContent.prepend(shortcuts);
+    if (isIncognito) {
+      const notice = document.createElement('section');
+      notice.className = 'private-settings-notice apple-grouped-table';
+      notice.innerHTML = '<div class="apple-row-title"><i class="fas fa-user-secret" aria-hidden="true"></i> Private browsing</div><p>Private windows use the dark purple appearance and default to DuckDuckGo. Your private search engine is separate from regular windows. Protection and browsing preferences below are shared.</p>';
+      shortcuts.after(notice);
+    }
+    container.querySelector('#about-website-btn')?.addEventListener('click', () => {
+      if (onNavigate) onNavigate('https://ocalsoftware.vercel.app');
+    });
 
     container.querySelector('#settings-back-btn')?.addEventListener('click', () => {
       if (onNavigate) onNavigate('ocal://home');
@@ -2682,6 +3208,16 @@ export class InternalPages {
     container.querySelector('#settings-export-bm-row')?.addEventListener('click', () => {
       const count = DataImporter.exportBookmarksHtml();
       window.ocalApp?.showToast?.(`Exported ${count} bookmarks to file`, 'download');
+    });
+
+    container.querySelectorAll('.accent-option').forEach(button => {
+      button.addEventListener('click', () => {
+        const choice = applyAccent(button.dataset.accent);
+        localStorage.setItem('ocal-accent-color', choice);
+        container.querySelectorAll('.accent-option').forEach(option => {
+          option.setAttribute('aria-pressed', String(option.dataset.accent === choice));
+        });
+      });
     });
 
     container.querySelector('#theme-toggle')?.addEventListener('change', (e) => {
@@ -2776,7 +3312,7 @@ export class InternalPages {
     container.querySelectorAll('.engine-pick-row').forEach(row => {
       row.addEventListener('click', () => {
         const eng = row.getAttribute('data-eng');
-        localStorage.setItem('ocal-engine', eng);
+        localStorage.setItem(searchEngineKey(isIncognito), eng);
         if (onNavigate) onNavigate('ocal://settings');
       });
     });

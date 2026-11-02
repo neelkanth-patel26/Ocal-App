@@ -4,7 +4,9 @@ import { CyberShield } from './components/CyberShield.js';
 import { CopilotDrawer } from './components/CopilotDrawer.js';
 import { DownloadsManager } from './components/DownloadsManager.js';
 import { DownloadProgressIndicator } from './components/DownloadProgressIndicator.js';
+import { ZenReader } from './components/ZenReader.js';
 import { syncClient } from './utils/SyncClient.js';
+import { applyAccent } from './utils/appearance.js';
 
 // Anti-nesting guard: Never render duplicate browser chrome inside an iframe
 if (window.self !== window.top) {
@@ -19,6 +21,7 @@ class OcalMobileApp {
     this.copilotDrawer = null;
     this.downloadsManager = null;
     this.downloadIndicator = null;
+    this.zenReader = null;
     this.suggestDebounceTimer = null;
     this.adFilterEnabled = true;
     this.toastTimer = null;
@@ -31,9 +34,9 @@ class OcalMobileApp {
     this.updateStatusBarTheme(savedTheme === 'dark');
 
     // 1b. Load glass blur density & global translucency
-    localStorage.removeItem('ocal-accent-color');
+    applyAccent();
     const savedBlur = localStorage.getItem('ocal-blur-density');
-    const blurNum = savedBlur !== null ? Math.max(0, parseInt(savedBlur, 10)) : 24;
+    const blurNum = savedBlur !== null ? Math.max(0, parseInt(savedBlur, 10)) : 0;
     const px = `${blurNum}px`;
     document.documentElement.style.setProperty('--app-blur-val', px);
     document.documentElement.style.setProperty('--dock-blur-val', px);
@@ -68,7 +71,9 @@ class OcalMobileApp {
     this.tabManager = new TabManager({
       viewportContainerEl: viewportContainer,
       onTabChanged: (activeTab) => {
-        if (!activeTab) return;
+        document.documentElement.classList.toggle('is-private-tab', Boolean(activeTab.isIncognito));
+        document.body.classList.toggle('is-private-tab', Boolean(activeTab.isIncognito));
+
         const isWeb = activeTab.url && !activeTab.url.startsWith('ocal://');
         if (isWeb) {
           document.documentElement.classList.add('is-web-page');
@@ -91,7 +96,7 @@ class OcalMobileApp {
         if (omniboxInput && document.activeElement !== omniboxInput) {
           if (activeTab.url === 'ocal://home') {
             omniboxInput.value = '';
-            omniboxInput.placeholder = 'Search or enter address';
+            omniboxInput.placeholder = activeTab.isIncognito ? 'Search privately or enter address' : 'Search or enter address';
           } else {
             omniboxInput.value = this.formatOmniboxUrl(activeTab.url);
           }
@@ -140,6 +145,12 @@ class OcalMobileApp {
 
     // 4.6 Initialize Ocal Connect & Device Sync
     syncClient.init();
+
+    // 4.7 Initialize Zen Reader (Distraction-Free Article Mode + TTS)
+    this.zenReader = new ZenReader({
+      tabManager: this.tabManager,
+      cyberShield: this.cyberShield
+    });
 
     // 5. Setup UI Event Listeners
     this.bindUrlCapsuleEvents();
@@ -418,7 +429,7 @@ class OcalMobileApp {
     });
 
     capsuleBar?.addEventListener('click', (e) => {
-      if (e.target.closest('#nav-back, #nav-forward, #nav-reload, #capsule-cancel-btn, #capsule-clear-btn, #capsule-mic-btn, #capsule-shield-btn, #capsule-bookmark-btn')) {
+      if (e.target.closest('#nav-back, #nav-forward, #nav-reload, #capsule-cancel-btn, #capsule-clear-btn, #capsule-mic-btn, #capsule-shield-btn, #capsule-bookmark-btn, #capsule-reader-btn')) {
         return;
       }
       enterSearchMode();
@@ -476,6 +487,16 @@ class OcalMobileApp {
       e.stopPropagation();
       e.preventDefault();
       this.toggleBookmarkCurrentPage();
+    });
+
+    const readerBtn = document.getElementById('capsule-reader-btn');
+    readerBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const currentTab = this.tabManager?.getActiveTab();
+      if (currentTab && this.zenReader) {
+        this.zenReader.open(currentTab);
+      }
     });
 
     micBtn?.addEventListener('click', (e) => {
@@ -652,7 +673,9 @@ class OcalMobileApp {
     });
 
     document.getElementById('nav-new-tab')?.addEventListener('click', () => {
-      this.tabManager.createTab('ocal://home', false);
+      const activeTab = this.tabManager?.getActiveTab();
+      const isPriv = Boolean(activeTab?.isIncognito);
+      this.tabManager.createTab('ocal://home', isPriv);
     });
 
     document.getElementById('nav-tabs')?.addEventListener('click', () => {
@@ -885,14 +908,9 @@ class OcalMobileApp {
 
     // Search tabs filter (supports both card and list rows)
     searchInput?.addEventListener('input', (e) => {
-      const q = e.target.value.trim().toLowerCase();
       const carousel = document.getElementById('tabs-carousel');
       if (!carousel) return;
-      carousel.querySelectorAll('.tab-card, .tab-list-row').forEach(card => {
-        const title = (card.querySelector('.tab-card-title') || card.querySelector('.tab-list-title'))?.textContent?.toLowerCase() || '';
-        const url = card.getAttribute('data-url')?.toLowerCase() || '';
-        card.style.display = (!q || title.includes(q) || url.includes(q)) ? '' : 'none';
-      });
+      this.tabManager.renderTabsGrid(carousel);
     });
   }
 
@@ -925,6 +943,7 @@ class OcalMobileApp {
       }
 
       if (window.OcalNative) window.OcalNative.setWebVisible(false);
+      if (searchInput) searchInput.value = '';
       this.tabManager.renderTabsGrid(carousel, (tabId) => {
         this.tabManager.switchTab(tabId);
         this.closeTabsTray();
@@ -1099,6 +1118,7 @@ class OcalMobileApp {
       desktop: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
       theme: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>`,
       reload: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>`,
+      reader: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
       settings: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>`,
       chevron: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
       close: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
@@ -1145,12 +1165,17 @@ class OcalMobileApp {
           <!-- Core Features Section (Image 2 Reference Style: Private, AD Blocker, AI Power) -->
           <div class="apple-grouped-table" style="margin-top: 2px; margin-bottom: 12px;">
             <div class="apple-grouped-row" id="menu-quick-private-row">
-              <div class="apple-row-icon mono-item" style="background-color: #18181b;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path d="M20 3H4C2.9 3 2 3.9 2 5v10c0 1.1.9 2 2 2h3v4l4.5-4H20c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" fill="#ffffff"/>
-                  <rect x="9" y="9.5" width="6" height="5" rx="1.2" fill="#18181b"/>
-                  <path d="M10.2 9.5V7.8a1.8 1.8 0 0 1 3.6 0v1.7" stroke="#18181b" stroke-width="1.5" fill="none"/>
-                  <circle cx="12" cy="12" r="0.75" fill="#ffffff"/>
+              <div class="apple-row-icon mono-item">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                  <defs>
+                    <mask id="menu-quick-private-mask">
+                      <rect x="0" y="0" width="24" height="24" fill="#ffffff"/>
+                      <rect x="9" y="9.5" width="6" height="5" rx="1.2" fill="#000000"/>
+                      <path d="M10.2 9.5V7.8a1.8 1.8 0 0 1 3.6 0v1.7" stroke="#000000" stroke-width="1.5" fill="none"/>
+                      <circle cx="12" cy="12" r="0.75" fill="#ffffff"/>
+                    </mask>
+                  </defs>
+                  <path d="M20 3H4C2.9 3 2 3.9 2 5v10c0 1.1.9 2 2 2h3v4l4.5-4H20c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" mask="url(#menu-quick-private-mask)"/>
                 </svg>
               </div>
               <div class="apple-row-content">
@@ -1164,11 +1189,11 @@ class OcalMobileApp {
             </div>
 
             <div class="apple-grouped-row" id="menu-quick-adblock-row">
-              <div class="apple-row-icon mono-item" style="background-color: #18181b;">
+              <div class="apple-row-icon mono-item">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="9.5" stroke="#ffffff" stroke-width="1.8"/>
-                  <text x="12" y="15" text-anchor="middle" font-size="8.5" font-weight="800" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, sans-serif" letter-spacing="-0.5px">AD</text>
-                  <line x1="4.5" y1="4.5" x2="19.5" y2="19.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+                  <circle cx="12" cy="12" r="9.5" stroke="currentColor" stroke-width="1.8"/>
+                  <text x="12" y="15" text-anchor="middle" font-size="8.5" font-weight="800" fill="currentColor" font-family="-apple-system, BlinkMacSystemFont, sans-serif" letter-spacing="-0.5px">AD</text>
+                  <line x1="4.5" y1="4.5" x2="19.5" y2="19.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                 </svg>
               </div>
               <div class="apple-row-content">
@@ -1182,8 +1207,8 @@ class OcalMobileApp {
             </div>
 
             <div class="apple-grouped-row" id="menu-quick-aipower-row">
-              <div class="apple-row-icon mono-item" style="background-color: #18181b;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
+              <div class="apple-row-icon mono-item">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M5 8.5C5.8 8.5 6.5 7.8 6.5 7C6.5 6.2 7.2 5.5 8 5.5C7.2 5.5 6.5 4.8 6.5 4C6.5 3.2 5.8 2.5 5 2.5C4.2 2.5 3.5 3.2 3.5 4C3.5 4.8 2.8 5.5 2 5.5C2.8 5.5 3.5 6.2 3.5 7C3.5 7.8 4.2 8.5 5 8.5Z"/>
                   <path d="M19.7 4.3a2.5 2.5 0 0 0-3.5 0l-3 3 3.5 3.5 3-3a2.5 2.5 0 0 0 0-3.5z"/>
                   <path d="M11.8 8.7 4.2 16.3a1 1 0 0 0-.27.53L3.1 20a.6.6 0 0 0 .7.7l3.2-.83a1 1 0 0 0 .53-.27l7.6-7.6-3.33-3.3z"/>
@@ -1229,6 +1254,16 @@ class OcalMobileApp {
               <div class="apple-row-content">
                 <div class="apple-row-title">Reload Page</div>
                 <div class="apple-row-subtitle">Refresh current web page</div>
+              </div>
+              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
+            </div>
+            <div class="apple-grouped-row" id="menu-reader-mode-row">
+              <div class="apple-row-icon mono-item">
+                ${MENU_ICONS.reader}
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title">Zen Reader Mode</div>
+                <div class="apple-row-subtitle">Distraction-free reading &amp; voice audio</div>
               </div>
               <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
             </div>
@@ -1308,8 +1343,8 @@ class OcalMobileApp {
                 ${MENU_ICONS.settings}
               </div>
               <div class="apple-row-content">
-                <div class="apple-row-title">Settings</div>
-                <div class="apple-row-subtitle">Search engine, privacy &amp; data</div>
+                <div class="apple-row-title">${isIncognito ? 'Private Settings' : 'Settings'}</div>
+                <div class="apple-row-subtitle">${isIncognito ? 'Private appearance &amp; browsing preferences' : 'Search engine, privacy &amp; data'}</div>
               </div>
               <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
             </div>
@@ -1408,7 +1443,15 @@ class OcalMobileApp {
           setTimeout(() => navReloadBtn?.classList.remove('is-reloading'), 700);
         }
       });
+      sheet.querySelector('#menu-reader-mode-row')?.addEventListener('click', () => {
+        this.closeAllSheets();
+        const currentTab = this.tabManager?.getActiveTab();
+        if (currentTab && this.zenReader) {
+          this.zenReader.open(currentTab);
+        }
+      });
       sheet.querySelector('#menu-theme-row')?.addEventListener('click', () => {
+        if (isIncognito) return;
         const next = currentTheme === 'light' ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('ocal-theme', next);
@@ -1504,6 +1547,13 @@ class OcalMobileApp {
       if (!event) return;
       const action = event.action || 'commit';
       if (action !== 'commit') return;
+
+      // Priority 0: Zen Reader mode
+      if (this.zenReader && this.zenReader.isOpen) {
+        this.zenReader.close();
+        this.syncNativeNavigationState();
+        return;
+      }
 
       // Priority 1: Search active
       if (document.body.classList.contains('search-active')) {
@@ -1628,8 +1678,9 @@ class OcalMobileApp {
     const dlOpen = document.getElementById('dl-quick-popover')?.classList.contains('visible');
     const contextMenuOpen = document.getElementById('context-menu-sheet')?.classList.contains('visible');
     const sheetOpen = !!document.querySelector('.bottom-sheet.visible, .modal-sheet.visible, .tabs-tray-container.visible, .drawer-backdrop.visible');
+    const zenOpen = document.body.classList.contains('zen-reader-open') || document.getElementById('zen-reader-overlay')?.classList.contains('visible');
 
-    const hasOverlay = Boolean(isSearch || suggestionsOpen || shieldOpen || dlOpen || contextMenuOpen || sheetOpen);
+    const hasOverlay = Boolean(isSearch || suggestionsOpen || shieldOpen || dlOpen || contextMenuOpen || sheetOpen || zenOpen);
 
     if (window.OcalNative && typeof window.OcalNative.setOverlayOpen === 'function') {
       window.OcalNative.setOverlayOpen(hasOverlay);
@@ -1642,20 +1693,22 @@ class OcalMobileApp {
       this.syncOverlayState();
     });
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    ['shield-popover', 'dl-quick-popover', 'suggestions-dropdown', 'context-menu-sheet', 'menu-sheet', 'shield-sheet', 'tabs-tray-container', 'drawer-backdrop'].forEach(id => {
+    ['shield-popover', 'dl-quick-popover', 'suggestions-dropdown', 'context-menu-sheet', 'menu-sheet', 'shield-sheet', 'tabs-tray-container', 'drawer-backdrop', 'zen-reader-overlay'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+      if (el) observer.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
     });
   }
 
   syncNativeNavigationState() {
     if (!window.OcalNative || typeof window.OcalNative.setWebNavigationState !== 'function') return;
     const isSearch = document.body.classList.contains('search-active');
+    const zenOpen = document.body.classList.contains('zen-reader-open') || document.getElementById('zen-reader-overlay')?.classList.contains('visible');
     const hasOverlay = isSearch ||
       !!document.querySelector('.bottom-sheet.visible') ||
       !!document.querySelector('.tabs-tray-container.visible') ||
       !!document.querySelector('.shield-popover.visible') ||
-      !!document.querySelector('.drawer-backdrop.visible');
+      !!document.querySelector('.drawer-backdrop.visible') ||
+      zenOpen;
 
     const activeTab = this.tabManager?.getActiveTab();
     const canGoBack = activeTab ? (activeTab.historyIdx > 0 || (!activeTab.url.startsWith('ocal://home') && !activeTab.url.startsWith('ocal://'))) : false;
@@ -1725,9 +1778,11 @@ class OcalMobileApp {
       return;
     }
 
+    const isIncognito = Boolean(activeTab.isIncognito);
+    const storageKey = isIncognito ? 'ocal-private-bookmarks' : 'ocal-bookmarks';
     let bookmarks = [];
     try {
-      bookmarks = JSON.parse(localStorage.getItem('ocal-bookmarks') || '[]');
+      bookmarks = JSON.parse(localStorage.getItem(storageKey) || '[]');
     } catch {
       bookmarks = [];
     }
@@ -1739,11 +1794,11 @@ class OcalMobileApp {
     if (existingIndex !== -1) {
       // Remove bookmark
       bookmarks.splice(existingIndex, 1);
-      localStorage.setItem('ocal-bookmarks', JSON.stringify(bookmarks));
+      localStorage.setItem(storageKey, JSON.stringify(bookmarks));
       if (heartBtn) {
         heartBtn.classList.remove('is-bookmarked');
       }
-      this.showToast('Removed from Bookmarks', 'heart-off');
+      this.showToast(isIncognito ? 'Removed from Private Bookmarks' : 'Removed from Bookmarks', 'heart-off');
     } else {
       // Add bookmark
       let title = activeTab.title;
@@ -1755,7 +1810,7 @@ class OcalMobileApp {
         title: title,
         timestamp: Date.now()
       });
-      localStorage.setItem('ocal-bookmarks', JSON.stringify(bookmarks));
+      localStorage.setItem(storageKey, JSON.stringify(bookmarks));
       if (heartBtn) {
         heartBtn.classList.add('is-bookmarked');
         heartBtn.classList.add('heart-pop');
@@ -1764,23 +1819,31 @@ class OcalMobileApp {
       try {
         if (navigator.vibrate) navigator.vibrate(30);
       } catch {}
-      this.showToast('Saved to Bookmarks', 'heart');
+      this.showToast(isIncognito ? 'Saved to Private Bookmarks' : 'Saved to Bookmarks', 'heart');
     }
   }
 
   checkCurrentTabBookmarked() {
     const activeTab = this.tabManager?.getActiveTab();
     const heartBtn = document.getElementById('capsule-bookmark-btn');
+    const readerBtn = document.getElementById('capsule-reader-btn');
+    const isWeb = Boolean(activeTab && activeTab.url && !activeTab.url.startsWith('ocal://'));
+
+    if (readerBtn) {
+      readerBtn.style.display = isWeb ? 'inline-flex' : 'none';
+    }
+
     if (!heartBtn) return;
 
-    if (!activeTab || !activeTab.url || activeTab.url === 'ocal://home' || activeTab.url.startsWith('ocal://')) {
+    if (!activeTab || !activeTab.url || !isWeb) {
       heartBtn.classList.remove('is-bookmarked');
       return;
     }
 
+    const storageKey = activeTab.isIncognito ? 'ocal-private-bookmarks' : 'ocal-bookmarks';
     let bookmarks = [];
     try {
-      bookmarks = JSON.parse(localStorage.getItem('ocal-bookmarks') || '[]');
+      bookmarks = JSON.parse(localStorage.getItem(storageKey) || '[]');
     } catch {
       bookmarks = [];
     }
@@ -2072,13 +2135,28 @@ class OcalMobileApp {
       window.OcalNative.setDarkMode(isDarkMode);
     }
 
+    if (this.zenReader && this.zenReader.isOpen) {
+      this.zenReader.updateStatusBar();
+      return;
+    }
+
     let bgColor = '#ffffff';
-    if (isDarkMode) {
-      bgColor = '#000000';
+    let isStatusDark = isDarkMode;
+
+    const activeTab = this.tabManager?.getActiveTab();
+    const isIncognito = Boolean(activeTab && activeTab.isIncognito);
+    const isStartPage = Boolean(activeTab && (!activeTab.url || activeTab.url === 'ocal://home' || activeTab.url === 'ocal://'));
+
+    if (isIncognito && isStartPage) {
+      bgColor = '#381932'; // Plum
+      isStatusDark = true; // Use light status bar icons for high contrast on Plum
+    } else if (isDarkMode) {
+      bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-main').trim() || '#101114';
+      isStatusDark = true;
     } else {
-      const activeTab = this.tabManager?.getActiveTab();
       const isInternalSubpage = activeTab && activeTab.url?.startsWith('ocal://') && activeTab.url !== 'ocal://home';
       bgColor = isInternalSubpage ? '#f2f2f7' : '#ffffff';
+      isStatusDark = false;
     }
 
     let metaTheme = document.querySelector('meta[name="theme-color"]');
@@ -2091,7 +2169,7 @@ class OcalMobileApp {
 
     if (window.OcalNative && typeof window.OcalNative.setStatusBarTheme === 'function') {
       try {
-        window.OcalNative.setStatusBarTheme(isDarkMode, bgColor);
+        window.OcalNative.setStatusBarTheme(isStatusDark, bgColor);
       } catch (err) {
         console.warn('[OcalNative] setStatusBarTheme error:', err);
       }
@@ -2536,6 +2614,7 @@ class OcalMobileApp {
         <div class="sheet-handle"></div>
       </div>
       <div class="sheet-content context-menu-body">
+        <div class="context-action-heading">${hitType === 'image' ? 'Image actions' : hitType === 'link' ? 'Link actions' : 'Page actions'}</div>
         ${previewHtml}
         <div class="apple-grouped-table">
           ${rowsHtml}
@@ -2543,6 +2622,17 @@ class OcalMobileApp {
         <button class="context-menu-cancel-btn" id="ctx-cancel-btn">Cancel</button>
       </div>
     `;
+
+    sheet.querySelectorAll('.context-menu-body .apple-grouped-row').forEach(row => {
+      row.setAttribute('role', 'button');
+      row.tabIndex = 0;
+      row.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          row.click();
+        }
+      });
+    });
 
     sheet.querySelector('#ctx-open-new-tab')?.addEventListener('click', () => {
       this.closeAllSheets();
@@ -2714,16 +2804,20 @@ class OcalMobileApp {
 
   bookmarkSpecificUrl(url, title) {
     if (!url || url.startsWith('ocal://')) return;
+    const activeTab = this.tabManager?.getActiveTab();
+    const isIncognito = Boolean(activeTab?.isIncognito);
+    const storageKey = isIncognito ? 'ocal-private-bookmarks' : 'ocal-bookmarks';
+
     let bookmarks = [];
     try {
-      bookmarks = JSON.parse(localStorage.getItem('ocal-bookmarks') || '[]');
+      bookmarks = JSON.parse(localStorage.getItem(storageKey) || '[]');
     } catch {
       bookmarks = [];
     }
 
     const idx = bookmarks.findIndex(b => b.url === url);
     if (idx !== -1) {
-      this.showToast('Already in Bookmarks', 'heart');
+      this.showToast(isIncognito ? 'Already in Private Bookmarks' : 'Already in Bookmarks', 'heart');
       return;
     }
 
@@ -2732,9 +2826,9 @@ class OcalMobileApp {
       title: title || this.formatOmniboxUrl(url) || url,
       timestamp: Date.now()
     });
-    localStorage.setItem('ocal-bookmarks', JSON.stringify(bookmarks));
+    localStorage.setItem(storageKey, JSON.stringify(bookmarks));
     this.checkCurrentTabBookmarked();
-    this.showToast('Saved to Bookmarks', 'heart');
+    this.showToast(isIncognito ? 'Saved to Private Bookmarks' : 'Saved to Bookmarks', 'heart');
   }
 }
 

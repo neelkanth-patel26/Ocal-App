@@ -1,5 +1,6 @@
 // Ocal Mobile Tab Manager with Real Multi-Tab Switching & Incognito
 import { InternalPages } from './InternalPages.js';
+import { getSearchEngine } from '../utils/searchPreferences.js';
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -71,8 +72,8 @@ export class TabManager {
     }
   }
 
-  closeAllTabs() {
-    if (this.tabFilterMode === 'private') {
+  closeAllTabs(targetMode = this.tabFilterMode) {
+    if (targetMode === 'private') {
       const privateTabs = this.tabs.filter(t => t.isIncognito);
       privateTabs.forEach(tab => {
         try { sessionStorage.removeItem(`ocal_thumb_${tab.id}`); } catch (_) {}
@@ -84,7 +85,8 @@ export class TabManager {
       if (this.tabs.length > 0) {
         this.switchTab(this.tabs[0].id);
       } else {
-        this.createTab('ocal://home', false);
+        const newTab = this.createTab('ocal://home', false);
+        this.switchTab(newTab.id);
       }
     } else {
       const normalTabs = this.tabs.filter(t => !t.isIncognito);
@@ -122,12 +124,16 @@ export class TabManager {
     let displayTitle = 'New Tab';
     if (initialUrl.includes('dineinstyle.com')) displayTitle = 'Dine in Style';
     else if (initialUrl.includes('twitter.com') || initialUrl.includes('x.com')) displayTitle = 'Twitter';
-    else if (initialUrl === 'ocal://home') displayTitle = 'Start Page';
+    else if (initialUrl === 'ocal://home') displayTitle = isIncognito ? 'Private Start' : 'Start Page';
     else if (initialUrl.startsWith('ocal://')) {
       const p = initialUrl.replace('ocal://', '').split('?')[0].split('#')[0];
       displayTitle = p.charAt(0).toUpperCase() + p.slice(1);
     }
     else displayTitle = initialUrl;
+
+    if (isIncognito) {
+      frameWrapper.classList.add('is-incognito-wrapper');
+    }
 
     let cachedThumb = null;
     try {
@@ -219,6 +225,10 @@ export class TabManager {
       }
     }
 
+    // Toggle private mode class on document
+    document.documentElement.classList.toggle('is-private-tab', Boolean(tab.isIncognito));
+    document.body.classList.toggle('is-private-tab', Boolean(tab.isIncognito));
+
     if (this.onTabChanged) this.onTabChanged(tab);
   }
 
@@ -264,7 +274,7 @@ export class TabManager {
       } else {
         // Search query
         const isDark = this.isDarkMode();
-        const engine = localStorage.getItem('ocal-engine') || 'Google';
+        const engine = getSearchEngine(tab.isIncognito);
         if (engine === 'DuckDuckGo') {
           targetUrl = `https://duckduckgo.com/?q=${encodeURIComponent(targetUrl)}&kae=${isDark ? 'd' : '-1'}`;
         } else if (engine === 'Bing') {
@@ -328,7 +338,7 @@ export class TabManager {
 
       const internalView = InternalPages.render(targetUrl, (dest) => {
         this.navigateTab(tabId, dest, true);
-      });
+      }, tab.isIncognito);
       if (typeof internalView === 'string') {
         tab.frameWrapperEl.innerHTML = internalView;
       } else {
@@ -337,7 +347,11 @@ export class TabManager {
       if (targetUrl.includes('dineinstyle.com')) {
         tab.title = 'Dine in Style';
       } else if (targetUrl === 'ocal://home') {
-        tab.title = 'Start Page';
+        tab.title = tab.isIncognito ? 'Private Start' : 'Start Page';
+      } else if (targetUrl.startsWith('ocal://bookmarks')) {
+        tab.title = tab.isIncognito ? 'Private Bookmarks' : 'Bookmarks';
+      } else if (targetUrl.startsWith('ocal://history')) {
+        tab.title = tab.isIncognito ? 'Private Session' : 'History';
       } else {
         const p = targetUrl.replace('ocal://', '').split('?')[0].split('#')[0];
         tab.title = p.charAt(0).toUpperCase() + p.slice(1);
@@ -497,7 +511,7 @@ export class TabManager {
             Try Again
           </button>
           <button id="tab-err-search" style="background:var(--bg-elevated); color:var(--text-main); border:1px solid var(--border-medium); padding:12px; border-radius:12px; font-weight:600; font-size:14px; cursor:pointer;">
-            Search with ${escapeHtml(localStorage.getItem('ocal-engine') || 'Google')}
+            Search with ${escapeHtml(getSearchEngine(tab.isIncognito))}
           </button>
           <button id="tab-err-home" style="background:transparent; color:var(--text-muted); border:none; padding:8px; font-weight:500; font-size:13px; cursor:pointer;">
             Return to Start Page
@@ -628,10 +642,14 @@ export class TabManager {
       return '<i class="fas fa-sliders" style="color:inherit; font-size:11px;"></i>';
     }
     if (tab.url.startsWith('ocal://bookmarks')) {
-      return '<i class="fas fa-bookmark" style="color:inherit; font-size:11px;"></i>';
+      return tab.isIncognito
+        ? '<span class="tab-card-private-icon-solid" style="display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:4px; background:#9333ea; color:#ffffff; flex-shrink:0;"><i class="fas fa-bookmark" style="color:#ffffff; font-size:9.5px;"></i></span>'
+        : '<i class="fas fa-bookmark" style="color:inherit; font-size:11px;"></i>';
     }
     if (tab.url.startsWith('ocal://history')) {
-      return '<i class="far fa-clock" style="color:inherit; font-size:11px;"></i>';
+      return tab.isIncognito
+        ? '<span class="tab-card-private-icon-solid" style="display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:4px; background:#9333ea; color:#ffffff; flex-shrink:0;"><i class="fas fa-user-secret" style="color:#ffffff; font-size:9.5px;"></i></span>'
+        : '<i class="far fa-clock" style="color:inherit; font-size:11px;"></i>';
     }
     if (tab.url.startsWith('ocal://downloads')) {
       return '<i class="fas fa-arrow-down" style="color:inherit; font-size:11px;"></i>';
@@ -706,35 +724,28 @@ export class TabManager {
     // 1. For Internal Pages (ocal://*): Match Ocal Home Page style
     if (!tab.url || tab.url.startsWith('ocal://')) {
       const isStartPage = !tab.url || tab.url === 'ocal://home' || tab.url === 'ocal://';
-      if (tab.isIncognito && isStartPage) {
-        return `
-          <div class="tab-internal-dial-preview">
-            <div class="tab-internal-dial-tile" style="background-color: #9333ea !important; color: #ffffff !important; border: none !important; box-shadow: 0 4px 14px rgba(147, 51, 234, 0.4) !important;">
-              <i class="fas fa-user-secret" style="font-size: 22px; color: #ffffff;"></i>
-            </div>
-            <span class="tab-internal-dial-name" style="font-weight: 600;">Private Browsing</span>
-          </div>
-        `;
-      }
       if (isStartPage) {
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const logoSrc = isDark ? '/assets/Dark.png' : '/assets/Light.png';
+        const isDark = tab.isIncognito || document.documentElement.getAttribute('data-theme') === 'dark';
+        const favorites = [
+          ['far fa-sun', 'Dine Style'], ['fas fa-shield-halved', 'DuckDuckGo'],
+          ['fab fa-x-twitter', 'X / Twitter'], ['fab fa-reddit-alien', 'Reddit'],
+          ['fab fa-discord', 'Discord'], ['fab fa-github', 'GitHub'],
+          ['fab fa-wikipedia-w', 'Wikipedia'], ['fab fa-youtube', 'YouTube'],
+        ];
         return `
-          <div class="tab-home-preview">
+          <div class="tab-home-preview tab-home-preview-detailed ${tab.isIncognito ? 'tab-private-home-preview' : ''}" aria-hidden="true">
             <div class="tab-home-preview-logo">
-              <img src="${logoSrc}" alt="Ocal Logo" class="tab-home-logo-img" />
+              ${tab.isIncognito ? '<i class="fas fa-user-secret"></i>' : `<img src="${isDark ? '/assets/Dark.png' : '/assets/Light.png'}" alt="" class="tab-home-logo-img" />`}
             </div>
-            <div class="tab-home-preview-wordmark">Ocal</div>
+            <div class="tab-home-preview-wordmark">${tab.isIncognito ? 'Ocal Private' : 'Ocal'}</div>
+            <div class="tab-preview-section-label"><span>Favorites</span><span>8 sites</span></div>
             <div class="tab-home-mini-grid">
-              <div class="tab-home-mini-tile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="1" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div>
-              <div class="tab-home-mini-tile"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg></div>
-              <div class="tab-home-mini-tile"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></div>
-              <div class="tab-home-mini-tile"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.56 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701z"/></svg></div>
+              ${favorites.map(([icon, label]) => `<div class="tab-preview-favorite"><div class="tab-home-mini-tile"><i class="${icon}"></i></div><span>${label}</span></div>`).join('')}
             </div>
+            <div class="tab-preview-reader"><i class="far fa-bookmark"></i><span>Zen Reader<span>Read &amp; listen</span></span></div>
           </div>
         `;
       }
-
       const info = this.getInternalPageInfo(tab.url || 'ocal://home');
       return `
         <div class="tab-internal-dial-preview">
@@ -923,7 +934,7 @@ export class TabManager {
           </div>
           <div class="tab-gh-file-box" style="background:#141416; border:1px solid rgba(255,255,255,0.08); border-radius:8px; margin:6px 8px; padding:4px;">
             <div class="tab-gh-file-row"><i class="far fa-folder" style="color:#ffffff;"></i><span>src</span><span class="tab-gh-msg" style="color:#71717a;">core modules</span></div>
-            <div class="tab-gh-file-row"><i class="far fa-file-code" style="color:#a1a1aa;"></i><span>package.json</span><span class="tab-gh-msg" style="color:#71717a;">release v2.0.0</span></div>
+            <div class="tab-gh-file-row"><i class="far fa-file-code" style="color:#a1a1aa;"></i><span>package.json</span><span class="tab-gh-msg" style="color:#71717a;">release v2.5.00</span></div>
           </div>
           <div class="tab-mockup-footer">
             <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>github.com</span></span>
@@ -1000,6 +1011,9 @@ export class TabManager {
   }
 
   renderTabsGrid(gridContainerEl, onSelect) {
+    // Retain selection behavior when search or close actions re-render the tray.
+    if (onSelect) this.onTraySelect = onSelect;
+    onSelect = this.onTraySelect;
     gridContainerEl.innerHTML = '';
 
     // Synchronize container sheet class with current layout preset
@@ -1020,9 +1034,9 @@ export class TabManager {
 
     // Update count labels in segmented buttons and bottom dock badge
     const normalCountEl = document.getElementById('tabs-normal-count');
-    if (normalCountEl) normalCountEl.textContent = `Tabs (${normalTabs.length})`;
+    if (normalCountEl) normalCountEl.textContent = normalTabs.length;
     const privateCountEl = document.getElementById('tabs-private-count');
-    if (privateCountEl) privateCountEl.textContent = `Private (${privateTabs.length})`;
+    if (privateCountEl) privateCountEl.textContent = privateTabs.length;
     const operaBadge = document.getElementById('opera-tab-badge-count');
     if (operaBadge) {
       const activeCount = this.tabFilterMode === 'private' ? privateTabs.length : normalTabs.length;
@@ -1033,6 +1047,9 @@ export class TabManager {
     const privateBtn = document.getElementById('tab-mode-private');
     if (normalBtn) normalBtn.classList.toggle('active', this.tabFilterMode === 'normal');
     if (privateBtn) privateBtn.classList.toggle('active', this.tabFilterMode === 'private');
+    normalBtn?.setAttribute('aria-pressed', String(this.tabFilterMode === 'normal'));
+    privateBtn?.setAttribute('aria-pressed', String(this.tabFilterMode === 'private'));
+    sheet?.classList.toggle('opera-tabs-tray-private', this.tabFilterMode === 'private');
 
     // Wire mode buttons
     if (normalBtn && !normalBtn._hasBound) {
@@ -1083,6 +1100,22 @@ export class TabManager {
     if (searchQuery) {
       visibleTabs = visibleTabs.filter(t => (t.title || '').toLowerCase().includes(searchQuery) || (t.url || '').toLowerCase().includes(searchQuery));
     }
+    const summary = document.getElementById('tabs-manager-summary');
+    if (summary) summary.textContent = searchQuery
+      ? `${visibleTabs.length} matching ${visibleTabs.length === 1 ? 'tab' : 'tabs'}`
+      : `${visibleTabs.length} ${this.tabFilterMode === 'private' ? 'private ' : ''}${visibleTabs.length === 1 ? 'tab' : 'tabs'} · Pick up where you left off`;
+    if (searchQuery && !visibleTabs.length) {
+      const empty = document.createElement('div');
+      empty.className = 'tabs-no-results';
+      empty.innerHTML = '<i class="fas fa-search" aria-hidden="true"></i><h3>No matching tabs</h3><p>Try a different title or website address.</p><button class="blur-chip-btn">Clear search</button>';
+      empty.querySelector('button').addEventListener('click', () => {
+        if (searchInput) searchInput.value = '';
+        this.renderTabsGrid(gridContainerEl, onSelect);
+        searchInput?.focus();
+      });
+      gridContainerEl.append(empty);
+      return;
+    }
 
     // Empty state for private mode when 0 private tabs
     if (this.tabFilterMode === 'private' && privateTabs.length === 0) {
@@ -1111,6 +1144,8 @@ export class TabManager {
         const row = document.createElement('div');
         row.className = `tab-list-row ${tab.id === this.activeTabId ? 'active' : ''}`;
         row.setAttribute('data-tab-id', tab.id);
+        row.setAttribute('data-url', tab.url);
+        this.makeTabCardAccessible(row, tab);
 
         const faviconHtml = this.getTabFaviconHtml(tab);
         const rawTitle = tab.title || tab.url;
@@ -1163,6 +1198,7 @@ export class TabManager {
 
       // Add New Tab List Item
       const addRow = document.createElement('div');
+      this.makeTabCardAccessible(addRow);
       addRow.className = 'tab-list-row tab-list-add-row';
       addRow.innerHTML = `
         <div class="tab-list-favicon tab-list-add-favicon">
@@ -1187,6 +1223,7 @@ export class TabManager {
       card.className = `tab-card ${tab.id === this.activeTabId ? 'active' : ''}`;
       card.setAttribute('data-tab-id', tab.id);
       card.setAttribute('data-url', tab.url);
+      this.makeTabCardAccessible(card, tab);
 
       const faviconHtml = this.getTabFaviconHtml(tab);
       const previewHtml = this.renderTabPreviewHtml(tab);
@@ -1212,6 +1249,10 @@ export class TabManager {
         <div class="tab-card-preview-inner">
           <div class="tab-card-preview">${previewHtml}</div>
         </div>
+        <div class="tab-card-caption">
+          <span>${escapeHtml(this.getTabAddressLabel(tab.url))}</span>
+          ${tab.id === this.activeTabId ? '<span class="tab-current-label">Current</span>' : ''}
+        </div>
       `;
 
       card.addEventListener('click', (e) => {
@@ -1234,6 +1275,7 @@ export class TabManager {
 
     // "+ New Tab" Action Card styled like Home Page favorites tile
     const addCard = document.createElement('div');
+    this.makeTabCardAccessible(addCard);
     addCard.className = 'tab-card tab-card-add';
     addCard.innerHTML = `
       <div class="tab-add-content">
@@ -1248,5 +1290,22 @@ export class TabManager {
       if (onSelect) onSelect(this.activeTabId);
     });
     gridContainerEl.appendChild(addCard);
+  }
+
+  getTabAddressLabel(url) {
+    if (url.startsWith('ocal://')) return 'Ocal Browser';
+    try { return new URL(url).hostname.replace(/^www\./, ''); }
+    catch { return url; }
+  }
+
+  makeTabCardAccessible(element, tab) {
+    element.tabIndex = 0;
+    element.setAttribute('role', 'group');
+    element.setAttribute('aria-label', tab ? `Open ${tab.title || tab.url}${tab.id === this.activeTabId ? ', current tab' : ''}` : 'Open new tab');
+    element.addEventListener('keydown', event => {
+      if (event.target !== element || !['Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+      element.click();
+    });
   }
 }
