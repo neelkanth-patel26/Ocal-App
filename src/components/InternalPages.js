@@ -86,7 +86,6 @@ export class InternalPages {
         <!-- Section: Favorites (Squircle Monochrome Grid in Plum & Milk) -->
         <div class="opera-section-header">
           <div class="opera-section-label">Favorites</div>
-          <span class="opera-section-count">8 Sites</span>
         </div>
         <div class="opera-speed-dial">
           <div class="opera-dial-item" data-url="https://dineinstyle.com">
@@ -193,7 +192,6 @@ export class InternalPages {
         <!-- Section: Favorites (Squircle Monochrome Grid) -->
         <div class="opera-section-header">
           <div class="opera-section-label">Favorites</div>
-          <span class="opera-section-count">8 Sites</span>
         </div>
         <div class="opera-speed-dial">
           <div class="opera-dial-item" data-url="https://dineinstyle.com">
@@ -3069,7 +3067,7 @@ export class InternalPages {
                 <div class="apple-row-title">Ocal Mobile Browser</div>
                 <div class="apple-row-subtitle">A calmer space for everyday browsing</div>
               </div>
-              <span style="font-size:11.5px; font-weight:600; color:var(--text-subtle); padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.05);">v2.5.00</span>
+              <span style="font-size:11.5px; font-weight:600; color:var(--text-subtle); padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.05);">v3.0.1</span>
             </div>
             <div class="about-browser-details">
               <h3>Our goal</h3>

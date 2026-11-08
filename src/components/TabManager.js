@@ -934,7 +934,7 @@ export class TabManager {
           </div>
           <div class="tab-gh-file-box" style="background:#141416; border:1px solid rgba(255,255,255,0.08); border-radius:8px; margin:6px 8px; padding:4px;">
             <div class="tab-gh-file-row"><i class="far fa-folder" style="color:#ffffff;"></i><span>src</span><span class="tab-gh-msg" style="color:#71717a;">core modules</span></div>
-            <div class="tab-gh-file-row"><i class="far fa-file-code" style="color:#a1a1aa;"></i><span>package.json</span><span class="tab-gh-msg" style="color:#71717a;">release v2.5.00</span></div>
+            <div class="tab-gh-file-row"><i class="far fa-file-code" style="color:#a1a1aa;"></i><span>package.json</span><span class="tab-gh-msg" style="color:#71717a;">release v3.0.1</span></div>
           </div>
           <div class="tab-mockup-footer">
             <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>github.com</span></span>

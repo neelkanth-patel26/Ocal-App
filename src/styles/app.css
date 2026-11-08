@@ -830,7 +830,7 @@ body.is-internal-page .url-capsule-bar {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7) !important;
+  box-shadow: none !important;
 }
 
 .nav-icon-btn {
@@ -8312,7 +8312,7 @@ html:not([data-theme="dark"])[data-blur="0"] body.search-active .viewport-contai
   background-color: var(--bg-elevated) !important;
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.04);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  box-shadow: none !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9194,6 +9194,7 @@ body.is-web-page .bottom-dock > * {
 }
 
 .opera-section-count {
+  display: none !important;
   font-size: 11px;
   font-weight: 600;
   color: var(--text-subtle);
@@ -9206,6 +9207,7 @@ body.is-web-page .bottom-dock > * {
 .private-home-view .opera-section-count,
 .private-home-container .opera-section-count,
 body.is-private-tab .opera-section-count {
+  display: none !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   color: #c084fc !important;
@@ -9222,7 +9224,7 @@ body.is-private-tab .opera-section-count {
   background-color: var(--bg-elevated);
   border: 1px solid var(--glass-border);
   color: var(--text-main);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: none !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9232,7 +9234,7 @@ body.is-private-tab .opera-section-count {
 [data-theme="dark"] .opera-speed-dial .opera-dial-tile {
   background-color: var(--bg-elevated);
   border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: none !important;
 }
 
 .opera-dial-item:active .opera-dial-tile {
@@ -10157,7 +10159,7 @@ body:has(#zen-reader-overlay.visible) .bottom-dock {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(147, 51, 234, 0.25);
+  box-shadow: none !important;
   margin-bottom: 12px;
 }
 
@@ -10192,7 +10194,7 @@ body:has(#zen-reader-overlay.visible) .bottom-dock {
   height: 6px;
   border-radius: 50%;
   background: #a855f7;
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.85);
+  box-shadow: none !important;
 }
 
 .private-home-view .opera-section-header {
@@ -10212,6 +10214,7 @@ body:has(#zen-reader-overlay.visible) .bottom-dock {
 }
 
 .private-home-view .opera-section-count {
+  display: none !important;
   font-size: 11px;
   font-weight: 600;
   color: #c084fc !important;
@@ -10239,7 +10242,7 @@ body:has(#zen-reader-overlay.visible) .bottom-dock {
   align-items: center;
   justify-content: center;
   font-size: 22px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  box-shadow: none !important;
   border: 1px solid rgba(255, 255, 255, 0.09);
   transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.15s ease, border-color 0.15s ease;
 }
@@ -10287,7 +10290,7 @@ body:has(#zen-reader-overlay.visible) .bottom-dock {
   align-items: center;
   gap: 14px;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  box-shadow: none !important;
   transition: transform 0.18s ease, border-color 0.15s ease;
 }
 
@@ -11726,3 +11729,21 @@ html[data-theme] body:not(.is-private-tab) .capsule-shield-btn .shield-badge-dot
   box-shadow: none;
 }
 html[data-theme] body:not(.is-private-tab) .capsule-shield-btn .shield-badge-dot :is(i, svg) { color: var(--on-accent) !important; fill: var(--on-accent) !important; }
+
+
+/* ==========================================================================
+   Zero-Shadow System for Start / Home Page (Completely Flat Modern Aesthetic)
+   ========================================================================== */
+.opera-section-count {
+  display: none !important;
+}
+
+:is(.home-page-container, .opera-home-view, .private-home-container, .private-home-view),
+:is(.home-page-container, .opera-home-view, .private-home-container, .private-home-view) * {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+body.is-internal-page :is(.url-capsule-bar, .bottom-dock, .bottom-nav-bar) {
+  box-shadow: none !important;
+}
