@@ -104,8 +104,10 @@ class OcalMobileApp {
         }
 
         // Update Nav Buttons
-        if (navBackBtn) navBackBtn.disabled = activeTab.historyIdx <= 0;
-        if (navFwdBtn) navFwdBtn.disabled = activeTab.historyIdx >= activeTab.history.length - 1;
+        const canGoBack = (activeTab.url && !activeTab.url.startsWith('ocal://home')) || activeTab.historyIdx > 0 || Boolean(window.nativeCanGoBack);
+        if (navBackBtn) navBackBtn.disabled = !canGoBack;
+        const canGoForward = activeTab.historyIdx < activeTab.history.length - 1 || Boolean(window.nativeCanGoForward);
+        if (navFwdBtn) navFwdBtn.disabled = !canGoForward;
 
         // Update shield popover domain and real blocked count
         const isInternalTab = !activeTab.url || activeTab.url.startsWith('ocal://');
@@ -1610,7 +1612,7 @@ class OcalMobileApp {
       // Priority 6: Tab navigation - Direct back navigation without preview animation
       const activeTab = this.tabManager?.getActiveTab();
       if (activeTab) {
-        if (activeTab.historyIdx > 0 || (!activeTab.url.startsWith('ocal://home') && !activeTab.url.startsWith('ocal://'))) {
+        if (activeTab.historyIdx > 0 || !activeTab.url.startsWith('ocal://home')) {
           this.tabManager.goBack(activeTab.id);
           this.syncNativeNavigationState();
         } else {
@@ -1718,7 +1720,7 @@ class OcalMobileApp {
       zenOpen;
 
     const activeTab = this.tabManager?.getActiveTab();
-    const canGoBack = activeTab ? (activeTab.historyIdx > 0 || (!activeTab.url.startsWith('ocal://home') && !activeTab.url.startsWith('ocal://'))) : false;
+    const canGoBack = activeTab ? (activeTab.historyIdx > 0 || !activeTab.url.startsWith('ocal://home') || Boolean(window.nativeCanGoBack)) : false;
     const isAtRoot = activeTab ? (activeTab.url === 'ocal://home' && this.tabManager.tabs.length <= 1) : true;
 
     try {
@@ -1995,11 +1997,24 @@ class OcalMobileApp {
       }
 
       if (event.type === 'NAVIGATE_BACK_TO_INTERNAL') {
+        window.nativeCanGoBack = false;
+
+        document.documentElement.classList.remove('is-web-page');
+        document.body.classList.remove('is-web-page');
+        document.body.classList.add('is-internal-page');
+
+        if (window.OcalNative && typeof window.OcalNative.setWebVisible === 'function') {
+          window.OcalNative.setWebVisible(false);
+        }
+
         if (activeTab.historyIdx > 0) {
-          this.tabManager.goBack(activeTab.id);
+          activeTab.historyIdx--;
+          const prevUrl = activeTab.history[activeTab.historyIdx];
+          this.tabManager.navigateTab(activeTab.id, prevUrl || 'ocal://home', false);
         } else {
           this.tabManager.navigateTab(activeTab.id, 'ocal://home', false);
         }
+        this.syncNativeNavigationState();
         return;
       }
 

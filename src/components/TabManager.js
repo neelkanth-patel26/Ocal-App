@@ -532,26 +532,49 @@ export class TabManager {
     });
   }
 
-  goBack(tabId) {
+  goBack(tabId, forceInternal = false) {
     const tab = this.tabs.find(t => t.id === tabId);
     if (!tab) return;
-    if (window.OcalNative && !tab.url.startsWith('ocal://')) {
-      window.OcalNative.goBack();
-      return;
+
+    // 1. If currently on a web page and native Android webview can go back in its own web history
+    if (window.OcalNative && !tab.url.startsWith('ocal://') && !forceInternal) {
+      let canNativeGoBack = false;
+      try {
+        if (typeof window.OcalNative.canGoBack === 'function') {
+          canNativeGoBack = Boolean(window.OcalNative.canGoBack());
+        }
+      } catch {}
+      if (!canNativeGoBack && typeof window.nativeCanGoBack === 'boolean') {
+        canNativeGoBack = window.nativeCanGoBack;
+      }
+
+      if (canNativeGoBack) {
+        window.OcalNative.goBack();
+        return;
+      }
+
+      // Native webview has reached the start of its web history:
+      // Drop out of native web mode and navigate back to the internal page!
+      if (typeof window.OcalNative.setWebVisible === 'function') {
+        window.OcalNative.setWebVisible(false);
+      }
     }
+
     if (tab.frameEl && typeof tab.frameEl.goBack === 'function') {
       tab.frameEl.goBack();
       return;
     }
+
     if (tab.historyIdx <= 0) {
       if (!tab.url.startsWith('ocal://home')) {
         this.navigateTab(tabId, 'ocal://home', false);
       }
       return;
     }
+
     tab.historyIdx--;
     const prevUrl = tab.history[tab.historyIdx];
-    this.navigateTab(tabId, prevUrl, false);
+    this.navigateTab(tabId, prevUrl || 'ocal://home', false);
   }
 
   goForward(tabId) {

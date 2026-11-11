@@ -310,7 +310,7 @@ public class MainActivity extends BridgeActivity {
 
     private void setupPeekImage() {
         if (backPeekContainer == null) return;
-        final boolean canGoBack = (nativeWebBrowser != null && nativeWebBrowser.canGoBack()) || cachedCanGoBack;
+        final boolean canGoBack = nativeWebBrowser != null && nativeWebBrowser.canGoBack();
         Bitmap peekBmp = null;
 
         if (canGoBack && !pageSnapshotStack.isEmpty()) {
@@ -351,16 +351,20 @@ public class MainActivity extends BridgeActivity {
                 if (backPeekContainer != null) {
                     backPeekContainer.setVisibility(View.GONE);
                 }
-                final boolean canGoBack = (nativeWebBrowser != null && nativeWebBrowser.canGoBack()) || cachedCanGoBack;
+                final boolean canGoBack = nativeWebBrowser != null && nativeWebBrowser.canGoBack();
                 if (canGoBack && nativeWebBrowser != null) {
                     isNavigatingBack = true;
                     if (!pageSnapshotStack.isEmpty()) {
                         pageSnapshotStack.remove(pageSnapshotStack.size() - 1);
                     }
                     nativeWebBrowser.goBack();
+                    cachedCanGoBack = nativeWebBrowser.canGoBack();
+                    cachedCanGoForward = nativeWebBrowser.canGoForward();
                 } else {
                     isNavigatingBack = false;
                     clearSnapshotStack();
+                    cachedCanGoBack = false;
+                    cachedCanGoForward = false;
                     if (nativeWebBrowser != null) {
                         nativeWebBrowser.setVisibility(View.GONE);
                     }
@@ -370,6 +374,12 @@ public class MainActivity extends BridgeActivity {
                     }
                     if (backPeekContainer != null) {
                         backPeekContainer.setVisibility(View.GONE);
+                    }
+                    if (bridge != null && bridge.getWebView() != null) {
+                        bridge.getWebView().bringToFront();
+                    }
+                    if (statusBarView != null) {
+                        statusBarView.bringToFront();
                     }
                     notifyWebEvent("NAVIGATE_BACK_TO_INTERNAL", "ocal://home", "Start Page");
                 }
@@ -2235,6 +2245,8 @@ public class MainActivity extends BridgeActivity {
                             return;
                         }
                         clearSnapshotStack();
+                        cachedCanGoBack = false;
+                        cachedCanGoForward = false;
                         nativeWebBrowser.loadUrl(target);
                     }
                 } catch (Throwable ignored) {}
@@ -2263,6 +2275,8 @@ public class MainActivity extends BridgeActivity {
                             statusBarView.bringToFront();
                         }
                     } else {
+                        cachedCanGoBack = false;
+                        cachedCanGoForward = false;
                         if (browserSlideContainer != null) {
                             browserSlideContainer.setVisibility(View.GONE);
                         }
@@ -2522,12 +2536,12 @@ public class MainActivity extends BridgeActivity {
 
         @JavascriptInterface
         public boolean canGoBack() {
-            return cachedCanGoBack || (nativeWebBrowser != null && nativeWebBrowser.canGoBack());
+            return nativeWebBrowser != null && nativeWebBrowser.canGoBack();
         }
 
         @JavascriptInterface
         public boolean canGoForward() {
-            return cachedCanGoForward || (nativeWebBrowser != null && nativeWebBrowser.canGoForward());
+            return nativeWebBrowser != null && nativeWebBrowser.canGoForward();
         }
 
         @JavascriptInterface
