@@ -13,19 +13,19 @@
   --glass-bg: rgba(255, 255, 255, 0.96);
   --glass-border: rgba(0, 0, 0, 0.08);
   --glass-border-subtle: rgba(0, 0, 0, 0.05);
-  --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --glass-shadow: none;
   --glass-blur: blur(24px);
 
   /* URL Capsule Bar (Frosted Glass) */
   --capsule-bg: rgba(255, 255, 255, 0.82);
   --capsule-border: rgba(255, 255, 255, 0.65);
-  --capsule-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --capsule-shadow: none;
   --capsule-text: #000000;
   --capsule-muted: #8e8e93;
 
   /* Bottom Nav Bar (Frosted Glass Footer) */
-  --nav-bar-bg: rgba(255, 255, 255, 0.78);
-  --nav-bar-border: rgba(0, 0, 0, 0.07);
+  --nav-bar-bg: #f2f3f5;
+  --nav-bar-border: rgba(0, 0, 0, 0.08);
   --nav-icon-color: #000000;
   --nav-icon-muted: #666666;
 

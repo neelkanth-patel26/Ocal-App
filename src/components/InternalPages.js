@@ -64,10 +64,171 @@ export class InternalPages {
     `;
   }
 
+  // Check if promotional banners on home pages should be shown or are snoozed/permanently dismissed
+  static shouldShowZenPromo() {
+    try {
+      const status = localStorage.getItem('ocal_zen_promo_status');
+      if (!status) return true;
+      if (status === 'permanent' || status === 'hidden') return false;
+      const snoozeUntil = parseInt(status, 10);
+      if (!isNaN(snoozeUntil)) {
+        if (Date.now() < snoozeUntil) {
+          return false;
+        } else {
+          localStorage.removeItem('ocal_zen_promo_status');
+          return true;
+        }
+      }
+    } catch {}
+    return true;
+  }
+
+  static shouldShowPrivatePromo() {
+    try {
+      const status = localStorage.getItem('ocal_private_promo_status');
+      if (!status) return true;
+      if (status === 'permanent' || status === 'hidden') return false;
+      const snoozeUntil = parseInt(status, 10);
+      if (!isNaN(snoozeUntil)) {
+        if (Date.now() < snoozeUntil) {
+          return false;
+        } else {
+          localStorage.removeItem('ocal_private_promo_status');
+          return true;
+        }
+      }
+    } catch {}
+    return true;
+  }
+
+  // Universal Modal to snooze or permanently remove promotional banners
+  static showPromoDismissModal({ title = 'Remove from Start Page', desc = 'Choose how you would like to handle this card:', storageKey, toastSubject = 'Banner', onDismissed }) {
+    document.querySelectorAll('#ocal-promo-dismiss-modal').forEach(m => m.remove());
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'ocal-promo-dismiss-modal';
+    modal.style.display = 'flex';
+    modal.style.zIndex = '999999';
+
+    modal.innerHTML = `
+      <div class="modal-dialog-card zen-dismiss-dialog">
+        <div class="modal-header">
+          <div class="modal-title">${escapeHtml(title)}</div>
+          <button class="modal-close-btn" id="promo-dismiss-close-btn" aria-label="Close dialog">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" style="padding-bottom: 8px;">
+          <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45;">
+            ${escapeHtml(desc)}
+          </div>
+          <div class="promo-dismiss-options">
+            <button class="promo-dismiss-option" data-choice="snooze-7" type="button">
+              <div class="dismiss-opt-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+              <div class="dismiss-opt-content">
+                <div class="dismiss-opt-title">Remind me in 7 days</div>
+                <div class="dismiss-opt-desc">Temporarily hide from Start Page for 1 week</div>
+              </div>
+              <div class="dismiss-opt-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </button>
+
+            <button class="promo-dismiss-option" data-choice="snooze-30" type="button">
+              <div class="dismiss-opt-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <div class="dismiss-opt-content">
+                <div class="dismiss-opt-title">Remind me in 30 days</div>
+                <div class="dismiss-opt-desc">Hide this card for 1 month</div>
+              </div>
+              <div class="dismiss-opt-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </button>
+
+            <button class="promo-dismiss-option danger-opt" data-choice="permanent" type="button">
+              <div class="dismiss-opt-icon danger-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </div>
+              <div class="dismiss-opt-content">
+                <div class="dismiss-opt-title">Permanently remove</div>
+                <div class="dismiss-opt-desc">Never show again (can restore anytime in Settings)</div>
+              </div>
+              <div class="dismiss-opt-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer" style="justify-content: center; border-top: none; padding-top: 4px; padding-bottom: 16px;">
+          <button class="modal-btn secondary" id="promo-dismiss-cancel-btn" type="button" style="width: 100%; height: 42px; border-radius: 12px; font-weight: 600;">Cancel</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const closeModal = () => {
+      modal.style.transition = 'opacity 0.18s ease';
+      modal.style.opacity = '0';
+      setTimeout(() => modal.remove(), 180);
+    };
+
+    modal.querySelector('#promo-dismiss-close-btn')?.addEventListener('click', closeModal);
+    modal.querySelector('#promo-dismiss-cancel-btn')?.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    modal.querySelectorAll('.promo-dismiss-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const choice = btn.getAttribute('data-choice');
+        try { if (navigator.vibrate) navigator.vibrate(15); } catch {}
+
+        if (choice === 'snooze-7') {
+          const until = Date.now() + 7 * 86400000;
+          localStorage.setItem(storageKey, until.toString());
+          window.ocalApp?.showToast?.(`${toastSubject} snoozed for 7 days`, 'info');
+        } else if (choice === 'snooze-30') {
+          const until = Date.now() + 30 * 86400000;
+          localStorage.setItem(storageKey, until.toString());
+          window.ocalApp?.showToast?.(`${toastSubject} snoozed for 30 days`, 'info');
+        } else if (choice === 'permanent') {
+          localStorage.setItem(storageKey, 'permanent');
+          window.ocalApp?.showToast?.(`${toastSubject} removed from Start Page`, 'info');
+        }
+
+        closeModal();
+        if (typeof onDismissed === 'function') {
+          onDismissed();
+        }
+      });
+    });
+  }
+
   // 1.0 Ocal Private Browsing Start Page (Stealth Obsidian & Violet Design System)
   static renderPrivateHome(onNavigate) {
     const container = document.createElement('div');
     container.className = 'internal-page-container home-page-container private-home-container';
+    const showPrivatePromo = this.shouldShowPrivatePromo();
 
     container.innerHTML = `
       <div class="opera-home-view private-home-view">
@@ -138,8 +299,9 @@ export class InternalPages {
           </div>
         </div>
 
+        ${showPrivatePromo ? `
         <!-- Section: Minimalist Focus Quick Cards in Plum & Milk -->
-        <div class="opera-feature-strip">
+        <div class="opera-feature-strip" id="private-feature-strip">
           <div class="opera-strip-card" data-action="private-search">
             <div class="strip-icon-box">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -150,9 +312,18 @@ export class InternalPages {
               <div class="strip-title">Private &amp; Untracked</div>
               <div class="strip-desc">History, cookies, and search queries are never saved</div>
             </div>
-            <div class="strip-pill">Protected</div>
+            <div class="strip-actions">
+              <span class="strip-pill">Protected</span>
+              <button class="strip-dismiss-btn" id="private-strip-dismiss-btn" type="button" aria-label="Remove banner" title="Remove banner">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
+        ` : ''}
       </div>
     `;
 
@@ -165,10 +336,46 @@ export class InternalPages {
       });
     });
 
-    container.querySelector('.opera-strip-card')?.addEventListener('click', () => {
-      try { if (navigator.vibrate) navigator.vibrate(10); } catch {}
-      if (onNavigate) onNavigate('https://duckduckgo.com');
-    });
+    const privCard = container.querySelector('.opera-strip-card[data-action="private-search"]');
+    if (privCard) {
+      privCard.addEventListener('click', () => {
+        try { if (navigator.vibrate) navigator.vibrate(10); } catch {}
+        if (onNavigate) onNavigate('https://duckduckgo.com');
+      });
+
+      const dismissBtn = privCard.querySelector('#private-strip-dismiss-btn');
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          try { if (navigator.vibrate) navigator.vibrate(12); } catch {}
+          InternalPages.showPromoDismissModal({
+            title: 'Remove Private Card',
+            desc: 'Hide or remove the private browsing protection badge from your Private Start Page.',
+            storageKey: 'ocal_private_promo_status',
+            toastSubject: 'Private badge',
+            onDismissed: () => {
+              const strip = container.querySelector('#private-feature-strip');
+              if (strip) {
+                strip.style.transition = 'all 0.28s cubic-bezier(0.4, 0, 0.2, 1)';
+                strip.style.opacity = '0';
+                strip.style.transform = 'translateY(-8px) scale(0.96)';
+                strip.style.maxHeight = `${strip.offsetHeight}px`;
+                strip.style.overflow = 'hidden';
+                setTimeout(() => {
+                  strip.style.maxHeight = '0px';
+                  strip.style.marginTop = '0px';
+                  strip.style.marginBottom = '0px';
+                  strip.style.paddingTop = '0px';
+                  strip.style.paddingBottom = '0px';
+                  setTimeout(() => strip.remove(), 280);
+                }, 20);
+              }
+            }
+          });
+        });
+      }
+    }
 
     return container;
   }
@@ -177,6 +384,7 @@ export class InternalPages {
   static renderHome(onNavigate) {
     const container = document.createElement('div');
     container.className = 'internal-page-container home-page-container';
+    const showZenPromo = this.shouldShowZenPromo();
 
     container.innerHTML = `
       <div class="opera-home-view">
@@ -244,8 +452,9 @@ export class InternalPages {
           </div>
         </div>
 
+        ${showZenPromo ? `
         <!-- Section: Minimalist Focus Quick Cards -->
-        <div class="opera-feature-strip">
+        <div class="opera-feature-strip" id="zen-feature-strip">
           <div class="opera-strip-card" data-action="zen-guide">
             <div class="strip-icon-box">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -257,9 +466,18 @@ export class InternalPages {
               <div class="strip-title">Zen Reader &amp; Audio Voice</div>
               <div class="strip-desc">Read articles without ads or listen hands-free</div>
             </div>
-            <div class="strip-pill">New</div>
+            <div class="strip-actions">
+              <span class="strip-pill">New</span>
+              <button class="strip-dismiss-btn" id="zen-strip-dismiss-btn" type="button" aria-label="Remove banner" title="Remove banner">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
+        ` : ''}
       </div>
     `;
 
@@ -272,10 +490,46 @@ export class InternalPages {
       });
     });
 
-    container.querySelector('.opera-strip-card')?.addEventListener('click', () => {
-      try { if (navigator.vibrate) navigator.vibrate(10); } catch {}
-      if (onNavigate) onNavigate('https://en.m.wikipedia.org/wiki/Special:Random');
-    });
+    const zenCard = container.querySelector('.opera-strip-card[data-action="zen-guide"]');
+    if (zenCard) {
+      zenCard.addEventListener('click', () => {
+        try { if (navigator.vibrate) navigator.vibrate(10); } catch {}
+        if (onNavigate) onNavigate('https://en.m.wikipedia.org/wiki/Special:Random');
+      });
+
+      const dismissBtn = zenCard.querySelector('#zen-strip-dismiss-btn');
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          try { if (navigator.vibrate) navigator.vibrate(12); } catch {}
+          InternalPages.showPromoDismissModal({
+            title: 'Remove from Start Page',
+            desc: 'Zen Reader & Audio Voice banner can be temporarily snoozed or permanently removed from your Start Page.',
+            storageKey: 'ocal_zen_promo_status',
+            toastSubject: 'Zen Reader banner',
+            onDismissed: () => {
+              const strip = container.querySelector('#zen-feature-strip');
+              if (strip) {
+                strip.style.transition = 'all 0.28s cubic-bezier(0.4, 0, 0.2, 1)';
+                strip.style.opacity = '0';
+                strip.style.transform = 'translateY(-8px) scale(0.96)';
+                strip.style.maxHeight = `${strip.offsetHeight}px`;
+                strip.style.overflow = 'hidden';
+                setTimeout(() => {
+                  strip.style.maxHeight = '0px';
+                  strip.style.marginTop = '0px';
+                  strip.style.marginBottom = '0px';
+                  strip.style.paddingTop = '0px';
+                  strip.style.paddingBottom = '0px';
+                  setTimeout(() => strip.remove(), 280);
+                }, 20);
+              }
+            }
+          });
+        });
+      }
+    }
 
     return container;
   }
@@ -2737,6 +2991,18 @@ export class InternalPages {
     const isHttps = localStorage.getItem('ocal-shield-https') !== 'false';
     const isSuggestions = localStorage.getItem('ocal-suggestions') !== 'false';
     const isDesktopDefault = localStorage.getItem('ocal-desktop-default') === 'true';
+    const zenPromoStatus = localStorage.getItem('ocal_zen_promo_status');
+    const isZenPromoEnabled = InternalPages.shouldShowZenPromo();
+    let zenPromoSubtitle = 'Visible on Start Page';
+    if (zenPromoStatus === 'permanent') {
+      zenPromoSubtitle = 'Permanently removed (tap to restore)';
+    } else if (zenPromoStatus) {
+      const snoozeUntil = parseInt(zenPromoStatus, 10);
+      if (!isNaN(snoozeUntil) && Date.now() < snoozeUntil) {
+        const daysLeft = Math.max(1, Math.ceil((snoozeUntil - Date.now()) / 86400000));
+        zenPromoSubtitle = `Snoozed (${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} left — tap to restore)`;
+      }
+    }
     const passwordsCount = PasswordManager.getPasswords().length;
     const aiKey = localStorage.getItem('ocal_ai_api_key') || '';
 
@@ -2791,10 +3057,31 @@ export class InternalPages {
             </div>
 
             <div class="appearance-colors">
-              <div class="apple-row-title" id="accent-label">Accent color</div>
-              <div class="apple-row-subtitle">A little color for highlights and controls. Saved automatically.</div>
+              <div class="appearance-colors-header">
+                <div class="apple-row-icon mono-item">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+                    <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+                    <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                    <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+                  </svg>
+                </div>
+                <div class="apple-row-content">
+                  <div class="apple-row-title" id="accent-label">Accent Color</div>
+                  <div class="apple-row-subtitle">Highlights, active tabs, and primary controls</div>
+                </div>
+              </div>
               <div class="accent-options" role="group" aria-labelledby="accent-label">
-                ${accentChoices.map(({ id, label }) => `<button type="button" class="blur-chip-btn accent-option" data-accent="${id}" aria-pressed="${currentAccent === id}"><span class="accent-dot" aria-hidden="true"></span>${label}<span class="accent-check" aria-hidden="true">✓</span></button>`).join('')}
+                ${accentChoices.map(({ id, label }) => `
+                  <button type="button" class="accent-option" data-accent="${id}" aria-pressed="${currentAccent === id}">
+                    <span class="accent-dot" aria-hidden="true">
+                      <svg class="accent-check-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                    <span class="accent-name">${label}</span>
+                  </button>`).join('')}
               </div>
             </div>
 
@@ -2820,11 +3107,11 @@ export class InternalPages {
                 <span class="blur-val-badge" id="blur-val-display">${currentBlur === 0 ? 'Solid Color' : currentBlur + 'px'}</span>
               </div>
               <div class="blur-preset-chips" id="blur-preset-chips">
-                <button class="blur-chip-btn ${currentBlur === 0 ? 'active' : ''}" data-blur="0">Off (Solid)</button>
-                <button class="blur-chip-btn ${currentBlur === 12 ? 'active' : ''}" data-blur="12">Subtle (12px)</button>
-                <button class="blur-chip-btn ${currentBlur === 24 ? 'active' : ''}" data-blur="24">Standard (24px)</button>
-                <button class="blur-chip-btn ${currentBlur === 36 ? 'active' : ''}" data-blur="36">Deep (36px)</button>
-                <button class="blur-chip-btn ${currentBlur === 48 ? 'active' : ''}" data-blur="48">Ultra (48px)</button>
+                <button class="blur-chip-btn ${currentBlur === 0 ? 'active' : ''}" data-blur="0">Off</button>
+                <button class="blur-chip-btn ${currentBlur === 12 ? 'active' : ''}" data-blur="12">12px</button>
+                <button class="blur-chip-btn ${currentBlur === 24 ? 'active' : ''}" data-blur="24">24px</button>
+                <button class="blur-chip-btn ${currentBlur === 36 ? 'active' : ''}" data-blur="36">36px</button>
+                <button class="blur-chip-btn ${currentBlur === 48 ? 'active' : ''}" data-blur="48">48px</button>
               </div>
               <div class="blur-slider-row">
                 <input type="range" class="blur-range-input" id="blur-range-slider" aria-label="Blur intensity" min="0" max="48" step="2" value="${currentBlur}">
@@ -2955,6 +3242,20 @@ export class InternalPages {
               </div>
               <label class="toggle-switch" style="margin-left: auto;">
                 <input type="checkbox" id="toggle-desktop-default" ${isDesktopDefault ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="apple-grouped-row" style="cursor:default;">
+              <div class="apple-row-icon mono-item">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title">Zen Reader Home Banner</div>
+                <div class="apple-row-subtitle" id="zen-banner-status-subtitle">${zenPromoSubtitle}</div>
+              </div>
+              <label class="toggle-switch" style="margin-left: auto;">
+                <input type="checkbox" id="toggle-zen-home-banner" ${isZenPromoEnabled ? 'checked' : ''}>
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -3305,6 +3606,19 @@ export class InternalPages {
 
     container.querySelector('#toggle-desktop-default')?.addEventListener('change', (e) => {
       localStorage.setItem('ocal-desktop-default', e.target.checked);
+    });
+
+    container.querySelector('#toggle-zen-home-banner')?.addEventListener('change', (e) => {
+      const sub = container.querySelector('#zen-banner-status-subtitle');
+      if (e.target.checked) {
+        localStorage.removeItem('ocal_zen_promo_status');
+        if (sub) sub.textContent = 'Visible on Start Page';
+        window.ocalApp?.showToast?.('Zen Reader banner will show on Start Page', 'check');
+      } else {
+        localStorage.setItem('ocal_zen_promo_status', 'permanent');
+        if (sub) sub.textContent = 'Permanently removed (tap to restore)';
+        window.ocalApp?.showToast?.('Zen Reader banner hidden from Start Page', 'info');
+      }
     });
 
     container.querySelectorAll('.engine-pick-row').forEach(row => {

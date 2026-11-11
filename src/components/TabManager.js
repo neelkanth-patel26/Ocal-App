@@ -721,290 +721,59 @@ export class TabManager {
   }
 
   renderTabPreviewHtml(tab) {
-    // 1. For Internal Pages (ocal://*): Match Ocal Home Page style
+    const isDark = tab.isIncognito || document.documentElement.getAttribute('data-theme') === 'dark';
+
+    // 1. For Internal Pages (ocal://*): only show the icon for the page
     if (!tab.url || tab.url.startsWith('ocal://')) {
       const isStartPage = !tab.url || tab.url === 'ocal://home' || tab.url === 'ocal://';
       if (isStartPage) {
-        const isDark = tab.isIncognito || document.documentElement.getAttribute('data-theme') === 'dark';
-        const favorites = [
-          ['far fa-sun', 'Dine Style'], ['fas fa-shield-halved', 'DuckDuckGo'],
-          ['fab fa-x-twitter', 'X / Twitter'], ['fab fa-reddit-alien', 'Reddit'],
-          ['fab fa-discord', 'Discord'], ['fab fa-github', 'GitHub'],
-          ['fab fa-wikipedia-w', 'Wikipedia'], ['fab fa-youtube', 'YouTube'],
-        ];
+        if (tab.isIncognito) {
+          return `
+            <div class="tab-icon-preview tab-icon-preview-private" aria-hidden="true">
+              <div class="tab-icon-preview-tile tab-icon-private-tile">
+                <i class="fas fa-user-secret"></i>
+              </div>
+            </div>
+          `;
+        }
         return `
-          <div class="tab-home-preview tab-home-preview-detailed ${tab.isIncognito ? 'tab-private-home-preview' : ''}" aria-hidden="true">
-            <div class="tab-home-preview-logo">
-              ${tab.isIncognito ? '<i class="fas fa-user-secret"></i>' : `<img src="${isDark ? '/assets/Dark.png' : '/assets/Light.png'}" alt="" class="tab-home-logo-img" />`}
+          <div class="tab-icon-preview" aria-hidden="true">
+            <div class="tab-icon-preview-tile tab-icon-logo-tile">
+              <img src="${isDark ? '/assets/Dark.png' : '/assets/Light.png'}" alt="" class="tab-icon-preview-logo-img" />
             </div>
-            <div class="tab-home-preview-wordmark">${tab.isIncognito ? 'Ocal Private' : 'Ocal'}</div>
-            <div class="tab-preview-section-label"><span>Favorites</span><span>8 sites</span></div>
-            <div class="tab-home-mini-grid">
-              ${favorites.map(([icon, label]) => `<div class="tab-preview-favorite"><div class="tab-home-mini-tile"><i class="${icon}"></i></div><span>${label}</span></div>`).join('')}
-            </div>
-            <div class="tab-preview-reader"><i class="far fa-bookmark"></i><span>Zen Reader<span>Read &amp; listen</span></span></div>
           </div>
         `;
       }
       const info = this.getInternalPageInfo(tab.url || 'ocal://home');
       return `
-        <div class="tab-internal-dial-preview">
-          <div class="tab-internal-dial-tile">
+        <div class="tab-icon-preview" aria-hidden="true">
+          <div class="tab-icon-preview-tile">
             <i class="${info.icon}"></i>
           </div>
-          <span class="tab-internal-dial-name">${escapeHtml(info.name)}</span>
         </div>
       `;
     }
 
-    // 2. Real captured WebView Screenshot Thumbnail for external websites
-    if (tab.thumbnail) {
-      let cleanDomain = '';
-      try {
-        cleanDomain = new URL(tab.url).hostname.replace(/^www\./i, '');
-      } catch {
-        cleanDomain = tab.url;
-      }
-      return `
-        <div class="tab-preview-screenshot">
-          <img src="${tab.thumbnail}" class="tab-screenshot-img" alt="${escapeHtml(tab.title)}" loading="lazy" />
-          <div class="tab-screenshot-gloss"></div>
-          <div class="tab-screenshot-domain-pill">
-            <i class="fas fa-lock" style="font-size:7.5px; color:#ffffff;"></i>
-            <span>${escapeHtml(cleanDomain)}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 10. In Browser / Vite / Electron environment, show live scaled iframe preview
-    if (!window.OcalNative && tab.url.startsWith('http')) {
-      const desktopParam = tab.isDesktop ? '&desktop=true' : '';
-      const proxyUrl = `/api/proxy?url=${encodeURIComponent(tab.url)}${desktopParam}`;
-      let domain = '';
-      try { domain = new URL(tab.url).hostname.replace(/^www\./i, ''); } catch { domain = tab.url; }
-      return `
-        <div class="tab-mini-viewport-wrap">
-          <iframe src="${proxyUrl}" class="tab-mini-preview-iframe" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms" tabindex="-1"></iframe>
-          <div class="tab-mini-preview-shield"></div>
-          <div class="tab-screenshot-domain-pill">
-            <i class="fas fa-lock" style="font-size:7.5px; color:#ffffff;"></i>
-            <span>${escapeHtml(domain)}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 11. Custom Brand: Dine in Style (Luxury Monochrome Fashion Card)
-    if (tab.url.includes('dineinstyle.com')) {
-      return `
-        <div class="tab-mockup-dine-mono">
-          <div class="dine-line-1">Autumn '23</div>
-          <div class="dine-line-2">Collection</div>
-          <div class="dine-btn-mono">Shop Collection</div>
-          <div class="tab-mockup-footer" style="position:absolute; bottom:4px; left:0; right:0;">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>dineinstyle.com</span></span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 12. Custom Brand: X / Twitter (Sleek Dark Theme)
-    if (tab.url.includes('twitter.com') || tab.url.includes('x.com')) {
-      return `
-        <div class="tab-mock-social" style="background:#000000;">
-          <div class="tab-mock-social-banner" style="background:#161618; border-bottom:1px solid rgba(255,255,255,0.08);"></div>
-          <div class="tab-mock-social-profile">
-            <div class="tab-mock-social-avatar" style="background:#000000; color:#ffffff; border:1px solid rgba(255,255,255,0.2);"><i class="fab fa-x-twitter"></i></div>
-            <div class="tab-mock-social-btn" style="background:#ffffff; color:#000000; font-weight:700;">Follow</div>
-          </div>
-          <div class="tab-mock-social-info">
-            <div class="tab-mock-social-name" style="color:#ffffff;">X <i class="fas fa-circle-check" style="color:#ffffff; font-size:8px;"></i></div>
-            <div class="tab-mock-social-handle" style="color:#a1a1aa;">@X • Trending worldwide</div>
-            <div class="tab-mock-social-tweet" style="color:#e4e4e7;">Explore what's happening right now across news, tech &amp; culture.</div>
-          </div>
-          <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>x.com</span></span>
-          </div>
-        </div>
-      `;
-    }
-
+    // 2. External Web Pages (http:// or https://): only show the webicon
     let domain = '';
     try {
-      const u = new URL(tab.url);
-      domain = u.hostname.replace(/^www\./i, '');
+      domain = new URL(tab.url).hostname.replace(/^www\./i, '');
     } catch {
       domain = tab.url;
     }
-    const siteTitle = tab.title && tab.title !== tab.url ? tab.title : domain;
 
-    // 13. Google / Search engines (Monochrome Clean Search)
-    if (domain.includes('google') || tab.url.includes('/search') || domain.includes('bing') || domain.includes('duckduckgo')) {
-      let query = '';
-      try {
-        const u = new URL(tab.url);
-        query = u.searchParams.get('q') || '';
-      } catch {}
-      const displayQuery = query || siteTitle || 'Web Search';
-      return `
-        <div class="tab-mock-google" style="background:#000000;">
-          <div class="tab-google-top" style="border-bottom:1px solid rgba(255,255,255,0.08);">
-            <span class="tab-google-logo" style="color:#ffffff; font-weight:700; font-size:12px; letter-spacing:-0.03em;">Google</span>
-            <div class="tab-google-searchbar" style="background:#141416; border:1px solid rgba(255,255,255,0.08);">
-              <i class="fas fa-search" style="font-size:6.5px; color:#a1a1aa;"></i>
-              <span class="tab-google-query" style="color:#ffffff;">${escapeHtml(displayQuery)}</span>
-            </div>
-          </div>
-          <div class="tab-google-results">
-            <div class="tab-google-result-item" style="background:#121214; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:6px 8px;">
-              <div class="tab-google-cite" style="color:#a1a1aa;">${escapeHtml(domain)} › ...</div>
-              <div class="tab-google-heading" style="color:#ffffff;">${escapeHtml(siteTitle)}</div>
-              <div class="tab-google-snippet" style="color:#71717a;">Verified web results, articles, top media, and official resources.</div>
-            </div>
-          </div>
-          <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>${escapeHtml(domain)}</span></span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 14. YouTube / Video (Monochrome Video Card)
-    if (domain.includes('youtube') || domain.includes('youtu.be')) {
-      return `
-        <div class="tab-mock-youtube" style="background:#000000;">
-          <div class="tab-yt-topbar" style="border-bottom:1px solid rgba(255,255,255,0.08);">
-            <div class="tab-yt-logo" style="color:#ffffff;"><i class="fab fa-youtube" style="color:#ffffff; font-size:12px;"></i><span>YouTube</span></div>
-            <i class="fas fa-search" style="font-size:8px; color:#a1a1aa;"></i>
-          </div>
-          <div class="tab-yt-player-box">
-            <div class="tab-yt-player-thumb" style="background:#141416; border:1px solid rgba(255,255,255,0.08);">
-              <div class="tab-yt-play-btn" style="background:rgba(255,255,255,0.9); color:#000000;"><i class="fas fa-play" style="font-size:9px; margin-left:2px;"></i></div>
-              <span class="tab-yt-duration" style="background:rgba(0,0,0,0.8); color:#ffffff;">12:45</span>
-            </div>
-          </div>
-          <div class="tab-yt-details" style="padding:6px 8px;">
-            <div class="tab-yt-video-title" style="color:#ffffff;">${escapeHtml(siteTitle)}</div>
-            <div class="tab-yt-channel-row">
-              <span class="tab-yt-channel-name" style="color:#a1a1aa;">Official Channel</span>
-            </div>
-          </div>
-          <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>youtube.com</span></span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 15. Reddit (Monochrome Discussion Card)
-    if (domain.includes('reddit')) {
-      return `
-        <div class="tab-mock-reddit" style="background:#000000;">
-          <div class="tab-reddit-topbar" style="border-bottom:1px solid rgba(255,255,255,0.08);">
-            <div class="tab-reddit-logo" style="color:#ffffff;"><i class="fab fa-reddit-alien" style="color:#ffffff; font-size:12px;"></i><span>reddit</span></div>
-            <span class="tab-reddit-sub" style="color:#a1a1aa;">r/trending</span>
-          </div>
-          <div class="tab-reddit-card" style="background:#141416; border:1px solid rgba(255,255,255,0.08); border-radius:8px; margin:6px 8px; padding:6px 8px;">
-            <div class="tab-reddit-meta" style="color:#71717a;">u/headline • 3h ago</div>
-            <div class="tab-reddit-title" style="color:#ffffff; font-size:9.5px; font-weight:600;">${escapeHtml(siteTitle)}</div>
-            <div class="tab-reddit-actions" style="margin-top:6px; display:flex; gap:6px;">
-              <div class="tab-reddit-vote" style="background:rgba(255,255,255,0.06); color:#ffffff; padding:2px 6px; border-radius:4px;"><i class="fas fa-arrow-up" style="color:#ffffff;"></i> <span>4.1k</span></div>
-              <div class="tab-reddit-pill" style="background:rgba(255,255,255,0.06); color:#a1a1aa; padding:2px 6px; border-radius:4px;"><i class="far fa-comment-alt"></i> <span>324</span></div>
-            </div>
-          </div>
-          <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>reddit.com</span></span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 16. GitHub (Monochrome Code Card)
-    if (domain.includes('github')) {
-      return `
-        <div class="tab-mock-github" style="background:#000000;">
-          <div class="tab-gh-topbar" style="border-bottom:1px solid rgba(255,255,255,0.08);">
-            <i class="fab fa-github" style="font-size:13px; color:#ffffff;"></i>
-            <span class="tab-gh-repo-path" style="color:#ffffff;">repo / ${escapeHtml(siteTitle)}</span>
-          </div>
-          <div class="tab-gh-stats">
-            <span class="tab-gh-badge" style="background:#141416; color:#a1a1aa; border:1px solid rgba(255,255,255,0.08);"><i class="far fa-star"></i> 24.8k</span>
-            <span class="tab-gh-badge" style="background:#141416; color:#a1a1aa; border:1px solid rgba(255,255,255,0.08);"><i class="fas fa-code-fork"></i> 3.2k</span>
-          </div>
-          <div class="tab-gh-file-box" style="background:#141416; border:1px solid rgba(255,255,255,0.08); border-radius:8px; margin:6px 8px; padding:4px;">
-            <div class="tab-gh-file-row"><i class="far fa-folder" style="color:#ffffff;"></i><span>src</span><span class="tab-gh-msg" style="color:#71717a;">core modules</span></div>
-            <div class="tab-gh-file-row"><i class="far fa-file-code" style="color:#a1a1aa;"></i><span>package.json</span><span class="tab-gh-msg" style="color:#71717a;">release v3.0.1</span></div>
-          </div>
-          <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>github.com</span></span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 17. Wikipedia (Monochrome Article Card)
-    if (domain.includes('wikipedia')) {
-      return `
-        <div class="tab-mock-wiki" style="background:#000000;">
-          <div class="tab-wiki-topbar" style="border-bottom:1px solid rgba(255,255,255,0.08);">
-            <div class="tab-wiki-logo" style="color:#ffffff;"><i class="fab fa-wikipedia-w"></i><span>WIKIPEDIA</span></div>
-            <i class="fas fa-search" style="font-size:8px; opacity:0.6; color:#ffffff;"></i>
-          </div>
-          <div class="tab-wiki-body" style="padding:8px;">
-            <div class="tab-wiki-heading" style="color:#ffffff;">${escapeHtml(siteTitle)}</div>
-            <div class="tab-wiki-subheading" style="color:#a1a1aa;">From Wikipedia, the free encyclopedia</div>
-            <div class="tab-wiki-paragraph" style="color:#71717a; font-size:8px; line-height:1.3; margin-top:4px;">
-              Documented article with encyclopedic analysis and verified references.
-            </div>
-          </div>
-          <div class="tab-mockup-footer">
-            <span class="tab-mockup-domain-pill"><i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i><span>wikipedia.org</span></span>
-          </div>
-        </div>
-      `;
-    }
-
-    // 18. Universal Sleek Monochrome Landing Page (All other external websites)
     return `
-      <div class="tab-rich-web-preview" style="background:#000000;">
-        <div class="tab-rich-header" style="background:#141416; border-bottom:1px solid rgba(255,255,255,0.08);">
-          <div class="tab-rich-nav">
-            <div class="tab-rich-favicon-wrap">
-              <img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128"
-                   alt=""
-                   onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
-                   onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
-                   style="width:16px; height:16px; object-fit:contain; display:none;" />
-              <div class="tab-rich-favicon-fallback" style="display:flex; align-items:center; justify-content:center; width:16px; height:16px; color:#ffffff; font-size:9px;">
-                <i class="fas fa-globe"></i>
-              </div>
-            </div>
-            <span class="tab-rich-nav-brand" style="color:#ffffff;">${escapeHtml(domain)}</span>
-            <div class="tab-rich-nav-dots" style="color:#a1a1aa;"><i class="fas fa-ellipsis"></i></div>
+      <div class="tab-icon-preview tab-icon-preview-web" aria-hidden="true">
+        <div class="tab-icon-preview-tile tab-icon-web-tile">
+          <img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128"
+               class="tab-icon-web-img"
+               alt=""
+               onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
+               onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
+               style="display:none;" />
+          <div class="tab-icon-web-fallback">
+            <i class="fas fa-globe"></i>
           </div>
-          <div class="tab-rich-hero-text" style="padding-top:6px;">
-            <div class="tab-rich-hero-title" style="color:#ffffff; font-size:12px;">${escapeHtml(siteTitle)}</div>
-            <div class="tab-rich-hero-cta" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); color:#ffffff; font-size:8px;">Explore Website</div>
-          </div>
-        </div>
-        <div class="tab-rich-body" style="padding:8px;">
-          <div class="tab-rich-card" style="background:#121214; border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:6px 8px;">
-            <div class="tab-rich-card-lines">
-              <div class="tab-rich-text-line" style="width:85%; background:rgba(255,255,255,0.12); height:5px; border-radius:3px; margin-bottom:4px;"></div>
-              <div class="tab-rich-text-line" style="width:60%; background:rgba(255,255,255,0.06); height:5px; border-radius:3px;"></div>
-            </div>
-          </div>
-          <div class="tab-rich-grid" style="display:flex; gap:6px; margin-top:6px;">
-            <div class="tab-rich-grid-cell" style="background:#141416; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:4px 6px; display:flex; align-items:center; gap:4px; font-size:8px; color:#ffffff;"><i class="fas fa-bolt" style="color:#ffffff; font-size:8px;"></i><span>Features</span></div>
-            <div class="tab-rich-grid-cell" style="background:#141416; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:4px 6px; display:flex; align-items:center; gap:4px; font-size:8px; color:#ffffff;"><i class="fas fa-shield" style="color:#a1a1aa; font-size:8px;"></i><span>Secure</span></div>
-          </div>
-        </div>
-        <div class="tab-mockup-footer">
-          <span class="tab-mockup-domain-pill">
-            <i class="fas fa-lock" style="font-size:7px; color:#ffffff;"></i>
-            <span>${escapeHtml(domain)}</span>
-          </span>
         </div>
       </div>
     `;
@@ -1220,7 +989,8 @@ export class TabManager {
     // Render tab cards in 2-column grid
     visibleTabs.forEach(tab => {
       const card = document.createElement('div');
-      card.className = `tab-card ${tab.id === this.activeTabId ? 'active' : ''}`;
+      const isActive = tab.id === this.activeTabId;
+      card.className = `tab-card ${isActive ? 'active' : ''}`;
       card.setAttribute('data-tab-id', tab.id);
       card.setAttribute('data-url', tab.url);
       this.makeTabCardAccessible(card, tab);
@@ -1234,24 +1004,22 @@ export class TabManager {
         : rawTitle.replace(/^Ocal\s+/i, '');
       if (displayTitle === 'Home') displayTitle = 'Start Page';
 
+      const domainLabel = this.getTabAddressLabel(tab.url);
+
       card.innerHTML = `
-        ${tab.isIncognito ? '<div class="tab-card-incognito-badge"><i class="fas fa-user-secret" style="font-size:7.5px;"></i> Private</div>' : ''}
-        <div class="tab-card-header">
-          <div class="tab-card-favicon">${faviconHtml}</div>
-          <span class="tab-card-title">${escapeHtml(displayTitle)}</span>
-          <button class="tab-card-close" data-id="${tab.id}" title="Close Tab">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <div class="tab-card-preview-inner">
+        <button class="tab-card-close" data-id="${tab.id}" title="Close Tab" aria-label="Close tab">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <div class="tab-card-content">
           <div class="tab-card-preview">${previewHtml}</div>
-        </div>
-        <div class="tab-card-caption">
-          <span>${escapeHtml(this.getTabAddressLabel(tab.url))}</span>
-          ${tab.id === this.activeTabId ? '<span class="tab-current-label">Current</span>' : ''}
+          <div class="tab-card-text">
+            <span class="tab-card-title" title="${escapeHtml(displayTitle)}">${escapeHtml(displayTitle)}</span>
+            <span class="tab-card-domain">${escapeHtml(domainLabel)}</span>
+          </div>
+          ${tab.isIncognito ? '<span class="tab-card-private-badge"><i class="fas fa-user-secret"></i> Private</span>' : ''}
         </div>
       `;
 
@@ -1282,7 +1050,8 @@ export class TabManager {
         <div class="tab-add-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </div>
-        <span class="tab-add-label">New ${this.tabFilterMode === 'private' ? 'Private ' : ''}Tab</span>
+        <span class="tab-add-title">New ${this.tabFilterMode === 'private' ? 'Private ' : ''}Tab</span>
+        <span class="tab-add-sub">Open a new tab</span>
       </div>
     `;
     addCard.addEventListener('click', () => {

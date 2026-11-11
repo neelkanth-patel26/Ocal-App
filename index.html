@@ -160,22 +160,32 @@
         <div class="progress-bar-container">
           <div class="progress-bar" id="progress-bar"></div>
         </div>
-        <button class="nav-icon-btn" id="nav-history" title="History">
-          <i class="far fa-clock"></i>
+        <button class="nav-icon-btn" id="nav-history" title="History" aria-label="History">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9.5"></circle>
+            <polyline points="12 7 12 12 15.5 14"></polyline>
+          </svg>
         </button>
-        <button class="nav-icon-btn" id="nav-bookmarks" title="Bookmarks">
-          <i class="fas fa-thumbtack"></i>
+        <button class="nav-icon-btn" id="nav-bookmarks" title="Bookmarks" aria-label="Bookmarks">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+          </svg>
         </button>
-        <button class="nav-icon-btn nav-plus-btn" id="nav-new-tab" title="New Tab">
-          <i class="fas fa-plus"></i>
+        <button class="nav-icon-btn nav-plus-btn" id="nav-new-tab" title="New Tab" aria-label="New Tab">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
         </button>
-        <button class="nav-icon-btn" id="nav-tabs" title="Tabs">
+        <button class="nav-icon-btn" id="nav-tabs" title="Tabs" aria-label="Tabs">
           <div class="tab-badge" id="tab-counter-badge">1</div>
         </button>
-        <button class="nav-icon-btn" id="nav-menu" title="Menu">
-          <div class="circle-dots-icon">
-            <i class="fas fa-ellipsis"></i>
-          </div>
+        <button class="nav-icon-btn" id="nav-menu" title="Menu" aria-label="Menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="2"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+            <circle cx="19" cy="12" r="2"></circle>
+          </svg>
         </button>
       </nav>
     </div>
@@ -243,22 +253,30 @@
             </svg>
           </button>
           <!-- 2. History -->
-          <button class="opera-dock-btn" id="tabs-nav-history" title="History">
-            <i class="far fa-clock"></i>
+          <button class="opera-dock-btn" id="tabs-nav-history" title="History" aria-label="History">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9.5"></circle>
+              <polyline points="12 7 12 12 15.5 14"></polyline>
+            </svg>
           </button>
           <!-- 3. Center Plus Button (Matches Home Page Plus) -->
-          <button class="opera-dock-btn nav-plus-btn" id="tabs-nav-new-tab" title="Open New Tab">
-            <i class="fas fa-plus"></i>
+          <button class="opera-dock-btn nav-plus-btn" id="tabs-nav-new-tab" title="Open New Tab" aria-label="New Tab">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
           </button>
           <!-- 4. Tab Count Badge (Matches Home Page tab-badge) -->
-          <button class="opera-dock-btn opera-tab-counter-btn" id="tabs-nav-done" title="Close tabs tray">
+          <button class="opera-dock-btn opera-tab-counter-btn" id="tabs-nav-done" title="Close tabs tray" aria-label="Close tabs">
             <div class="tab-badge" id="opera-tab-badge-count">1</div>
           </button>
-          <!-- 5. More Menu Button (Matches Home Page circle-dots-icon) -->
-          <button class="opera-dock-btn" id="tabs-nav-more" title="More options">
-            <div class="circle-dots-icon">
-              <i class="fas fa-ellipsis"></i>
-            </div>
+          <!-- 5. More Menu Button -->
+          <button class="opera-dock-btn" id="tabs-nav-more" title="More options" aria-label="Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="5" cy="12" r="2"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+              <circle cx="19" cy="12" r="2"></circle>
+            </svg>
           </button>
         </div>
       </div>
