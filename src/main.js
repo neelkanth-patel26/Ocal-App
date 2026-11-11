@@ -2169,9 +2169,9 @@ class OcalMobileApp {
     const isIncognito = Boolean(activeTab && activeTab.isIncognito);
     const isStartPage = Boolean(activeTab && (!activeTab.url || activeTab.url === 'ocal://home' || activeTab.url === 'ocal://'));
 
-    if (isIncognito && isStartPage) {
-      bgColor = '#381932'; // Plum
-      isStatusDark = true; // Use light status bar icons for high contrast on Plum
+    if (isIncognito) {
+      bgColor = '#000000';
+      isStatusDark = true; // Use light status bar icons for high contrast on black
     } else if (isDarkMode) {
       bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-main').trim() || '#101114';
       isStatusDark = true;

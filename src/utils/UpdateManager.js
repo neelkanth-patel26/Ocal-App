@@ -1,13 +1,27 @@
 // Ocal Browser - GitHub Release Tracker & Automatic Update System
 import { DownloadsManager } from '../components/DownloadsManager.js';
 
-export const APP_VERSION = '3.0.1';
+export const APP_VERSION = '3.2.0';
 export const GITHUB_REPO = 'neelkanth-patel26/Ocal-App';
 export const GITHUB_API_RELEASES = `https://api.github.com/repos/${GITHUB_REPO}/releases`;
 export const GITHUB_RELEASES_WEB = `https://github.com/${GITHUB_REPO}/releases`;
 
 // Built-in fallback catalog when offline or before any GitHub releases are published
 const BUNDLED_CATALOG = [
+  {
+    tag_name: 'v3.2.0',
+    name: 'Ocal Mobile Browser v3.2.0',
+    published_at: '2026-11-11T14:45:00Z',
+    body: `### What's New in v3.2.0\n- 🕶️ Seamless pure black status bar in Private Browsing mode with zero dividing lines\n- 🔄 Fixed back gesture navigation from web results to previous internal pages (Start Page, Bookmarks, History)\n- 📱 Ultra-clean borderless bottom navigation bar in pure white\n- 🚀 Integrated GitHub Release Catalog & Automatic Update System`,
+    html_url: GITHUB_RELEASES_WEB,
+    assets: [
+      {
+        name: 'Ocal-Browser-v3.2.0.apk',
+        size: 4819736,
+        browser_download_url: `${GITHUB_RELEASES_WEB}/download/v3.2.0/Ocal-Browser-v3.2.0.apk`
+      }
+    ]
+  },
   {
     tag_name: 'v3.0.1',
     name: 'Ocal Mobile Browser v3.0.1',
@@ -16,9 +30,9 @@ const BUNDLED_CATALOG = [
     html_url: GITHUB_RELEASES_WEB,
     assets: [
       {
-        name: 'ocal-browser-v3.0.1.apk',
-        size: 18454912,
-        browser_download_url: `${GITHUB_RELEASES_WEB}/download/v3.0.1/ocal-browser-v3.0.1.apk`
+        name: 'Ocal-Browser-v3.0.1.apk',
+        size: 4819736,
+        browser_download_url: `${GITHUB_RELEASES_WEB}/download/v3.0.1/Ocal-Browser-v3.0.1.apk`
       }
     ]
   }
