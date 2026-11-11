@@ -5,6 +5,7 @@ import { syncClient } from '../utils/SyncClient.js';
 import { QrScanner } from '../utils/QrScanner.js';
 import { accentChoices, applyAccent } from '../utils/appearance.js';
 import { getSearchEngine, searchEngineKey } from '../utils/searchPreferences.js';
+import { UpdateManager } from '../utils/UpdateManager.js';
 
 export class InternalPages {
   static render(url, onNavigate, isIncognito = false) {
@@ -3007,6 +3008,8 @@ export class InternalPages {
     const aiKey = localStorage.getItem('ocal_ai_api_key') || '';
 
     const currentBlur = parseInt(localStorage.getItem('ocal-blur-density') ?? '0', 10);
+    const isAutoUpdates = UpdateManager.isAutoCheckEnabled();
+    const appVersion = UpdateManager.getAppVersion();
 
     const SETTINGS_ICONS = {
       back: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`,
@@ -3356,6 +3359,57 @@ export class InternalPages {
           </div>
         </div>
 
+        <!-- Updates & Releases Section -->
+        <div>
+          <div class="subpage-section-title">Updates &amp; Releases</div>
+          <div class="apple-grouped-table">
+            <div class="apple-grouped-row" id="settings-check-updates-row">
+              <div class="apple-row-icon mono-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title">Check for Updates</div>
+                <div class="apple-row-subtitle" id="update-status-subtitle">Installed: v${appVersion} &bull; Tap to check GitHub releases</div>
+              </div>
+              <button type="button" class="update-check-badge" id="update-check-btn">Check</button>
+            </div>
+
+            <div class="apple-grouped-row" id="settings-release-catalog-row">
+              <div class="apple-row-icon mono-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title">Release Catalog &amp; Changelog</div>
+                <div class="apple-row-subtitle">Browse all versions, release notes &amp; APKs</div>
+              </div>
+              <div class="apple-row-chevron">${SETTINGS_ICONS.chevron}</div>
+            </div>
+
+            <div class="apple-grouped-row" style="cursor:default;">
+              <div class="apple-row-icon mono-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 14 14"></polyline>
+                </svg>
+              </div>
+              <div class="apple-row-content">
+                <div class="apple-row-title">Automatic Updates</div>
+                <div class="apple-row-subtitle">Check GitHub releases automatically on startup</div>
+              </div>
+              <label class="toggle-switch" style="margin-left: auto;">
+                <input type="checkbox" id="toggle-auto-updates" ${isAutoUpdates ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <!-- About Section -->
         <div>
           <div class="subpage-section-title">About</div>
@@ -3368,7 +3422,7 @@ export class InternalPages {
                 <div class="apple-row-title">Ocal Mobile Browser</div>
                 <div class="apple-row-subtitle">A calmer space for everyday browsing</div>
               </div>
-              <span style="font-size:11.5px; font-weight:600; color:var(--text-subtle); padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.05);">v3.0.1</span>
+              <span style="font-size:11.5px; font-weight:600; color:var(--text-subtle); padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.05);">v${appVersion}</span>
             </div>
             <div class="about-browser-details">
               <h3>Our goal</h3>
@@ -3390,7 +3444,7 @@ export class InternalPages {
     if (isIncognito) {
       container.querySelector('.subpage-header').classList.add('private-subpage-header');
       container.querySelector('.subpage-header-title').textContent = 'Private Settings';
-      const privateSections = new Set(['Default Search Engine', 'Privacy & Security', 'Browsing Preferences', 'About']);
+      const privateSections = new Set(['Default Search Engine', 'Privacy & Security', 'Browsing Preferences', 'Updates & Releases', 'About']);
       settingsContent.querySelectorAll(':scope > div').forEach(section => {
         if (!privateSections.has(section.querySelector('.subpage-section-title')?.textContent)) section.remove();
       });
@@ -3399,7 +3453,7 @@ export class InternalPages {
     const shortcuts = document.createElement('nav');
     shortcuts.className = 'settings-shortcuts';
     shortcuts.setAttribute('aria-label', 'Settings sections');
-    const sectionLabels = { 'Appearance & Customization': 'Appearance', 'Default Search Engine': 'Search', 'Privacy & Security': 'Privacy', 'Browsing Preferences': 'Browsing', 'AI Intelligence': 'AI', 'Connected Devices': 'Devices', 'Passwords & Data Import': 'Passwords & Data', 'About': 'About' };
+    const sectionLabels = { 'Appearance & Customization': 'Appearance', 'Default Search Engine': 'Search', 'Privacy & Security': 'Privacy', 'Browsing Preferences': 'Browsing', 'AI Intelligence': 'AI', 'Connected Devices': 'Devices', 'Passwords & Data Import': 'Passwords & Data', 'Updates & Releases': 'Updates', 'About': 'About' };
     settingsContent.querySelectorAll(':scope > div').forEach((section, index) => {
       const heading = section.querySelector('.subpage-section-title');
       if (!heading) return;
@@ -3637,6 +3691,57 @@ export class InternalPages {
         alert('Browsing data and cache cleared successfully.');
         if (onNavigate) onNavigate('ocal://home');
       }
+    });
+
+    // Updates & Release Catalog Listeners
+    container.querySelector('#settings-check-updates-row')?.addEventListener('click', async () => {
+      const btn = container.querySelector('#update-check-btn');
+      const sub = container.querySelector('#update-status-subtitle');
+      if (btn) {
+        btn.textContent = 'Checking...';
+        btn.classList.add('checking');
+      }
+      if (sub) sub.textContent = 'Connecting to GitHub Releases API...';
+
+      try {
+        const result = await UpdateManager.checkForUpdates(true);
+        if (btn) btn.classList.remove('checking');
+
+        if (result.hasUpdate && result.release) {
+          if (btn) {
+            btn.textContent = 'Update';
+            btn.classList.add('has-update');
+          }
+          if (sub) sub.textContent = `New version available: ${result.latestVersion}! Tap to update.`;
+          UpdateManager.showUpdateModal(result.release);
+        } else {
+          if (btn) {
+            btn.textContent = 'Latest';
+            btn.classList.remove('has-update');
+          }
+          if (sub) sub.textContent = `Installed v${UpdateManager.getAppVersion()} is the latest version.`;
+          window.ocalApp?.showToast?.(`Ocal Browser is up to date (v${UpdateManager.getAppVersion()})`, 'check');
+        }
+      } catch (err) {
+        if (btn) {
+          btn.classList.remove('checking');
+          btn.textContent = 'Retry';
+        }
+        if (sub) sub.textContent = 'Could not query GitHub. Tap to retry or open catalog.';
+        window.ocalApp?.showToast?.('Could not connect to GitHub Releases', 'error');
+      }
+    });
+
+    container.querySelector('#settings-release-catalog-row')?.addEventListener('click', () => {
+      UpdateManager.showCatalogModal();
+    });
+
+    container.querySelector('#toggle-auto-updates')?.addEventListener('change', (e) => {
+      UpdateManager.setAutoCheckEnabled(e.target.checked);
+      window.ocalApp?.showToast?.(
+        e.target.checked ? 'Automatic update checks enabled' : 'Automatic update checks turned off',
+        'info'
+      );
     });
 
     return container;

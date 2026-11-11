@@ -7,6 +7,7 @@ import { DownloadProgressIndicator } from './components/DownloadProgressIndicato
 import { ZenReader } from './components/ZenReader.js';
 import { syncClient } from './utils/SyncClient.js';
 import { applyAccent } from './utils/appearance.js';
+import { UpdateManager } from './utils/UpdateManager.js';
 
 // Anti-nesting guard: Never render duplicate browser chrome inside an iframe
 if (window.self !== window.top) {
@@ -167,6 +168,12 @@ class OcalMobileApp {
     this.syncNativeNavigationState();
     this.setupOverlayObserver();
     this.checkInitialPermissionsPrompt();
+
+    // 4.8 Automatic Background Update Check
+    window.UpdateManager = UpdateManager;
+    setTimeout(() => {
+      try { UpdateManager.initAutoCheck(this); } catch (e) { console.warn('Auto update check error', e); }
+    }, 2500);
   }
 
   bindUrlCapsuleEvents() {

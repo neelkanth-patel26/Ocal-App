@@ -24,8 +24,8 @@
   --capsule-muted: #8e8e93;
 
   /* Bottom Nav Bar (Frosted Glass Footer) */
-  --nav-bar-bg: #f2f3f5;
-  --nav-bar-border: rgba(0, 0, 0, 0.08);
+  --nav-bar-bg: #ffffff;
+  --nav-bar-border: transparent;
   --nav-icon-color: #000000;
   --nav-icon-muted: #666666;
 
@@ -127,7 +127,7 @@
   --capsule-muted: #9ba2af;
 
   --nav-bar-bg: #101114;
-  --nav-bar-border: rgba(255, 255, 255, 0.05);
+  --nav-bar-border: transparent;
   --nav-icon-color: #eef0f4;
   --nav-icon-muted: #929aa8;
 
