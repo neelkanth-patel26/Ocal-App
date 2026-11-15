@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#12150e">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="description" content="Ocal Browser Mobile Edition - Fast, Private, Elegant Mobile Browser">
@@ -11,19 +11,11 @@
 
   <link rel="icon" type="image/png" href="/assets/icon.png">
 
-  <!-- Typography -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-
-  <!-- FontAwesome 6 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
   <!-- Core Mobile Stylesheets -->
   <link rel="stylesheet" href="/src/styles/theme.css">
   <link rel="stylesheet" href="/src/styles/app.css">
 </head>
-<body>
+<body class="is-internal-page is-home-page">
 
   <div id="app-root">
     <!-- Edge Back Gesture Peek Layer (Reveals previous page from back) -->
@@ -43,38 +35,39 @@
     <!-- Bottom Dock: Two-Layer Architecture -->
     <div class="bottom-dock" id="bottom-dock">
 
-      <!-- Shield Popover Card (Matches Reference Screen 2) -->
+      <!-- Shield Popover Card (Material 3 Surface Container) -->
       <div class="shield-popover" id="shield-popover">
         <!-- Integrated Header -->
         <div class="shield-popover-header">
-          <div class="popover-nav-chevrons">
-            <i class="fas fa-chevron-left"></i>
-            <i class="fas fa-chevron-right"></i>
+          <div class="shield-popover-brand">
+            <span class="material-icons-round popover-shield-icon" aria-hidden="true">security</span>
+            <span class="shield-popover-domain" id="shield-popover-domain">dineinstyle.com</span>
           </div>
-          <span class="shield-popover-domain" id="shield-popover-domain">dineinstyle.com</span>
-          <div class="shield-popover-icons">
-            <i class="fas fa-microphone popover-mic-icon"></i>
-            <div class="popover-shield-badge active" id="popover-shield-badge">
-              <i class="fas fa-bolt"></i>
-            </div>
-          </div>
+          <span class="shield-status-pill" id="shield-status-pill">Active</span>
         </div>
 
         <!-- Inset Ad Blocker Stats Box -->
         <div class="shield-popover-body">
           <div class="shield-inset-box">
-            <button class="shield-power-toggle active" id="shield-power-toggle" title="Toggle Ad Filter">
-              <i class="fas fa-power-off"></i>
+            <button class="shield-power-toggle active" id="shield-power-toggle" type="button" aria-label="Toggle Ad Filter" title="Toggle Ad Filter">
+              <span class="material-icons-round">power_settings_new</span>
             </button>
             <div class="shield-stats-text">
-              <span class="shield-big-number" id="shield-popover-count">0</span>
+              <div class="shield-count-row">
+                <span class="shield-big-number" id="shield-popover-count">0</span>
+                <span class="shield-count-suffix">blocked</span>
+              </div>
               <span class="shield-label-text">Ads blocked on this site</span>
             </div>
           </div>
-          <p class="shield-hint-text">If this site appears broken, try turning off the Ad Filter.</p>
-          <button class="shield-advanced-btn" id="shield-popover-advanced">
+          <div class="shield-hint-row">
+            <span class="material-icons-round shield-hint-icon" aria-hidden="true">info_outline</span>
+            <p class="shield-hint-text">If this site appears broken, try turning off the Ad Filter.</p>
+          </div>
+          <button class="shield-advanced-btn" id="shield-popover-advanced" type="button">
+            <span class="material-icons-round">tune</span>
             <span>Advanced settings</span>
-            <i class="fas fa-chevron-down"></i>
+            <span class="material-icons-round shield-advanced-arrow">chevron_right</span>
           </button>
         </div>
       </div>
@@ -109,83 +102,92 @@
         <span class="brand-logo-text">Ocal</span>
       </div>
 
-      <!-- Layer 1: Floating URL Pill (Matches Reference Screen 1) -->
-      <div class="url-capsule-bar" id="url-capsule-bar">
-        <button class="capsule-nav-btn" id="nav-back" title="Back" disabled>
-          <i class="fas fa-chevron-left"></i>
-        </button>
-        <button class="capsule-nav-btn" id="nav-forward" title="Forward" disabled>
-          <i class="fas fa-chevron-right"></i>
-        </button>
-        <button class="capsule-nav-btn" id="nav-reload" title="Reload">
-          <i class="fas fa-rotate-right"></i>
-        </button>
-        <form class="capsule-url-field" id="capsule-url-form" action="javascript:void(0);">
-          <input type="text" class="capsule-url-input" id="omnibox-input" placeholder="Search or enter address" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
-        </form>
-        <button class="capsule-clear-btn" id="capsule-clear-btn" title="Clear">
-          <i class="fas fa-times-circle"></i>
-        </button>
-        <button class="capsule-icon-btn capsule-heart-btn" id="capsule-bookmark-btn" title="Bookmark page">
-          <svg class="heart-icon" id="capsule-bookmark-heart" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-        </button>
-        <button class="capsule-icon-btn" id="capsule-mic-btn" title="Voice Search">
-          <i class="fas fa-microphone"></i>
-        </button>
-        <!-- Circular Download Progress Ball (Safari/Chrome style % circle) -->
-        <button class="capsule-download-btn" id="capsule-download-btn" title="Downloads" style="display: none;" aria-label="Downloads">
-          <svg class="dl-ball-svg" viewBox="0 0 28 28" width="28" height="28">
-            <circle class="dl-ball-track" cx="14" cy="14" r="11" />
-            <circle class="dl-ball-fill" id="dl-ball-fill" cx="14" cy="14" r="11" stroke-dasharray="69.115" stroke-dashoffset="69.115" transform="rotate(-90 14 14)" />
-            <text class="dl-ball-text" id="dl-ball-text" x="14" y="14.2" text-anchor="middle" dominant-baseline="central">0%</text>
-            <path class="dl-ball-check" id="dl-ball-check" d="M9.5 14.2l3 3 6-6" style="display:none;" />
-          </svg>
-        </button>
-        <button class="capsule-icon-btn capsule-reader-btn" id="capsule-reader-btn" title="Zen Reader Mode" style="display: none;" aria-label="Zen Reader Mode">
-          <span>Aa</span>
-        </button>
-        <button class="capsule-shield-btn" id="capsule-shield-btn" title="CyberShield Ad Blocker">
-          <div class="shield-badge-dot" id="shield-badge-dot">
-            <i class="fas fa-bolt"></i>
-          </div>
-        </button>
-        <button class="capsule-cancel-btn" id="capsule-cancel-btn">Cancel</button>
+      <!-- Layer 1: Navigation Pill + Material 3 Search Capsule Row -->
+      <div class="dock-search-row" id="dock-search-row">
+        <!-- Separate Navigation Button Pill (Back, Forward, Reload) -->
+        <div class="dock-nav-pill" id="dock-nav-pill" role="group" aria-label="Navigation controls">
+          <button class="capsule-nav-btn" id="nav-back" title="Back" aria-label="Back" disabled>
+            <span class="material-icons-round" aria-hidden="true">chevron_left</span>
+          </button>
+          <button class="capsule-nav-btn" id="nav-forward" title="Forward" aria-label="Forward" disabled>
+            <span class="material-icons-round" aria-hidden="true">chevron_right</span>
+          </button>
+          <button class="capsule-nav-btn" id="nav-reload" title="Reload" aria-label="Reload">
+            <span class="material-icons-round" aria-hidden="true">refresh</span>
+          </button>
+        </div>
+
+        <!-- Clean, Uncluttered Material 3 Search Bar -->
+        <div class="url-capsule-bar" id="url-capsule-bar" role="search">
+          <span class="material-icons-round search-leading-icon" aria-hidden="true">search</span>
+          <form class="capsule-url-field" id="capsule-url-form" action="javascript:void(0);">
+            <input type="text" class="capsule-url-input" id="omnibox-input" placeholder="Search or enter address" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+          </form>
+          <button class="capsule-clear-btn" id="capsule-clear-btn" title="Clear" aria-label="Clear search">
+            <span class="material-icons-round" aria-hidden="true">close</span>
+          </button>
+          <button class="capsule-icon-btn capsule-heart-btn" id="capsule-bookmark-btn" title="Bookmark page" aria-label="Bookmark page" style="display: none;">
+            <span class="material-icons-round" id="capsule-bookmark-heart" aria-hidden="true">bookmark_border</span>
+          </button>
+          <button class="capsule-icon-btn" id="capsule-mic-btn" title="Voice Search" aria-label="Voice Search">
+            <span class="material-icons-round" aria-hidden="true">mic</span>
+          </button>
+          <!-- Circular Download Progress Ball (Safari/Chrome style % circle) -->
+          <button class="capsule-download-btn" id="capsule-download-btn" title="Downloads" style="display: none;" aria-label="Downloads">
+            <svg class="dl-ball-svg" viewBox="0 0 28 28" width="28" height="28">
+              <circle class="dl-ball-track" cx="14" cy="14" r="11" />
+              <circle class="dl-ball-fill" id="dl-ball-fill" cx="14" cy="14" r="11" stroke-dasharray="69.115" stroke-dashoffset="69.115" transform="rotate(-90 14 14)" />
+              <text class="dl-ball-text" id="dl-ball-text" x="14" y="14.2" text-anchor="middle" dominant-baseline="central">0%</text>
+              <path class="dl-ball-check" id="dl-ball-check" d="M9.5 14.2l3 3 6-6" style="display:none;" />
+            </svg>
+          </button>
+          <button class="capsule-icon-btn capsule-reader-btn" id="capsule-reader-btn" title="Zen Reader Mode" style="display: none;" aria-label="Zen Reader Mode">
+            <span>Aa</span>
+          </button>
+          <button class="capsule-shield-btn" id="capsule-shield-btn" title="CyberShield Ad Blocker" aria-label="CyberShield Ad Blocker" style="display: none;">
+            <div class="shield-badge-dot" id="shield-badge-dot">
+              <span class="material-icons-round" aria-hidden="true">security</span>
+            </div>
+          </button>
+          <button class="capsule-cancel-btn" id="capsule-cancel-btn">Cancel</button>
+        </div>
       </div>
 
-      <!-- Layer 2: Fixed Bottom Nav Bar (Matches Reference Icons: Clock, Pushpin, Plus, [20], Circle-Ellipsis) -->
-      <nav class="bottom-nav-bar" id="bottom-nav-bar">
-        <!-- Loading Progress Bar (Monochrome, on top of bottom navbar) -->
+      <!-- Layer 2: Material 3 Navigation Bar -->
+      <nav class="bottom-nav-bar" id="bottom-nav-bar" aria-label="Bottom Navigation">
+        <!-- Loading Progress Bar (Linear on top of M3 Navigation Bar) -->
         <div class="progress-bar-container">
           <div class="progress-bar" id="progress-bar"></div>
         </div>
         <button class="nav-icon-btn" id="nav-history" title="History" aria-label="History">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9.5"></circle>
-            <polyline points="12 7 12 12 15.5 14"></polyline>
-          </svg>
+          <div class="m3-nav-indicator">
+            <span class="material-icons-round" aria-hidden="true">history</span>
+          </div>
+          <span class="material-nav-label">History</span>
         </button>
-        <button class="nav-icon-btn" id="nav-bookmarks" title="Bookmarks" aria-label="Bookmarks">
-          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-          </svg>
+        <button class="nav-icon-btn" id="nav-bookmarks" title="Saved" aria-label="Saved">
+          <div class="m3-nav-indicator">
+            <span class="material-icons-round" aria-hidden="true">bookmark_border</span>
+          </div>
+          <span class="material-nav-label">Saved</span>
         </button>
-        <button class="nav-icon-btn nav-plus-btn" id="nav-new-tab" title="New Tab" aria-label="New Tab">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
+        <button class="nav-icon-btn nav-plus-btn" id="nav-new-tab" title="New tab" aria-label="New tab">
+          <div class="m3-nav-indicator active">
+            <span class="material-icons-round" aria-hidden="true">add</span>
+          </div>
+          <span class="material-nav-label">New tab</span>
         </button>
         <button class="nav-icon-btn" id="nav-tabs" title="Tabs" aria-label="Tabs">
-          <div class="tab-badge" id="tab-counter-badge">1</div>
+          <div class="m3-nav-indicator">
+            <div class="tab-badge" id="tab-counter-badge">1</div>
+          </div>
+          <span class="material-nav-label">Tabs</span>
         </button>
         <button class="nav-icon-btn" id="nav-menu" title="Menu" aria-label="Menu">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="5" cy="12" r="2"></circle>
-            <circle cx="12" cy="12" r="2"></circle>
-            <circle cx="19" cy="12" r="2"></circle>
-          </svg>
+          <div class="m3-nav-indicator">
+            <span class="material-icons-round" aria-hidden="true">more_horiz</span>
+          </div>
+          <span class="material-nav-label">Menu</span>
         </button>
       </nav>
     </div>
@@ -200,85 +202,28 @@
   <!-- Tabs Switcher Modal (Opera Flagship Tab Manager Layout with Ocal Monochrome Theme) -->
   <div class="tabs-tray-container" id="tabs-tray-container">
     <div class="tabs-tray-sheet" id="tabs-tray-sheet">
-      <div class="tabs-manager-heading">
-        <div><h2>Your tabs</h2><p id="tabs-manager-summary" aria-live="polite">Pick up where you left off</p></div>
-        <button class="subpage-action-btn" id="tabs-done-btn">Done</button>
-      </div>
-      <!-- Opera-Style Top Header: "Tabs" / "Private" text navigation with indicator underline & Search icon on right -->
+      <header class="tabs-manager-heading">
+        <div><div class="m-eyebrow">ROOM FOR EVERY CURIOSITY</div><h2>Your open world</h2><p id="tabs-manager-summary" aria-live="polite">Pick up where you left off</p></div>
+        <button class="subpage-action-btn" id="tabs-done-btn" aria-label="Return to browsing"><span class="material-icons-round" aria-hidden="true">close</span></button>
+      </header>
       <div class="opera-tabs-header">
-        <div class="opera-tabs-nav-group">
-          <button class="opera-tab-nav-btn active" id="tab-mode-normal" title="Normal Tabs">
-            <span class="opera-tab-nav-text">Tabs</span>
-            <span id="tabs-normal-count" class="tabs-mode-count">1</span>
-            <div class="opera-tab-nav-indicator"></div>
-          </button>
-          <button class="opera-tab-nav-btn" id="tab-mode-private" title="Private Browsing">
-            <span class="opera-tab-nav-text"><i class="fas fa-user-secret" style="font-size: 13px; margin-right: 5px;"></i>Private</span>
-            <span id="tabs-private-count" class="tabs-mode-count">0</span>
-            <div class="opera-tab-nav-indicator"></div>
-          </button>
-        </div>
-        <div class="opera-tabs-header-right">
-          <button class="opera-header-icon-btn" id="tabs-search-toggle-btn" title="Search open tabs">
-            <i class="fas fa-search"></i>
-          </button>
+        <div class="opera-tabs-nav-group" role="group" aria-label="Browsing mode">
+          <button class="opera-tab-nav-btn active" id="tab-mode-normal" title="Normal tabs"><span class="material-icons-round" aria-hidden="true">tab</span><span class="opera-tab-nav-text">Everyday</span><span id="tabs-normal-count" class="tabs-mode-count">1</span></button>
+          <button class="opera-tab-nav-btn" id="tab-mode-private" title="Private tabs"><span class="material-icons-round" aria-hidden="true">visibility_off</span><span class="opera-tab-nav-text">Private</span><span id="tabs-private-count" class="tabs-mode-count">0</span></button>
         </div>
       </div>
-
-      <!-- Quick Search Bar (Collapsible, toggled by search button) -->
-      <div class="tabs-search-container" id="tabs-search-container" style="display: none;">
-        <div class="tabs-search-box">
-          <i class="fas fa-search"></i>
-          <input type="text" class="tabs-search-input" id="tabs-search-input" placeholder="Search open tabs..." autocomplete="off">
-          <button class="tabs-search-clear-btn" id="tabs-search-clear-btn" title="Close Search">
-            <i class="fas fa-times"></i>
-          </button>
+      <div class="m-tabs-tools">
+        <div class="tabs-search-container" id="tabs-search-container">
+          <div class="tabs-search-box"><span class="material-icons-round" aria-hidden="true">search</span><input type="search" class="tabs-search-input" id="tabs-search-input" aria-label="Search open tabs" placeholder="Find an open tab" autocomplete="off"><button class="tabs-search-clear-btn" id="tabs-search-clear-btn" title="Clear search"><span class="material-icons-round" aria-hidden="true">close</span></button></div>
         </div>
+        <button class="opera-header-icon-btn" id="tabs-nav-view-mode" title="Switch to list view"><span class="material-icons-round" aria-hidden="true">view_list</span></button>
+        <button class="opera-header-icon-btn" id="tabs-nav-more" aria-label="Tab options" title="Tab options"><span class="material-icons-round" aria-hidden="true">more_vert</span></button>
       </div>
-
-      <!-- 2-Column Responsive Card Grid (Opera Layout) -->
-      <div class="tabs-carousel-wrapper" id="tabs-carousel-wrapper">
-        <div class="tabs-carousel" id="tabs-carousel"></div>
-      </div>
-
-      <!-- Opera-Style Floating Bottom Dock -->
+      <div class="m-tabs-section-label"><span>Pick up where you left off</span><span class="material-icons-round" aria-hidden="true">south</span></div>
+      <div class="tabs-carousel-wrapper" id="tabs-carousel-wrapper"><div class="tabs-carousel" id="tabs-carousel"></div></div>
       <div class="opera-tabs-bottom-dock" id="tabs-bottom-nav">
-        <div class="opera-dock-capsule">
-          <!-- 1. Layout / View Mode switcher (Opera Carousel Cards Icon) -->
-          <button class="opera-dock-btn" id="tabs-nav-view-mode" title="Change layout view">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="7" y="4" width="10" height="16" rx="2.5"></rect>
-              <line x1="3.5" y1="7.5" x2="3.5" y2="16.5"></line>
-              <line x1="20.5" y1="7.5" x2="20.5" y2="16.5"></line>
-            </svg>
-          </button>
-          <!-- 2. History -->
-          <button class="opera-dock-btn" id="tabs-nav-history" title="History" aria-label="History">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9.5"></circle>
-              <polyline points="12 7 12 12 15.5 14"></polyline>
-            </svg>
-          </button>
-          <!-- 3. Center Plus Button (Matches Home Page Plus) -->
-          <button class="opera-dock-btn nav-plus-btn" id="tabs-nav-new-tab" title="Open New Tab" aria-label="New Tab">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
-          <!-- 4. Tab Count Badge (Matches Home Page tab-badge) -->
-          <button class="opera-dock-btn opera-tab-counter-btn" id="tabs-nav-done" title="Close tabs tray" aria-label="Close tabs">
-            <div class="tab-badge" id="opera-tab-badge-count">1</div>
-          </button>
-          <!-- 5. More Menu Button -->
-          <button class="opera-dock-btn" id="tabs-nav-more" title="More options" aria-label="Menu">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="5" cy="12" r="2"></circle>
-              <circle cx="12" cy="12" r="2"></circle>
-              <circle cx="19" cy="12" r="2"></circle>
-            </svg>
-          </button>
-        </div>
+        <button class="m-tabs-history" id="tabs-nav-history"><span class="material-icons-round" aria-hidden="true">history</span>Recently visited</button>
+        <button class="m-tabs-new" id="tabs-nav-new-tab" aria-label="New tab"><span class="material-icons-round" aria-hidden="true">add</span><span>New tab</span></button>
       </div>
 
       <!-- Options Popover Menu in Tabs Tray -->

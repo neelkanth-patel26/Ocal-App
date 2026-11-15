@@ -50,26 +50,10 @@ export class TabManager {
   updateViewModeButtonIcon() {
     const btn = document.getElementById('tabs-nav-view-mode');
     if (!btn) return;
-    if (this.currentPreset === 'list') {
-      btn.title = "Switch to Grid View";
-      btn.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
-          <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
-          <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
-          <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
-        </svg>
-      `;
-    } else {
-      btn.title = "Switch to List View";
-      btn.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="7" y="4" width="10" height="16" rx="2.5"></rect>
-          <line x1="3.5" y1="7.5" x2="3.5" y2="16.5"></line>
-          <line x1="20.5" y1="7.5" x2="20.5" y2="16.5"></line>
-        </svg>
-      `;
-    }
+    const list = this.currentPreset === 'list';
+    btn.title = list ? 'Switch to grid view' : 'Switch to list view';
+    btn.setAttribute('aria-label', btn.title);
+    btn.innerHTML = `<span class="material-icons-round" aria-hidden="true">${list ? 'grid_view' : 'view_list'}</span>`;
   }
 
   closeAllTabs(targetMode = this.tabFilterMode) {
@@ -327,9 +311,13 @@ export class TabManager {
 
     if (targetUrl.startsWith('ocal://') || targetUrl.includes('dineinstyle.com')) {
       // Internal page
+      const isHome = targetUrl === 'ocal://home';
       document.documentElement.classList.remove('is-web-page');
       document.body.classList.remove('is-web-page');
+      document.documentElement.classList.add('is-internal-page');
       document.body.classList.add('is-internal-page');
+      document.documentElement.classList.toggle('is-home-page', isHome);
+      document.body.classList.toggle('is-home-page', isHome);
       tab.frameWrapperEl.innerHTML = '';
       tab.frameEl = null;
       if (window.OcalNative && tab.id === this.activeTabId) {
@@ -374,7 +362,8 @@ export class TabManager {
         if (tab.id === this.activeTabId) {
           document.documentElement.classList.add('is-web-page');
           document.body.classList.add('is-web-page');
-          document.body.classList.remove('is-internal-page');
+          document.body.classList.remove('is-internal-page', 'is-home-page');
+          document.documentElement.classList.remove('is-internal-page', 'is-home-page');
           if (typeof window.OcalNative.setDesktopMode === 'function') {
             window.OcalNative.setDesktopMode(!!tab.isDesktop, false);
           }
@@ -744,62 +733,27 @@ export class TabManager {
   }
 
   renderTabPreviewHtml(tab) {
-    const isDark = tab.isIncognito || document.documentElement.getAttribute('data-theme') === 'dark';
-
-    // 1. For Internal Pages (ocal://*): only show the icon for the page
+    if (tab.thumbnail?.startsWith('data:image/') && tab.url && !tab.url.startsWith('ocal://')) {
+      return `<div class="m-tab-snapshot"><img src="${escapeHtml(tab.thumbnail)}" alt="Page preview"></div>`;
+    }
     if (!tab.url || tab.url.startsWith('ocal://')) {
-      const isStartPage = !tab.url || tab.url === 'ocal://home' || tab.url === 'ocal://';
-      if (isStartPage) {
-        if (tab.isIncognito) {
-          return `
-            <div class="tab-icon-preview tab-icon-preview-private" aria-hidden="true">
-              <div class="tab-icon-preview-tile tab-icon-private-tile">
-                <i class="fas fa-user-secret"></i>
-              </div>
-            </div>
-          `;
-        }
-        return `
-          <div class="tab-icon-preview" aria-hidden="true">
-            <div class="tab-icon-preview-tile tab-icon-logo-tile">
-              <img src="${isDark ? '/assets/Dark.png' : '/assets/Light.png'}" alt="" class="tab-icon-preview-logo-img" />
-            </div>
-          </div>
-        `;
-      }
-      const info = this.getInternalPageInfo(tab.url || 'ocal://home');
-      return `
-        <div class="tab-icon-preview" aria-hidden="true">
-          <div class="tab-icon-preview-tile">
-            <i class="${info.icon}"></i>
-          </div>
-        </div>
-      `;
+      const key = (tab.url || 'ocal://home').replace('ocal://', '');
+      const previews = {
+        home: ['explore', 'Where to next?', 'Your space to explore'],
+        bookmarks: ['bookmarks', 'Saved places', 'Your personal collection'],
+        history: ['history', 'Retrace your steps', 'Your recent discoveries'],
+        settings: ['tune', 'Make it yours', 'Your browser, your way'],
+        downloads: ['download', 'Your downloads', 'Files in one place'],
+        sync: ['devices', 'Better, together', 'Connect your devices'],
+        passwords: ['key', 'Your logins', 'Your saved accounts'],
+        games: ['sports_esports', 'Take a break', 'A little change of pace'],
+      };
+      const [symbol, heading, caption] = tab.isIncognito && key === 'home' ? ['visibility_off', 'Just for now.', 'Your private space'] : previews[key] || ['widgets', this.getInternalPageInfo(tab.url).name, 'Your Ocal workspace'];
+      return `<div class="m-tab-internal ${key === 'home' ? 'm-tab-home' : ''}" aria-hidden="true"><span class="m-tab-mini-brand">OCAL</span><span class="m-tab-art material-icons-round">${symbol}</span><strong>${heading}</strong><span class="m-tab-mini-caption">${caption}</span><div class="m-tab-mini-line"></div><div class="m-tab-mini-dots"><span></span><span></span><span></span></div></div>`;
     }
-
-    // 2. External Web Pages (http:// or https://): only show the webicon
     let domain = '';
-    try {
-      domain = new URL(tab.url).hostname.replace(/^www\./i, '');
-    } catch {
-      domain = tab.url;
-    }
-
-    return `
-      <div class="tab-icon-preview tab-icon-preview-web" aria-hidden="true">
-        <div class="tab-icon-preview-tile tab-icon-web-tile">
-          <img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128"
-               class="tab-icon-web-img"
-               alt=""
-               onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
-               onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
-               style="display:none;" />
-          <div class="tab-icon-web-fallback">
-            <i class="fas fa-globe"></i>
-          </div>
-        </div>
-      </div>
-    `;
+    try { domain = new URL(tab.url).hostname.replace(/^www\./, ''); } catch { domain = tab.url; }
+    return `<div class="m-tab-web" aria-hidden="true"><span class="material-icons-round">language</span><strong>${escapeHtml(domain)}</strong><span>Web page</span></div>`;
   }
 
   renderTabsGrid(gridContainerEl, onSelect) {
@@ -916,7 +870,7 @@ export class TabManager {
       emptyDiv.innerHTML = `
         <div class="tabs-empty-private-icon"><i class="fas fa-user-secret"></i></div>
         <h3>Private Browsing</h3>
-        <p>Browsing history, search queries, and cookies are not kept when you browse privately in Ocal.</p>
+        <p>Open a separate browsing session. Saved bookmarks and downloads can remain on your device.</p>
         <button class="tabs-create-private-btn" id="tabs-create-first-private-btn">
           <i class="fas fa-plus"></i>
           <span>Open Private Tab</span>
@@ -1040,7 +994,7 @@ export class TabManager {
           <div class="tab-card-preview">${previewHtml}</div>
           <div class="tab-card-text">
             <span class="tab-card-title" title="${escapeHtml(displayTitle)}">${escapeHtml(displayTitle)}</span>
-            <span class="tab-card-domain">${escapeHtml(domainLabel)}</span>
+            <span class="tab-card-domain">${escapeHtml(domainLabel)}</span>${isActive ? '<span class="m-tab-current">Current tab</span>' : ''}
           </div>
           ${tab.isIncognito ? '<span class="tab-card-private-badge"><i class="fas fa-user-secret"></i> Private</span>' : ''}
         </div>

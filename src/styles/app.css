@@ -427,8 +427,15 @@ body.search-active .capsule-cancel-btn {
   display: flex;
 }
 
-body.search-active .bottom-nav-bar {
+body.search-active .bottom-nav-bar,
+body.keyboard-open-native .bottom-nav-bar {
   display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  pointer-events: none !important;
 }
 
 .capsule-nav-btn {

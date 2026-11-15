@@ -1,3 +1,5 @@
+import { renderMoreMenu } from './components/MenuUI.js';
+import './components/MaterialUI.js';
 // Ocal Browser Mobile - Reference Design Coordinator
 import { TabManager } from './components/TabManager.js';
 import { CyberShield } from './components/CyberShield.js';
@@ -6,7 +8,7 @@ import { DownloadsManager } from './components/DownloadsManager.js';
 import { DownloadProgressIndicator } from './components/DownloadProgressIndicator.js';
 import { ZenReader } from './components/ZenReader.js';
 import { syncClient } from './utils/SyncClient.js';
-import { applyAccent } from './utils/appearance.js';
+import { applyAccent, syncAdaptivePageTheme } from './utils/appearance.js';
 import { UpdateManager } from './utils/UpdateManager.js';
 
 // Anti-nesting guard: Never render duplicate browser chrome inside an iframe
@@ -75,11 +77,13 @@ class OcalMobileApp {
         document.documentElement.classList.toggle('is-private-tab', Boolean(activeTab.isIncognito));
         document.body.classList.toggle('is-private-tab', Boolean(activeTab.isIncognito));
 
-        const isWeb = activeTab.url && !activeTab.url.startsWith('ocal://');
+        const isWeb = Boolean(activeTab.url && !activeTab.url.startsWith('ocal://') && !activeTab.url.includes('dineinstyle.com'));
+        const isHome = !activeTab || !activeTab.url || activeTab.url === 'ocal://home';
         if (isWeb) {
           document.documentElement.classList.add('is-web-page');
           document.body.classList.add('is-web-page');
-          document.body.classList.remove('is-internal-page');
+          document.documentElement.classList.remove('is-internal-page', 'is-home-page');
+          document.body.classList.remove('is-internal-page', 'is-home-page');
           if (activeTab.thumbnail) {
             this.updateWebBgSnapshot(activeTab.thumbnail);
           } else if (window.OcalNative) {
@@ -89,10 +93,14 @@ class OcalMobileApp {
         } else {
           document.documentElement.classList.remove('is-web-page');
           document.body.classList.remove('is-web-page');
+          document.documentElement.classList.add('is-internal-page');
           document.body.classList.add('is-internal-page');
+          document.documentElement.classList.toggle('is-home-page', isHome);
+          document.body.classList.toggle('is-home-page', isHome);
         }
         this.updateStatusBarTheme();
         this.checkCurrentTabBookmarked();
+        this.syncBottomNavState(activeTab?.url);
 
         if (omniboxInput && document.activeElement !== omniboxInput) {
           if (activeTab.url === 'ocal://home') {
@@ -125,6 +133,16 @@ class OcalMobileApp {
           }
         }
         this.updateShieldStats(activeTab.blockedAdsCount || 0);
+
+        const shieldBtn = document.getElementById('capsule-shield-btn');
+        if (shieldBtn) {
+          shieldBtn.style.display = isWeb ? 'grid' : 'none';
+        }
+        const shieldPopover = document.getElementById('shield-popover');
+        if (shieldPopover && shieldPopover.classList.contains('visible')) {
+          shieldPopover.classList.remove('visible');
+          this.syncOverlayState();
+        }
       },
       onTabsCountChanged: (count) => {
         if (tabCounterBadge) tabCounterBadge.innerText = count;
@@ -199,6 +217,13 @@ class OcalMobileApp {
 
     const enterSearchMode = () => {
       document.body.classList.add('search-active');
+      const bottomNav = document.getElementById('bottom-nav-bar');
+      if (bottomNav) bottomNav.style.setProperty('display', 'none', 'important');
+      const shieldPopover = document.getElementById('shield-popover');
+      if (shieldPopover && shieldPopover.classList.contains('visible')) {
+        shieldPopover.classList.remove('visible');
+        this.syncOverlayState();
+      }
       const activeTab = this.tabManager.getActiveTab();
       const thumb = (activeTab && activeTab.thumbnail) || (window.OcalNative ? window.OcalNative.getLastTabThumbnail() : '') || '';
       if (thumb) {
@@ -355,6 +380,12 @@ class OcalMobileApp {
       document.body.classList.remove('search-active');
       document.body.classList.remove('keyboard-open');
       document.documentElement.style.removeProperty('--keyboard-offset');
+      const bottomNav = document.getElementById('bottom-nav-bar');
+      if (bottomNav) bottomNav.style.removeProperty('display');
+      const shieldPopover = document.getElementById('shield-popover');
+      if (shieldPopover && shieldPopover.classList.contains('visible')) {
+        shieldPopover.classList.remove('visible');
+      }
       suggestionsDropdown.classList.remove('visible');
       suggestionsDropdown.innerHTML = '';
       clearBtn?.classList.remove('visible');
@@ -380,6 +411,7 @@ class OcalMobileApp {
       this.syncOverlayState();
       setTimeout(() => this.syncDockLayout && this.syncDockLayout(), 100);
     };
+    this.exitSearchMode = exitSearchMode;
 
     let isNavigating = false;
     const handleNavigation = () => {
@@ -656,12 +688,17 @@ class OcalMobileApp {
   updateShieldStats(count) {
     const popoverCount = document.getElementById('shield-popover-count');
     const badgeDot = document.getElementById('shield-badge-dot');
+    const statusPill = document.getElementById('shield-status-pill');
     const activeTab = this.tabManager?.getActiveTab();
     const isInternal = !activeTab || !activeTab.url || activeTab.url.startsWith('ocal://');
     const displayCount = isInternal ? 0 : (typeof count === 'number' ? count : (activeTab?.blockedAdsCount || 0));
 
     if (popoverCount) {
       popoverCount.innerText = String(displayCount);
+    }
+    if (statusPill) {
+      statusPill.textContent = this.adFilterEnabled ? 'Active' : 'Paused';
+      statusPill.classList.toggle('paused', !this.adFilterEnabled);
     }
     if (badgeDot) {
       if (displayCount > 0 && this.adFilterEnabled) {
@@ -762,14 +799,16 @@ class OcalMobileApp {
       this.openCyberShieldSheet();
     });
 
-    document.addEventListener('click', (e) => {
+    const closeShieldOnOutside = (e) => {
       if (!e.target.closest('#shield-popover') && !e.target.closest('#capsule-shield-btn')) {
         if (popover?.classList.contains('visible')) {
           popover.classList.remove('visible');
           this.syncOverlayState();
         }
       }
-    });
+    };
+    document.addEventListener('click', closeShieldOnOutside);
+    document.addEventListener('pointerdown', closeShieldOnOutside);
   }
 
   bindTabsTray() {
@@ -783,6 +822,11 @@ class OcalMobileApp {
     const moreBtn = document.getElementById('tabs-nav-more');
 
     backdrop?.addEventListener('click', () => {
+      this.closeTabsTray();
+    });
+
+    document.getElementById('tabs-nav-new-tab')?.addEventListener('click', () => {
+      this.tabManager.createTab('ocal://home', this.tabManager.tabFilterMode === 'private');
       this.closeTabsTray();
     });
 
@@ -823,8 +867,8 @@ class OcalMobileApp {
     });
 
     searchClearBtn?.addEventListener('click', () => {
-      if (searchContainer) searchContainer.style.display = 'none';
-      if (searchInput) searchInput.value = '';
+      if (searchContainer) searchContainer.style.display = 'block';
+      if (searchInput) { searchInput.value = ''; searchInput.focus(); }
       const carousel = document.getElementById('tabs-carousel');
       if (carousel) this.tabManager?.renderTabsGrid(carousel);
     });
@@ -900,7 +944,9 @@ class OcalMobileApp {
       if (popover) popover.style.display = 'none';
       const active = this.tabManager.getActiveTab();
       if (active) {
-        this.tabManager.tabs = this.tabManager.tabs.filter(t => t.id === active.id);
+        const privateMode = this.tabManager.tabFilterMode === 'private';
+        const inactiveIds = this.tabManager.tabs.filter(t => t.id !== active.id && Boolean(t.isIncognito) === privateMode).map(t => t.id);
+        inactiveIds.forEach(id => this.tabManager.closeTab(id));
         this.tabManager.notifyTabsCount();
         const carousel = document.getElementById('tabs-carousel');
         if (carousel) this.tabManager.renderTabsGrid(carousel);
@@ -960,6 +1006,7 @@ class OcalMobileApp {
       if (searchInput) searchInput.value = '';
       tray.classList.add('visible');
       if (mainTabBadge) mainTabBadge.classList.add('active');
+      this.syncBottomNavState(this.tabManager?.getActiveTab()?.url);
 
       setTimeout(() => {
         const activeCard = carousel.querySelector('.tab-card.active, .tab-list-row.active');
@@ -976,6 +1023,7 @@ class OcalMobileApp {
     const mainTabBadge = document.getElementById('tab-counter-badge');
     tray?.classList.remove('visible');
     if (mainTabBadge) mainTabBadge.classList.remove('active');
+    this.syncBottomNavState(this.tabManager?.getActiveTab()?.url);
     if (window.OcalNative && typeof window.OcalNative.setOverlayOpen === 'function') {
       window.OcalNative.setOverlayOpen(false);
     }
@@ -1113,253 +1161,8 @@ class OcalMobileApp {
     const currentUrl = activeTab?.url || '';
     const isInternal = currentUrl.startsWith('ocal://');
 
-    const MENU_ICONS = {
-      bookmark: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
-      history: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-      games: `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="4"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="15" cy="11" r="1" fill="currentColor"/><circle cx="18" cy="13" r="1" fill="currentColor"/></svg>`,
-      shield: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>`,
-      share: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`,
-      incognito: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10s3-4 10-4 10 4 10 4"/><circle cx="7" cy="15" r="3"/><circle cx="17" cy="15" r="3"/><path d="m14 15-4 0"/></svg>`,
-      download: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
-      key: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 2.5 2.5"/><path d="m18.5 4.5 2.5 2.5"/></svg>`,
-      sync: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
-      copilot: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg>`,
-      desktop: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
-      theme: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>`,
-      reload: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>`,
-      reader: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
-      settings: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>`,
-      chevron: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
-      close: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
-    };
-
     if (sheet) {
-      sheet.innerHTML = `
-        <div class="sheet-handle-bar"><div class="sheet-handle"></div></div>
-        <div class="sheet-header">
-          <div class="sheet-title" style="font-size: 16px; font-weight: 700; letter-spacing: -0.015em;">Menu</div>
-          <button class="sheet-close-pill" id="menu-close-btn" title="Close">
-            ${MENU_ICONS.close}
-          </button>
-        </div>
-        <div class="sheet-content">
-          <!-- 4-Item Compact Quick Action Grid (Pure Monochrome) -->
-          <div class="apple-menu-grid">
-            <div class="apple-menu-card" id="menu-bookmarks">
-              <div class="apple-menu-icon menu-icon-mono">
-                ${MENU_ICONS.bookmark}
-              </div>
-              <span class="apple-menu-label">Bookmarks</span>
-            </div>
-            <div class="apple-menu-card" id="menu-history">
-              <div class="apple-menu-icon menu-icon-mono">
-                ${MENU_ICONS.history}
-              </div>
-              <span class="apple-menu-label">History</span>
-            </div>
-            <div class="apple-menu-card" id="menu-games">
-              <div class="apple-menu-icon menu-icon-mono">
-                ${MENU_ICONS.games}
-              </div>
-              <span class="apple-menu-label">Games</span>
-            </div>
-            <div class="apple-menu-card" id="menu-shield">
-              <div class="apple-menu-icon menu-icon-mono">
-                ${MENU_ICONS.shield}
-              </div>
-              <span class="apple-menu-label">CyberShield</span>
-            </div>
-          </div>
-
-          <!-- Core Features Section (Image 2 Reference Style: Private, AD Blocker, AI Power) -->
-          <div class="apple-grouped-table" style="margin-top: 2px; margin-bottom: 12px;">
-            <div class="apple-grouped-row" id="menu-quick-private-row">
-              <div class="apple-row-icon mono-item">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                  <defs>
-                    <mask id="menu-quick-private-mask">
-                      <rect x="0" y="0" width="24" height="24" fill="#ffffff"/>
-                      <rect x="9" y="9.5" width="6" height="5" rx="1.2" fill="#000000"/>
-                      <path d="M10.2 9.5V7.8a1.8 1.8 0 0 1 3.6 0v1.7" stroke="#000000" stroke-width="1.5" fill="none"/>
-                      <circle cx="12" cy="12" r="0.75" fill="#ffffff"/>
-                    </mask>
-                  </defs>
-                  <path d="M20 3H4C2.9 3 2 3.9 2 5v10c0 1.1.9 2 2 2h3v4l4.5-4H20c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" mask="url(#menu-quick-private-mask)"/>
-                </svg>
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title" style="font-size: 15.5px; font-weight: 600;">Private</div>
-              </div>
-              <div class="status-check-badge ${isIncognito ? '' : 'inactive'}" id="badge-quick-private" title="Private Mode">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-            </div>
-
-            <div class="apple-grouped-row" id="menu-quick-adblock-row">
-              <div class="apple-row-icon mono-item">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="9.5" stroke="currentColor" stroke-width="1.8"/>
-                  <text x="12" y="15" text-anchor="middle" font-size="8.5" font-weight="800" fill="currentColor" font-family="-apple-system, BlinkMacSystemFont, sans-serif" letter-spacing="-0.5px">AD</text>
-                  <line x1="4.5" y1="4.5" x2="19.5" y2="19.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title" style="font-size: 15.5px; font-weight: 600;">AD Blocker</div>
-              </div>
-              <div class="status-check-badge ${isAdBlockActive ? '' : 'inactive'}" id="badge-quick-adblock" title="Toggle AD Blocker">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-            </div>
-
-            <div class="apple-grouped-row" id="menu-quick-aipower-row">
-              <div class="apple-row-icon mono-item">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M5 8.5C5.8 8.5 6.5 7.8 6.5 7C6.5 6.2 7.2 5.5 8 5.5C7.2 5.5 6.5 4.8 6.5 4C6.5 3.2 5.8 2.5 5 2.5C4.2 2.5 3.5 3.2 3.5 4C3.5 4.8 2.8 5.5 2 5.5C2.8 5.5 3.5 6.2 3.5 7C3.5 7.8 4.2 8.5 5 8.5Z"/>
-                  <path d="M19.7 4.3a2.5 2.5 0 0 0-3.5 0l-3 3 3.5 3.5 3-3a2.5 2.5 0 0 0 0-3.5z"/>
-                  <path d="M11.8 8.7 4.2 16.3a1 1 0 0 0-.27.53L3.1 20a.6.6 0 0 0 .7.7l3.2-.83a1 1 0 0 0 .53-.27l7.6-7.6-3.33-3.3z"/>
-                </svg>
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title" style="font-size: 15.5px; font-weight: 600;">AI Power</div>
-              </div>
-              <div class="status-check-badge" id="badge-quick-aipower" title="Launch Ocal Copilot AI">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section 1: Page & Navigation Actions -->
-          <div class="apple-grouped-table" style="margin-top: 4px;">
-            <div class="apple-grouped-row" id="menu-share-row">
-              <div class="apple-row-icon mono-item">
-                ${MENU_ICONS.share}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">Share Page</div>
-                <div class="apple-row-subtitle">${isInternal ? 'Share Ocal Browser' : (activeTab?.title || 'Send or copy link')}</div>
-              </div>
-              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
-            </div>
-            <div class="apple-grouped-row" id="menu-incognito-row">
-              <div class="apple-row-icon mono-item">
-                ${MENU_ICONS.incognito}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">New Private Tab</div>
-                <div class="apple-row-subtitle">Private browsing with zero history</div>
-              </div>
-              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
-            </div>
-            <div class="apple-grouped-row" id="menu-reload-row">
-              <div class="apple-row-icon mono-item">
-                ${MENU_ICONS.reload}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">Reload Page</div>
-                <div class="apple-row-subtitle">Refresh current web page</div>
-              </div>
-              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
-            </div>
-            <div class="apple-grouped-row" id="menu-reader-mode-row">
-              <div class="apple-row-icon mono-item">
-                ${MENU_ICONS.reader}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">Zen Reader Mode</div>
-                <div class="apple-row-subtitle">Distraction-free reading &amp; voice audio</div>
-              </div>
-              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
-            </div>
-            <div class="apple-grouped-row" style="cursor: default;">
-              <div class="apple-row-icon mono-item">
-                ${MENU_ICONS.desktop}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">Desktop Website</div>
-                <div class="apple-row-subtitle">Request desktop version of site</div>
-              </div>
-              <label class="toggle-switch" style="margin-left: auto;">
-                <input type="checkbox" id="toggle-desktop-site" ${isDesktop ? 'checked' : ''}>
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Section 2: Tools & Storage -->
-          <div class="apple-grouped-table" style="margin-top: 10px;">
-            <div class="apple-grouped-row" id="menu-copilot-row">
-              <div class="apple-row-icon mono-copilot">
-                ${MENU_ICONS.copilot}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">Ocal Copilot</div>
-                <div class="apple-row-subtitle">AI-powered page assistant</div>
-              </div>
-              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
-            </div>
-            <div class="apple-grouped-row" id="menu-downloads-row">
-              <div class="apple-row-icon mono-item">
-                ${MENU_ICONS.download}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">Downloads</div>
-                <div class="apple-row-subtitle">File progress, sizes &amp; storage</div>
-              </div>
-              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
-            </div>
-            <div class="apple-grouped-row" id="menu-passwords-row">
-              <div class="apple-row-icon mono-item">
-                ${MENU_ICONS.key}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">Passwords &amp; Logins</div>
-                <div class="apple-row-subtitle">Saved credentials &amp; import</div>
-              </div>
-              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
-            </div>
-            <div class="apple-grouped-row" id="menu-sync-row">
-              <div class="apple-row-icon mono-copilot">
-                ${MENU_ICONS.sync}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">Ocal Connect &amp; Sync</div>
-                <div class="apple-row-subtitle">Pair with PC, clipboard &amp; tabs</div>
-              </div>
-              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
-            </div>
-          </div>
-
-          <!-- Section 3: Appearance & Preferences -->
-          <div class="apple-grouped-table" style="margin-top: 10px;">
-            <div class="apple-grouped-row" id="menu-theme-row">
-              <div class="apple-row-icon mono-item">
-                ${MENU_ICONS.theme}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">Appearance Theme</div>
-                <div class="apple-row-subtitle">Current: ${currentTheme.toUpperCase()} mode</div>
-              </div>
-              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
-            </div>
-            <div class="apple-grouped-row" id="menu-settings-row">
-              <div class="apple-row-icon mono-item">
-                ${MENU_ICONS.settings}
-              </div>
-              <div class="apple-row-content">
-                <div class="apple-row-title">${isIncognito ? 'Private Settings' : 'Settings'}</div>
-                <div class="apple-row-subtitle">${isIncognito ? 'Private appearance &amp; browsing preferences' : 'Search engine, privacy &amp; data'}</div>
-              </div>
-              <div class="apple-row-chevron">${MENU_ICONS.chevron}</div>
-            </div>
-          </div>
-        </div>
-      `;
+      sheet.innerHTML = renderMoreMenu({ isIncognito, isAdBlockActive, isDesktop, currentTheme, activeTab, isInternal });
 
       const menuCloseBtn = sheet.querySelector('#menu-close-btn');
       menuCloseBtn?.addEventListener('click', (e) => {
@@ -1400,7 +1203,9 @@ class OcalMobileApp {
         if (this.cyberShield) {
           const nextState = !this.cyberShield.settings.adBlocker;
           this.cyberShield.settings.adBlocker = nextState;
-          this.cyberShield.saveSettings();
+          this.cyberShield.updateSetting('adBlocker', nextState);
+          e.currentTarget.setAttribute('aria-checked', String(nextState));
+          sheet.querySelector('#menu-adblock-state').textContent = nextState ? 'Filtering is on' : 'Filtering is off';
           const badge = sheet.querySelector('#badge-quick-adblock');
           if (badge) {
             badge.classList.toggle('inactive', !nextState);
@@ -1464,6 +1269,7 @@ class OcalMobileApp {
         const next = currentTheme === 'light' ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('ocal-theme', next);
+        applyAccent();
         this.updateStatusBarTheme(next === 'dark');
         this.tabManager?.syncThemeToTabs(next === 'dark');
         this.closeAllSheets();
@@ -1806,6 +1612,8 @@ class OcalMobileApp {
       localStorage.setItem(storageKey, JSON.stringify(bookmarks));
       if (heartBtn) {
         heartBtn.classList.remove('is-bookmarked');
+        const icon = heartBtn.querySelector('#capsule-bookmark-heart, .material-icons-round');
+        if (icon) icon.textContent = 'bookmark_border';
       }
       this.showToast(isIncognito ? 'Removed from Private Bookmarks' : 'Removed from Bookmarks', 'heart-off');
     } else {
@@ -1822,6 +1630,8 @@ class OcalMobileApp {
       localStorage.setItem(storageKey, JSON.stringify(bookmarks));
       if (heartBtn) {
         heartBtn.classList.add('is-bookmarked');
+        const icon = heartBtn.querySelector('#capsule-bookmark-heart, .material-icons-round');
+        if (icon) icon.textContent = 'bookmark';
         heartBtn.classList.add('heart-pop');
         setTimeout(() => heartBtn.classList.remove('heart-pop'), 450);
       }
@@ -1836,18 +1646,24 @@ class OcalMobileApp {
     const activeTab = this.tabManager?.getActiveTab();
     const heartBtn = document.getElementById('capsule-bookmark-btn');
     const readerBtn = document.getElementById('capsule-reader-btn');
-    const isWeb = Boolean(activeTab && activeTab.url && !activeTab.url.startsWith('ocal://'));
+    const isWeb = Boolean(activeTab && activeTab.url && !activeTab.url.startsWith('ocal://') && !activeTab.url.includes('dineinstyle.com'));
 
     if (readerBtn) {
-      readerBtn.style.display = isWeb ? 'inline-flex' : 'none';
+      readerBtn.classList.toggle('visible', isWeb);
+      readerBtn.style.display = isWeb ? 'grid' : 'none';
     }
 
     if (!heartBtn) return;
 
+    const icon = heartBtn.querySelector('#capsule-bookmark-heart, .material-icons-round');
     if (!activeTab || !activeTab.url || !isWeb) {
-      heartBtn.classList.remove('is-bookmarked');
+      heartBtn.classList.remove('is-bookmarked', 'visible');
+      if (icon) icon.textContent = 'bookmark_border';
+      heartBtn.style.display = 'none';
       return;
     }
+    heartBtn.classList.add('visible');
+    heartBtn.style.display = 'grid';
 
     const storageKey = activeTab.isIncognito ? 'ocal-private-bookmarks' : 'ocal-bookmarks';
     let bookmarks = [];
@@ -1860,8 +1676,32 @@ class OcalMobileApp {
     const isSaved = bookmarks.some(b => b.url === activeTab.url);
     if (isSaved) {
       heartBtn.classList.add('is-bookmarked');
+      if (icon) icon.textContent = 'bookmark';
     } else {
       heartBtn.classList.remove('is-bookmarked');
+      if (icon) icon.textContent = 'bookmark_border';
+    }
+  }
+
+  syncBottomNavState(url) {
+    const isTrayOpen = Boolean(document.getElementById('tabs-tray-container')?.classList.contains('visible'));
+    const isHistory = Boolean(url && url.startsWith('ocal://history'));
+    const isBookmarks = Boolean(url && url.startsWith('ocal://bookmarks'));
+    const isHome = Boolean(!url || url.startsWith('ocal://home'));
+
+    const states = {
+      'nav-history': isHistory,
+      'nav-bookmarks': isBookmarks,
+      'nav-new-tab': !isTrayOpen && (isHome || (!isHistory && !isBookmarks)),
+      'nav-tabs': isTrayOpen
+    };
+
+    for (const [id, isActive] of Object.entries(states)) {
+      const btn = document.getElementById(id);
+      const indicator = btn?.querySelector('.m3-nav-indicator');
+      if (indicator) {
+        indicator.classList.toggle('active', isActive);
+      }
     }
   }
 
@@ -2106,6 +1946,10 @@ class OcalMobileApp {
           this.tabManager?.setTabThumbnail(event.tabId, event.url, event.thumbnail);
           this.updateWebBgSnapshot(event.thumbnail);
         }
+      } else if (event.type === 'PAGE_THEME_COLOR') {
+        if (event.url) {
+          syncAdaptivePageTheme(event.url);
+        }
       } else if (event.type === 'PROGRESS') {
         const bar = document.getElementById('progress-bar');
         if (bar) {
@@ -2172,13 +2016,10 @@ class OcalMobileApp {
     if (isIncognito) {
       bgColor = '#000000';
       isStatusDark = true; // Use light status bar icons for high contrast on black
-    } else if (isDarkMode) {
-      bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-main').trim() || '#101114';
-      isStatusDark = true;
     } else {
-      const isInternalSubpage = activeTab && activeTab.url?.startsWith('ocal://') && activeTab.url !== 'ocal://home';
-      bgColor = isInternalSubpage ? '#f2f2f7' : '#ffffff';
-      isStatusDark = false;
+      const rootBg = getComputedStyle(document.documentElement).getPropertyValue('--bg-main').trim();
+      bgColor = rootBg || (isDarkMode ? '#12150e' : '#f8faef');
+      isStatusDark = isDarkMode;
     }
 
     let metaTheme = document.querySelector('meta[name="theme-color"]');

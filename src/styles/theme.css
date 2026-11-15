@@ -1,217 +1,242 @@
-/* Ocal Mobile Design Tokens - Reference Mockup Precision (Pure Solids, No Gradients) */
+/* Material 3 color roles. Legacy aliases keep browser modules on one palette. */
 :root {
-  /* Default to Light Mode (matching the reference mockups) */
-  --bg-main: #ffffff;
-  --bg-surface: #ffffff;
-  --bg-elevated: #f4f5f8;
-  --bg-secondary: #e5e8ee;
-  --bg-hover: rgba(0, 0, 0, 0.05);
-  --bg-active: rgba(0, 0, 0, 0.08);
-  --bg-input: #f2f3f7;
-
-  /* Glass & Card Surfaces */
-  --glass-bg: rgba(255, 255, 255, 0.96);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-border-subtle: rgba(0, 0, 0, 0.05);
-  --glass-shadow: none;
-  --glass-blur: blur(24px);
-
-  /* URL Capsule Bar (Frosted Glass) */
-  --capsule-bg: rgba(255, 255, 255, 0.82);
-  --capsule-border: rgba(255, 255, 255, 0.65);
-  --capsule-shadow: none;
-  --capsule-text: #000000;
-  --capsule-muted: #8e8e93;
-
-  /* Bottom Nav Bar (Frosted Glass Footer) */
-  --nav-bar-bg: #ffffff;
-  --nav-bar-border: transparent;
-  --nav-icon-color: #000000;
-  --nav-icon-muted: #666666;
-
-  /* Shield Popover Card (Frosted Glass) */
-  --popover-bg: rgba(255, 255, 255, 0.90);
-  --popover-border: rgba(255, 255, 255, 0.75);
-  --popover-shadow: 0 16px 44px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
-  --popover-text: #000000;
-  --popover-muted: #8e8e93;
-  --popover-inset-bg: rgba(244, 245, 248, 0.85);
-  --popover-inset-border: rgba(0, 0, 0, 0.05);
-
-  /* Tabs Tray Drawer (Frosted Glass) */
-  --tabs-tray-bg: rgba(255, 255, 255, 0.82);
-  --tabs-card-bg: rgba(255, 255, 255, 0.92);
-  --tabs-card-border: rgba(0, 0, 0, 0.08);
-  --tabs-card-shadow: none;
-  --tabs-search-bg: rgba(0, 0, 0, 0.05);
-
-  /* Sheet Modals (Frosted Glass) */
-  --sheet-bg: rgba(255, 255, 255, 0.90);
-  --sheet-border: rgba(0, 0, 0, 0.07);
-  --sheet-card-bg: rgba(246, 247, 249, 0.85);
-  --sheet-card-border: rgba(0, 0, 0, 0.05);
-  --sheet-card-hover: rgba(240, 242, 246, 0.95);
-  --handle-color: rgba(0, 0, 0, 0.20);
-
-  /* Subpages (Apple Settings Inset Grouped Theme) */
-  --subpage-bg: #f2f2f7;
-  --subpage-card-bg: #ffffff;
-  --subpage-card-border: rgba(0, 0, 0, 0.04);
-
-  /* Typography */
-  --text-main: #000000;
-  --text-muted: #555555;
-  --text-subtle: #8e8e93;
-  --wordmark-color: #000000;
-
-  /* Accent Colors (Default: Classic Solid Monochrome) */
-  --accent-primary: #000000;
-  --accent-primary-hover: #18181b;
-  --accent-subtle: rgba(0, 0, 0, 0.07);
-  --accent-border: rgba(0, 0, 0, 0.18);
-  --on-accent: #ffffff;
-
-  /* Global Glass Blur Density - Disabled by default (0px pure solid colors) */
-  --app-blur-val: 0px;
-  --dock-blur-val: var(--app-blur-val, 0px);
-  --capsule-blur-val: var(--app-blur-val, 0px);
-  --sheet-blur-val: var(--app-blur-val, 0px);
-  --popover-blur-val: var(--app-blur-val, 0px);
-
-  --apple-blue: #0a84ff;
-  --apple-green: #34c759;
-  --apple-orange: #ff9500;
-  --apple-red: #ff3b30;
-  --apple-purple: #af52de;
-
-  --danger: #ff3b30;
-  --danger-subtle: rgba(255, 59, 48, 0.12);
-  --warning: #ff9500;
-  --info: #0a84ff;
-
-  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  --font-mono: "Space Mono", monospace;
-
-  --radius-xs: 8px;
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 20px;
-  --radius-xl: 26px;
-  --radius-full: 9999px;
-
+  --md-sys-color-primary: #526534;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #d5e8ad;
+  --md-sys-color-on-primary-container: #172800;
+  --md-sys-color-surface: #f8faef;
+  --md-sys-color-surface-container: #edefe3;
+  --md-sys-color-surface-container-high: #e6e9dd;
+  --md-sys-color-on-surface: #1b1c17;
+  --md-sys-color-on-surface-variant: #45483d;
+  --md-sys-color-outline: #75796b;
+  --md-sys-color-outline-variant: #c5c9b8;
+  --md-sys-color-error: #ba1a1a;
+  --font-sans: 'Roboto', system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
+  --radius-xs: 8px; --radius-sm: 12px; --radius-md: 16px;
+  --radius-lg: 24px; --radius-xl: 28px; --radius-full: 9999px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-
-  --transition-fast: 0.15s cubic-bezier(0.25, 1, 0.5, 1);
-  --transition-normal: 0.28s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-[data-theme="dark"] {
-  --bg-main: #101114;
-  --bg-surface: #17191e;
-  --bg-elevated: #202329;
-  --bg-secondary: #282c33;
-  --bg-hover: rgba(255, 255, 255, 0.08);
-  --bg-active: rgba(255, 255, 255, 0.12);
-  --bg-input: #1b1e24;
-
-  --glass-bg: rgba(0, 0, 0, 0.96);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-subtle: rgba(255, 255, 255, 0.05);
-  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.8);
-
-  --capsule-bg: #1b1e24;
-  --capsule-border: rgba(255, 255, 255, 0.08);
-  --capsule-shadow: none;
-  --capsule-text: #eef0f4;
-  --capsule-muted: #9ba2af;
-
-  --nav-bar-bg: #101114;
-  --nav-bar-border: transparent;
-  --nav-icon-color: #eef0f4;
-  --nav-icon-muted: #929aa8;
-
-  --popover-bg: #17191e;
-  --popover-border: rgba(255, 255, 255, 0.09);
-  --popover-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);
-  --popover-text: #eef0f4;
-  --popover-muted: #9ba2af;
-  --popover-inset-bg: #202329;
-  --popover-inset-border: rgba(255, 255, 255, 0.06);
-
-  --tabs-tray-bg: #101114;
-  --tabs-card-bg: #202329;
-  --tabs-card-border: rgba(255, 255, 255, 0.08);
-  --tabs-card-shadow: none;
-  --tabs-search-bg: #202329;
-
-  --sheet-bg: #17191e;
-  --sheet-border: rgba(255, 255, 255, 0.09);
-  --sheet-card-bg: #202329;
-  --sheet-card-border: rgba(255, 255, 255, 0.07);
-  --sheet-card-hover: #2a2e36;
-  --handle-color: rgba(255, 255, 255, 0.22);
-
-  /* Subpages (Apple Settings Dark Inset Grouped) */
-  --subpage-bg: #101114;
-  --subpage-card-bg: #1b1e24;
-  --subpage-card-border: rgba(255, 255, 255, 0.06);
-
-  --text-main: #eef0f4;
-  --text-muted: #a1a1aa;
-  --text-subtle: #929aa8;
-  --wordmark-color: #eef0f4;
-
-  --status-success: #00d665;
-  --apple-green: #00d665;
-
-  /* Accent Colors (Solid Monochrome Dark Theme) */
-  --accent-primary: #ffffff;
-  --accent-primary-hover: #e4e4e7;
-  --accent-subtle: rgba(255, 255, 255, 0.12);
-  --accent-border: rgba(255, 255, 255, 0.20);
-  --on-accent: #000000;
-}
-
-/* Subtle surface hierarchy; existing geometry remains unchanged. */
-:root {
-  --text-muted: #525663;
-  --text-subtle: #6f7380;
-  --subpage-bg: #f3f4f7;
-  --subpage-card-border: rgba(28, 35, 52, 0.08);
-  --border-subtle: var(--glass-border-subtle);
-  --border-medium: var(--glass-border);
+  --motion-standard: cubic-bezier(.2, 0, 0, 1);
+  --motion-emphasized: cubic-bezier(.2, .8, .2, 1);
+  --transition-fast: 180ms var(--motion-standard);
+  --transition-normal: 350ms var(--motion-emphasized);
+  --app-blur-val: 0px; --dock-blur-val: 0px; --capsule-blur-val: 0px;
+  --sheet-blur-val: 0px; --popover-blur-val: 0px;
+  --apple-blue: #35618e; --apple-green: #526534; --apple-orange: #855318;
+  --apple-red: #ba1a1a; --apple-purple: #69548e;
+  --danger: var(--md-sys-color-error); --danger-subtle: #ffdad6;
+  --warning: #855318; --info: #35618e; --status-success: #526534;
 }
 [data-theme="dark"] {
-  --text-muted: #b0b2bc;
-  --text-subtle: #9497a3;
-  --subpage-card-border: rgba(255, 255, 255, 0.09);
+  --md-sys-color-primary: #b9d194;
+  --md-sys-color-on-primary: #25370e;
+  --md-sys-color-primary-container: #3b4d21;
+  --md-sys-color-on-primary-container: #d5e8ad;
+  --md-sys-color-surface: #12150e;
+  --md-sys-color-surface-container: #1f231a;
+  --md-sys-color-surface-container-high: #292d24;
+  --md-sys-color-on-surface: #e2e4d7;
+  --md-sys-color-on-surface-variant: #c5c9b8;
+  --md-sys-color-outline: #8f9383;
+  --md-sys-color-outline-variant: #45483d;
+  --md-sys-color-error: #ffb4ab;
+  --danger-subtle: #59312e;
 }
+:root, :root[data-theme] {
+  --accent-primary: var(--md-sys-color-primary);
+  --accent-primary-hover: color-mix(in srgb, var(--accent-primary) 90%, var(--text-main));
+  --on-accent: var(--md-sys-color-on-primary);
+  --accent-subtle: var(--md-sys-color-primary-container);
+  --accent-border: var(--md-sys-color-outline-variant);
+  --bg-main: var(--md-sys-color-surface);
+  --bg-surface: var(--md-sys-color-surface-container);
+  --bg-elevated: var(--md-sys-color-surface-container-high);
+  --bg-secondary: var(--bg-elevated); --bg-input: var(--bg-elevated);
+  --bg-hover: color-mix(in srgb, var(--text-main) 8%, transparent);
+  --bg-active: color-mix(in srgb, var(--text-main) 12%, transparent);
+  --text-main: var(--md-sys-color-on-surface);
+  --text-muted: var(--md-sys-color-on-surface-variant);
+  --text-subtle: var(--md-sys-color-on-surface-variant);
+  --wordmark-color: var(--text-main);
+  --glass-bg: var(--bg-surface); --glass-blur: none; --glass-shadow: none;
+  --glass-border: var(--md-sys-color-outline-variant);
+  --glass-border-subtle: color-mix(in srgb, var(--glass-border) 55%, transparent);
+  --border-subtle: var(--glass-border-subtle); --border-medium: var(--glass-border);
+  --capsule-bg: var(--bg-elevated); --capsule-border: transparent; --capsule-shadow: none;
+  --capsule-text: var(--text-main); --capsule-muted: var(--text-muted);
+  --nav-bar-bg: var(--bg-surface); --nav-bar-border: transparent;
+  --nav-icon-color: var(--text-main); --nav-icon-muted: var(--text-muted);
+  --popover-bg: var(--bg-elevated); --popover-border: transparent;
+  --popover-shadow: 0 8px 24px #0002; --popover-text: var(--text-main);
+  --popover-muted: var(--text-muted); --popover-inset-bg: var(--bg-surface);
+  --popover-inset-border: transparent;
+  --tabs-tray-bg: var(--bg-main); --tabs-card-bg: var(--bg-surface);
+  --tabs-card-border: var(--glass-border); --tabs-card-shadow: none; --tabs-search-bg: var(--bg-elevated);
+  --sheet-bg: var(--bg-surface); --sheet-border: transparent;
+  --sheet-card-bg: var(--bg-elevated); --sheet-card-border: transparent;
+  --sheet-card-hover: var(--bg-hover); --handle-color: var(--md-sys-color-outline);
+  --subpage-bg: var(--bg-main); --subpage-card-bg: var(--bg-surface);
+  --subpage-card-border: transparent;
+}
+/* --- Material 3 Dynamic Palettes for Accents --- */
+
+/* Fern (Default Green) */
 :root[data-accent="default"],
 :root:not([data-accent]) {
-  --accent-primary: #000000;
-  --accent-primary-hover: #18181b;
-  --accent-subtle: rgba(0, 0, 0, 0.07);
-  --accent-border: rgba(0, 0, 0, 0.18);
-  --on-accent: #ffffff;
+  --md-sys-color-primary: #526534;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #d5e8ad;
+  --md-sys-color-on-primary-container: #172800;
+  --md-sys-color-surface: #f8faef;
+  --md-sys-color-surface-container: #edefe3;
+  --md-sys-color-surface-container-high: #e6e9dd;
+  --md-sys-color-on-surface: #1b1c17;
+  --md-sys-color-on-surface-variant: #45483d;
+  --md-sys-color-outline: #75796b;
+  --md-sys-color-outline-variant: #c5c9b8;
 }
 :root[data-theme="dark"][data-accent="default"],
 :root[data-theme="dark"]:not([data-accent]) {
-  --accent-primary: #ffffff;
-  --accent-primary-hover: #e4e4e7;
-  --accent-subtle: rgba(255, 255, 255, 0.12);
-  --accent-border: rgba(255, 255, 255, 0.20);
-  --on-accent: #000000;
+  --md-sys-color-primary: #b9d194;
+  --md-sys-color-on-primary: #25370e;
+  --md-sys-color-primary-container: #3b4d21;
+  --md-sys-color-on-primary-container: #d5e8ad;
+  --md-sys-color-surface: #12150e;
+  --md-sys-color-surface-container: #1f231a;
+  --md-sys-color-surface-container-high: #292d24;
+  --md-sys-color-on-surface: #e2e4d7;
+  --md-sys-color-on-surface-variant: #c5c9b8;
+  --md-sys-color-outline: #8f9383;
+  --md-sys-color-outline-variant: #45483d;
 }
-:root[data-accent="blue"] { --accent-primary: #2463d5; --accent-primary-hover: #1c50b1; --on-accent: #ffffff; }
-:root[data-accent="violet"] { --accent-primary: #7543c6; --accent-primary-hover: #6133aa; --on-accent: #ffffff; }
-:root[data-accent="teal"] { --accent-primary: #087f75; --accent-primary-hover: #06665e; --on-accent: #ffffff; }
-:root[data-accent="rose"] { --accent-primary: #bd3d65; --accent-primary-hover: #a32c51; --on-accent: #ffffff; }
-:root[data-theme="dark"][data-accent="blue"] { --accent-primary: #86b3ff; --accent-primary-hover: #a5c6ff; --on-accent: #000000; }
-:root[data-theme="dark"][data-accent="violet"] { --accent-primary: #c0a1f5; --accent-primary-hover: #d2baf9; --on-accent: #000000; }
-:root[data-theme="dark"][data-accent="teal"] { --accent-primary: #6bd5c4; --accent-primary-hover: #93e1d4; --on-accent: #000000; }
-:root[data-theme="dark"][data-accent="rose"] { --accent-primary: #f39bb6; --accent-primary-hover: #f7b9cc; --on-accent: #000000; }
-:root[data-accent]:not([data-accent="default"]) {
-  --accent-subtle: color-mix(in srgb, var(--accent-primary) 12%, transparent);
-  --accent-border: color-mix(in srgb, var(--accent-primary) 35%, transparent);
+
+/* Ocean (Blue) */
+:root[data-accent="blue"] {
+  --md-sys-color-primary: #0b57d0;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #d3e3fd;
+  --md-sys-color-on-primary-container: #041e49;
+  --md-sys-color-surface: #f8f9ff;
+  --md-sys-color-surface-container: #edf0f8;
+  --md-sys-color-surface-container-high: #e3e7f2;
+  --md-sys-color-on-surface: #191c20;
+  --md-sys-color-on-surface-variant: #43474e;
+  --md-sys-color-outline: #74777f;
+  --md-sys-color-outline-variant: #c4c6d0;
 }
+:root[data-theme="dark"][data-accent="blue"] {
+  --md-sys-color-primary: #a8c7fa;
+  --md-sys-color-on-primary: #062e6f;
+  --md-sys-color-primary-container: #0842a0;
+  --md-sys-color-on-primary-container: #d3e3fd;
+  --md-sys-color-surface: #10131a;
+  --md-sys-color-surface-container: #1c2027;
+  --md-sys-color-surface-container-high: #262a32;
+  --md-sys-color-on-surface: #e2e2e9;
+  --md-sys-color-on-surface-variant: #c4c6d0;
+  --md-sys-color-outline: #8e9099;
+  --md-sys-color-outline-variant: #43474e;
+}
+
+/* Iris (Violet) */
+:root[data-accent="violet"] {
+  --md-sys-color-primary: #6750a4;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #eaddff;
+  --md-sys-color-on-primary-container: #21005d;
+  --md-sys-color-surface: #fef7ff;
+  --md-sys-color-surface-container: #f3edf7;
+  --md-sys-color-surface-container-high: #ece6f0;
+  --md-sys-color-on-surface: #1d1b20;
+  --md-sys-color-on-surface-variant: #49454f;
+  --md-sys-color-outline: #79747e;
+  --md-sys-color-outline-variant: #cac4d0;
+}
+:root[data-theme="dark"][data-accent="violet"] {
+  --md-sys-color-primary: #d0bcff;
+  --md-sys-color-on-primary: #381e72;
+  --md-sys-color-primary-container: #4f378b;
+  --md-sys-color-on-primary-container: #eaddff;
+  --md-sys-color-surface: #141218;
+  --md-sys-color-surface-container: #211f26;
+  --md-sys-color-surface-container-high: #2b2930;
+  --md-sys-color-on-surface: #e6e0e9;
+  --md-sys-color-on-surface-variant: #cac4d0;
+  --md-sys-color-outline: #938f99;
+  --md-sys-color-outline-variant: #49454f;
+}
+
+/* Jade (Teal) */
+:root[data-accent="teal"] {
+  --md-sys-color-primary: #006a60;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #70f7e6;
+  --md-sys-color-on-primary-container: #00201d;
+  --md-sys-color-surface: #f4fbf8;
+  --md-sys-color-surface-container: #e8f1ed;
+  --md-sys-color-surface-container-high: #dfeae5;
+  --md-sys-color-on-surface: #161d1b;
+  --md-sys-color-on-surface-variant: #3f4946;
+  --md-sys-color-outline: #6f7976;
+  --md-sys-color-outline-variant: #bec9c5;
+}
+:root[data-theme="dark"][data-accent="teal"] {
+  --md-sys-color-primary: #50dbc8;
+  --md-sys-color-on-primary: #003731;
+  --md-sys-color-primary-container: #005048;
+  --md-sys-color-on-primary-container: #70f7e6;
+  --md-sys-color-surface: #0e1514;
+  --md-sys-color-surface-container: #1b2220;
+  --md-sys-color-surface-container-high: #252c2b;
+  --md-sys-color-on-surface: #dde4e1;
+  --md-sys-color-on-surface-variant: #bec9c5;
+  --md-sys-color-outline: #899390;
+  --md-sys-color-outline-variant: #3f4946;
+}
+
+/* Rose (Pink / Crimson) */
+:root[data-accent="rose"] {
+  --md-sys-color-primary: #984061;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #ffd9e2;
+  --md-sys-color-on-primary-container: #3e001d;
+  --md-sys-color-surface: #fff8f8;
+  --md-sys-color-surface-container: #f7ebed;
+  --md-sys-color-surface-container-high: #f0e2e5;
+  --md-sys-color-on-surface: #201a1c;
+  --md-sys-color-on-surface-variant: #524347;
+  --md-sys-color-outline: #847377;
+  --md-sys-color-outline-variant: #d6c2c6;
+}
+:root[data-theme="dark"][data-accent="rose"] {
+  --md-sys-color-primary: #ffb0c8;
+  --md-sys-color-on-primary: #5e1133;
+  --md-sys-color-primary-container: #7b2949;
+  --md-sys-color-on-primary-container: #ffd9e2;
+  --md-sys-color-surface: #171113;
+  --md-sys-color-surface-container: #241c1f;
+  --md-sys-color-surface-container-high: #2f2629;
+  --md-sys-color-on-surface: #ece0e2;
+  --md-sys-color-on-surface-variant: #d6c2c6;
+  --md-sys-color-outline: #9f8c91;
+  --md-sys-color-outline-variant: #524347;
+}
+
+/* Accent Option Swatches & Buttons in Settings */
+html body .accent-option[data-accent="default"] .accent-dot { background: #526534 !important; color: #ffffff !important; }
+html[data-theme="dark"] body .accent-option[data-accent="default"] .accent-dot { background: #b9d194 !important; color: #25370e !important; }
+html body .accent-option[data-accent="blue"] .accent-dot { background: #0b57d0 !important; color: #ffffff !important; }
+html[data-theme="dark"] body .accent-option[data-accent="blue"] .accent-dot { background: #a8c7fa !important; color: #062e6f !important; }
+html body .accent-option[data-accent="violet"] .accent-dot { background: #6750a4 !important; color: #ffffff !important; }
+html[data-theme="dark"] body .accent-option[data-accent="violet"] .accent-dot { background: #d0bcff !important; color: #381e72 !important; }
+html body .accent-option[data-accent="teal"] .accent-dot { background: #006a60 !important; color: #ffffff !important; }
+html[data-theme="dark"] body .accent-option[data-accent="teal"] .accent-dot { background: #50dbc8 !important; color: #003731 !important; }
+html body .accent-option[data-accent="rose"] .accent-dot { background: #984061 !important; color: #ffffff !important; }
+html[data-theme="dark"] body .accent-option[data-accent="rose"] .accent-dot { background: #ffb0c8 !important; color: #5e1133 !important; }
+html body .accent-option[data-accent="adaptive"] .accent-dot {
+  background: conic-gradient(from 180deg at 50% 50%, #0b57d0, #6750a4, #984061, #526534, #006a60, #0b57d0) !important;
+  color: #ffffff !important;
+}
+

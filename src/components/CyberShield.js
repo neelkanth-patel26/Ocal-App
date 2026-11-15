@@ -36,8 +36,22 @@ export class CyberShield {
   }
 
   updateSetting(key, value) {
-    this.settings[key] = value;
-    localStorage.setItem(`ocal-shield-${key}`, value);
+    const names = { adblock: 'adBlocker', tracker: 'trackerBlocker', https: 'httpsOnly', fingerprint: 'antiFingerprint' };
+    const storedKey = Object.keys(names).find(name => names[name] === key) || key;
+    const property = names[storedKey];
+    if (!property) return;
+    this.settings[property] = Boolean(value);
+    localStorage.setItem(`ocal-shield-${storedKey}`, String(Boolean(value)));
+    if (property === 'adBlocker') {
+      window.OcalNative?.setAdBlockEnabled?.(Boolean(value));
+      if (window.ocalApp) {
+        window.ocalApp.adFilterEnabled = Boolean(value);
+        const tab = window.ocalApp.tabManager?.getActiveTab();
+        window.ocalApp.updateShieldStats?.(value ? tab?.blockedAdsCount || 0 : 0);
+      }
+      document.getElementById('shield-power-toggle')?.classList.toggle('active', Boolean(value));
+      document.getElementById('shield-power-toggle')?.classList.toggle('inactive', !value);
+    }
   }
 
   renderControlSheet(containerEl) {
@@ -67,72 +81,68 @@ export class CyberShield {
         </div>
       </div>
 
-      <!-- Protection Toggles Grouped Table (Pure Monochrome Style) -->
+      <!-- Protection Toggles Grouped Table (Material 3 Style) -->
       <div class="apple-grouped-table" style="margin-top: 12px;">
         <div class="apple-grouped-row" style="cursor: default;">
           <div class="apple-row-icon mono-item">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9.5" stroke="#ffffff" stroke-width="1.8"/>
-              <text x="12" y="15" text-anchor="middle" font-size="8.5" font-weight="800" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, sans-serif" letter-spacing="-0.5px">AD</text>
-              <line x1="4.5" y1="4.5" x2="19.5" y2="19.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
+            <span class="material-icons-round" style="font-size: 22px;">block</span>
           </div>
           <div class="apple-row-content">
-            <div class="apple-row-title">AD Blocker</div>
+            <div class="apple-row-title">Ad Filter &amp; Blocker</div>
             <div class="apple-row-subtitle">uBlock Origin network filter &amp; cosmetic hiding</div>
           </div>
           <label class="toggle-switch" style="margin-left: auto;">
-            <input type="checkbox" id="toggle-shield-adblock" ${isAdBlock ? 'checked' : ''}>
+            <input aria-label="Ad blocker" type="checkbox" id="toggle-shield-adblock" ${isAdBlock ? 'checked' : ''}>
             <span class="toggle-slider"></span>
           </label>
         </div>
 
         <div class="apple-grouped-row" style="cursor: default;">
           <div class="apple-row-icon mono-item">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
+            <span class="material-icons-round" style="font-size: 22px;">shield</span>
           </div>
           <div class="apple-row-content">
-            <div class="apple-row-title">Tracker & Telemetry Defense</div>
-            <div class="apple-row-subtitle">Stops cross-site tracking scripts & analytics</div>
+            <div class="apple-row-title">Tracker &amp; Telemetry Defense</div>
+            <div class="apple-row-subtitle">Stops cross-site tracking scripts &amp; analytics</div>
           </div>
           <label class="toggle-switch" style="margin-left: auto;">
-            <input type="checkbox" id="toggle-shield-tracker" ${isTracker ? 'checked' : ''}>
+            <input aria-label="Tracker blocking" type="checkbox" id="toggle-shield-tracker" ${isTracker ? 'checked' : ''}>
             <span class="toggle-slider"></span>
           </label>
         </div>
 
         <div class="apple-grouped-row" style="cursor: default;">
           <div class="apple-row-icon mono-item">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span class="material-icons-round" style="font-size: 22px;">lock</span>
           </div>
           <div class="apple-row-content">
             <div class="apple-row-title">HTTPS Auto-Upgrades</div>
             <div class="apple-row-subtitle">Upgrades insecure HTTP to TLS encryption</div>
           </div>
           <label class="toggle-switch" style="margin-left: auto;">
-            <input type="checkbox" id="toggle-shield-https" ${isHttps ? 'checked' : ''}>
+            <input aria-label="HTTPS only" type="checkbox" id="toggle-shield-https" ${isHttps ? 'checked' : ''}>
             <span class="toggle-slider"></span>
           </label>
         </div>
 
         <div class="apple-grouped-row" style="cursor: default;">
           <div class="apple-row-icon mono-item">
-            <i class="fas fa-fingerprint" style="font-size: 15px;"></i>
+            <span class="material-icons-round" style="font-size: 22px;">fingerprint</span>
           </div>
           <div class="apple-row-content">
             <div class="apple-row-title">Fingerprint Sanitizer</div>
             <div class="apple-row-subtitle">Shields canvas, WebGL, and audio hardware IDs</div>
           </div>
           <label class="toggle-switch" style="margin-left: auto;">
-            <input type="checkbox" id="toggle-shield-fingerprint" ${isFingerprint ? 'checked' : ''}>
+            <input aria-label="Anti fingerprinting" type="checkbox" id="toggle-shield-fingerprint" ${isFingerprint ? 'checked' : ''}>
             <span class="toggle-slider"></span>
           </label>
         </div>
       </div>
 
       <div class="shield-footer-note">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        <span>Powered by uBlock Origin static filtering engine & EasyList.</span>
+        <span class="material-icons-round" style="font-size: 16px; color: var(--accent-primary);">verified_user</span>
+        <span>Powered by uBlock Origin static filtering engine &amp; EasyList.</span>
       </div>
     `;
 

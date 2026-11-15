@@ -61,22 +61,22 @@ export class CopilotDrawer {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg>
           <span>${hasExistingKey ? 'Configure AI Key' : 'Activate Ocal Copilot'}</span>
         </div>
-        <button class="icon-btn" id="copilot-close-btn"><i class="fas fa-times"></i></button>
+        <button class="icon-btn" id="copilot-close-btn" aria-label="Close Copilot"><i class="fas fa-times"></i></button>
       </div>
       <div class="sheet-content">
         <div class="copilot-key-prompt-card">
-          <div class="copilot-key-badge"><i class="fas fa-sparkles"></i> Free Google AI Studio Key</div>
+          <div class="copilot-key-badge"><i class="fas fa-sparkles"></i> Connect your AI provider</div>
           <h3>${hasExistingKey ? 'Update API Key' : 'Connect Your AI Key'}</h3>
-          <p>Ocal Copilot uses AI to summarize articles, find answers, and explain pages. Get a 100% free Google Gemini API key from Google AI Studio.</p>
+          <p>Ocal Copilot uses AI to summarize articles, find answers, and explain pages. Connect a compatible API key to get started.</p>
 
           <button class="copilot-get-key-btn" id="copilot-open-aistudio-btn">
-            <i class="fas fa-key"></i> Get Free Gemini API Key <i class="fas fa-arrow-up-right-from-square" style="font-size:11px; margin-left:4px;"></i>
+            <i class="fas fa-key"></i> Open Google AI Studio <i class="fas fa-arrow-up-right-from-square" style="font-size:11px; margin-left:4px;"></i>
           </button>
           <div class="copilot-key-hint">Takes ~30 seconds • Free from Google (or use OpenAI / Groq)</div>
 
           <div class="copilot-key-input-group">
-            <input type="password" id="copilot-key-field" value="${this.escapeHtml(existingKey)}" placeholder="Paste API Key (AIzaSy... / sk-...)">
-            <button class="copilot-key-toggle-btn" id="copilot-toggle-key-eye" type="button"><i class="fas fa-eye"></i></button>
+            <input type="password" id="copilot-key-field" aria-label="AI API key" value="${this.escapeHtml(existingKey)}" placeholder="Paste API Key (AIzaSy... / sk-...)">
+            <button class="copilot-key-toggle-btn" id="copilot-toggle-key-eye" aria-label="Show or hide API key" type="button"><i class="fas fa-eye"></i></button>
           </div>
 
           <div class="copilot-key-actions">
@@ -86,7 +86,7 @@ export class CopilotDrawer {
             ${hasExistingKey ? '<button class="copilot-clear-key-btn" id="copilot-clear-key-btn">Remove</button>' : ''}
           </div>
           <div class="copilot-privacy-note">
-            <i class="fas fa-lock"></i> Your key is stored securely on your device only.
+            <i class="fas fa-lock"></i> Your key is saved on this device and used to contact your AI provider.
           </div>
         </div>
       </div>
@@ -154,7 +154,7 @@ export class CopilotDrawer {
           <button class="copilot-key-config-btn" id="copilot-manage-key-btn" title="API Key Settings">
             <i class="fas fa-key"></i> Key
           </button>
-          <button class="icon-btn" id="copilot-close-btn"><i class="fas fa-times"></i></button>
+          <button class="icon-btn" id="copilot-close-btn" aria-label="Close Copilot"><i class="fas fa-times"></i></button>
         </div>
       </div>
       <div class="sheet-content">
@@ -172,8 +172,8 @@ export class CopilotDrawer {
         </div>
 
         <div class="copilot-input-row">
-          <input type="text" class="copilot-input" id="copilot-user-input" placeholder="Ask anything about this page...">
-          <button class="copilot-send-btn" id="copilot-send-btn"><i class="fas fa-paper-plane"></i></button>
+          <input type="text" class="copilot-input" id="copilot-user-input" aria-label="Ask about this page" placeholder="Ask anything about this page...">
+          <button class="copilot-send-btn" id="copilot-send-btn" aria-label="Send message"><i class="fas fa-paper-plane"></i></button>
         </div>
       </div>
     `;

@@ -102,7 +102,7 @@ public class MainActivity extends BridgeActivity {
     private boolean isCommitSlideAnimating = false;
     private boolean pageCommittedDuringSlide = false;
     private final Runnable peekSafetyFallback = this::revealCommittedPage;
-    private boolean hasWebOverlayOpen = false;
+    private volatile boolean hasWebOverlayOpen = false;
     private boolean webCanGoBack = false;
     private boolean webIsAtRoot = true;
     private OnBackPressedCallback systemBackCallback;
@@ -860,6 +860,7 @@ public class MainActivity extends BridgeActivity {
                         String cleanColor = value.replace("\"", "").trim();
                         int parsed = parseColorSafe(cleanColor, fallback);
                         currentDetectedPageColor = parsed;
+                        notifyWebEvent("PAGE_THEME_COLOR", cleanColor, "");
                     } else {
                         currentDetectedPageColor = fallback;
                     }
@@ -2323,6 +2324,7 @@ public class MainActivity extends BridgeActivity {
 
         @JavascriptInterface
         public void setWebNavigationState(boolean canGoBack, boolean hasOverlayOpen, boolean isAtRoot) {
+            MainActivity.this.hasWebOverlayOpen = hasOverlayOpen;
             runOnUiThread(() -> {
                 MainActivity.this.hasWebOverlayOpen = hasOverlayOpen;
                 MainActivity.this.webCanGoBack = canGoBack;
@@ -2338,6 +2340,7 @@ public class MainActivity extends BridgeActivity {
 
         @JavascriptInterface
         public void setOverlayOpen(boolean open) {
+            MainActivity.this.hasWebOverlayOpen = open;
             runOnUiThread(() -> {
                 MainActivity.this.hasWebOverlayOpen = open;
                 if (bridge != null && bridge.getWebView() != null) {

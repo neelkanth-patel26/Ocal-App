@@ -16,7 +16,10 @@
     "@capacitor/android": "^7.0.1",
     "@capacitor/cli": "^7.0.1",
     "@capacitor/core": "^7.0.1",
+    "@fontsource/roboto": "^5.3.0",
     "@gorhill/ubo-core": "^0.1.30",
+    "@material-design-icons/font": "^0.14.15",
+    "@material/web": "^2.5.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "jsqr": "^1.4.0"

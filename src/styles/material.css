@@ -1,0 +1,827 @@
+/* Material presentation layer: keep native WebView geometry and navigation contracts. */
+html body { font-family: var(--font-sans); }
+.material-control { position: relative; isolation: isolate; }
+md-ripple { border-radius: inherit; --md-ripple-hover-color: currentColor; --md-ripple-pressed-color: currentColor; }
+button:focus-visible, [role="button"]:focus-visible { outline: 3px solid var(--accent-primary); outline-offset: 3px; }
+button:disabled { opacity: .38; }
+html body :is(.fas, .far, .fa-solid, .fa-regular)::before {
+  font-family: 'Material Icons Round'; font-weight: 400; font-style: normal; font-size: 22px;
+  line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap;
+  font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased;
+}
+.fa-arrow-down::before { content: "south"; }
+.fa-arrow-down-to-bracket::before { content: "download"; }
+.fa-arrow-left::before { content: "arrow_back"; }
+.fa-arrow-right::before { content: "arrow_forward"; }
+.fa-arrow-up-right-from-square::before { content: "open_in_new"; }
+.fa-arrows-rotate::before { content: "sync"; }
+.fa-bell::before { content: "notifications_none"; }
+.fa-bolt::before { content: "bolt"; }
+.fa-bolt-slash::before { content: "shield"; }
+.fa-bookmark::before { content: "bookmark_border"; }
+.fa-calendar::before { content: "calendar_today"; }
+.fa-camera::before { content: "photo_camera"; }
+.fa-camera-rotate::before { content: "cameraswitch"; }
+.fa-check::before { content: "check"; }
+.fa-check-circle::before { content: "check_circle"; }
+.fa-chevron-down::before { content: "expand_more"; }
+.fa-chevron-left::before { content: "chevron_left"; }
+.fa-chevron-right::before { content: "chevron_right"; }
+.fa-chevron-up::before { content: "expand_less"; }
+.fa-circle-exclamation::before { content: "error_outline"; }
+.fa-circle-question::before { content: "help_outline"; }
+.fa-clipboard::before { content: "content_paste"; }
+.fa-clock::before { content: "history"; }
+.fa-clock-rotate-left::before { content: "history"; }
+.fa-compass::before { content: "explore"; }
+.fa-cookie-bite::before { content: "cookie"; }
+.fa-copy::before { content: "content_copy"; }
+.fa-cube::before { content: "view_in_ar"; }
+.fa-cubes::before { content: "widgets"; }
+.fa-eye::before { content: "visibility"; }
+.fa-eye-slash::before { content: "visibility_off"; }
+.fa-file::before { content: "insert_drive_file"; }
+.fa-file-alt::before { content: "description"; }
+.fa-file-audio::before { content: "audio_file"; }
+.fa-file-export::before { content: "file_upload"; }
+.fa-file-image::before { content: "image"; }
+.fa-file-import::before { content: "file_download"; }
+.fa-file-lines::before { content: "description"; }
+.fa-file-pdf::before { content: "picture_as_pdf"; }
+.fa-file-video::before { content: "video_file"; }
+.fa-file-zipper::before { content: "folder_zip"; }
+.fa-fingerprint::before { content: "fingerprint"; }
+.fa-folder-open::before { content: "folder_open"; }
+.fa-gamepad::before { content: "sports_esports"; }
+.fa-ghost::before { content: "visibility_off"; }
+.fa-globe::before { content: "language"; }
+.fa-heart::before { content: "favorite_border"; }
+.fa-image::before { content: "image"; }
+.fa-key::before { content: "key"; }
+.fa-layer-group::before { content: "layers"; }
+.fa-link::before { content: "link"; }
+.fa-link-slash::before { content: "link_off"; }
+.fa-list-check::before { content: "checklist"; }
+.fa-lock::before { content: "lock_outline"; }
+.fa-magnifying-glass::before { content: "search"; }
+.fa-microphone::before { content: "mic_none"; }
+.fa-paper-plane::before { content: "send"; }
+.fa-play::before { content: "play_arrow"; }
+.fa-plus::before { content: "add"; }
+.fa-power-off::before { content: "power_settings_new"; }
+.fa-qrcode::before { content: "qr_code_scanner"; }
+.fa-rotate::before { content: "refresh"; }
+.fa-rotate-right::before { content: "refresh"; }
+.fa-search::before { content: "search"; }
+.fa-shield-halved::before { content: "shield"; }
+.fa-sliders::before { content: "tune"; }
+.fa-sparkles::before { content: "auto_awesome"; }
+.fa-spinner::before { content: "refresh"; }
+.fa-thumbtack::before { content: "push_pin"; }
+.fa-times::before { content: "close"; }
+.fa-times-circle::before { content: "cancel"; }
+.fa-trash-can::before { content: "delete_outline"; }
+.fa-triangle-exclamation::before { content: "warning_amber"; }
+.fa-user::before { content: "person_outline"; }
+.fa-user-secret::before { content: "visibility_off"; }
+.fa-volume-high::before { content: "volume_up"; }
+.fa-wand-magic-sparkles::before { content: "auto_awesome"; }
+.fa-wifi::before { content: "wifi"; }
+.fa-xmark::before { content: "close"; }
+/* Start page */
+html body .material-home { width: min(100%, 760px); margin: 0 auto; padding: max(24px, var(--safe-top)) 24px 180px; }
+.material-home-header { display: flex; align-items: center; justify-content: space-between; }
+.material-brand { display: flex; align-items: center; gap: 8px; font-size: 24px; font-weight: 500; letter-spacing: -1px; }
+.material-brand > span { color: var(--accent-primary); font-size: 32px; }
+.material-icon-button { width: 48px; height: 48px; display: inline-grid; place-items: center; border-radius: 50%; background: var(--bg-elevated); flex-shrink: 0; }
+.material-hero { position: relative; padding: 42px 0 26px; }
+.material-eyebrow { color: var(--text-muted); font-size: 10px; letter-spacing: 1.6px; font-weight: 500; }
+.material-hero h1 { font-size: clamp(58px, 12vw, 88px); font-weight: 400; line-height: 1; letter-spacing: -4px; margin: 18px 0; }
+.material-hero em { font-style: normal; color: var(--accent-primary); }
+.material-hero p { font-size: 14px; line-height: 1.5; color: var(--text-muted); max-width: 250px; }
+.material-orbit { position: absolute; right: 8px; top: 92px; width: 112px; height: 112px; border-radius: 32px 56px 32px 56px; transform: rotate(-12deg); background: var(--accent-subtle); color: var(--accent-primary); display: grid; place-items: center; }
+.material-orbit span { font-size: 68px; transform: rotate(12deg); }
+.material-search { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 16px 22px; border-radius: 32px; background: var(--bg-elevated); text-align: left; font-size: 16px; }
+.material-search > span:last-of-type { margin-left: auto; color: var(--accent-primary); }
+.material-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 32px 0 18px; }
+.material-section-heading h2 { font-size: 19px; font-weight: 500; letter-spacing: -.3px; }
+.material-section-heading > span { font-size: 9px; letter-spacing: 1px; color: var(--text-muted); }
+.material-favorites { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px 12px; }
+html body .material-favorite { display: flex; align-items: center; flex-direction: column; gap: 9px; min-width: 0; border-radius: 20px; font-size: 12px; color: var(--text-main); }
+.material-favorite-icon { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 20px; background: var(--bg-surface); color: var(--accent-primary); transition: border-radius 250ms var(--motion-standard), background 250ms; }
+.material-favorite:nth-child(3n + 2) .material-favorite-icon { border-radius: 50%; background: var(--accent-subtle); }
+.material-favorite:nth-child(3n) .material-favorite-icon { border-radius: 20px 6px 20px 6px; }
+.material-favorite:hover .material-favorite-icon { border-radius: 14px; background: var(--bg-elevated); }
+.material-quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.material-quick-card { display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 20px; gap: 8px; min-height: 164px; border-radius: 24px; background: var(--bg-surface); }
+.material-quick-card > .material-icons-round { color: var(--accent-primary); }
+.material-quick-card strong { font-size: 16px; font-weight: 500; margin-top: 6px; }
+.material-quick-card > span:not(.material-icons-round) { font-size: 12px; color: var(--text-muted); }
+.material-quick-card .card-arrow { align-self: flex-end; margin-top: auto; font-size: 20px; }
+.material-reader { display: flex; align-items: center; margin-top: 14px; gap: 4px; border: 1px solid var(--glass-border); border-radius: 24px; padding: 8px; }
+html body .material-reader .opera-strip-card { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 12px; border: 0; border-radius: 16px; background: transparent; text-align: left; }
+.material-reader .opera-strip-card > span:nth-child(2) { flex: 1; }
+.material-reader strong { display: block; font-size: 14px; font-weight: 500; margin-bottom: 5px; }
+.material-reader strong + span { font-size: 12px; line-height: 1.5; display: block; color: var(--text-muted); }
+.material-reader .material-icon-button { background: transparent; width: 40px; height: 48px; }
+.material-home-footer { display: flex; justify-content: center; align-items: center; gap: 6px; margin: 28px 0 0; font-size: 12px; color: var(--text-muted); }
+.material-home-footer .material-icons-round { font-size: 16px; }
+/* Browser controls preserve the measured dock height used by the native bridge. */
+html body #bottom-dock {
+  background: transparent !important;
+  pointer-events: none !important;
+}
+html body #bottom-dock > :is(#dock-search-row, #bottom-nav-bar) {
+  pointer-events: auto !important;
+}
+html body #bottom-dock > :is(.shield-popover, .dl-quick-popover, .suggestions-dropdown).visible {
+  pointer-events: auto !important;
+}
+
+/* Guard: popovers and dropdowns MUST be completely non-blocking and hidden when not .visible */
+html body :is(.shield-popover, .dl-quick-popover, .suggestions-dropdown):not(.visible) {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+html body :is(.shield-popover, .dl-quick-popover).visible {
+  display: block !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Layer 1: Search & Navigation Row */
+html body #dock-search-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 12px 10px !important;
+  width: auto !important;
+  position: relative !important;
+  z-index: 75 !important;
+}
+
+/* Separate Navigation Button Pill (Back, Forward, Reload) */
+/* Navigation Button Pill (Back, Forward, Reload) - strictly hidden on home & internal pages */
+html body #dock-nav-pill,
+body.is-home-page #dock-nav-pill,
+body.is-internal-page #dock-nav-pill,
+body.search-active #dock-nav-pill {
+  display: none !important;
+}
+
+/* Nav Pill is only shown when browsing an active Web Page and not in search mode */
+body.is-web-page:not(.search-active) #dock-nav-pill {
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  border-radius: 26px !important;
+  padding: 0 6px !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  flex-shrink: 0 !important;
+  pointer-events: auto !important;
+  transition: opacity 150ms ease, transform 150ms ease !important;
+}
+
+html.is-private-tab body.is-web-page:not(.search-active) #dock-nav-pill,
+body.is-private-tab.is-web-page:not(.search-active) #dock-nav-pill {
+  background: #181524 !important;
+  border: 1px solid rgba(168, 85, 247, 0.28) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Nav buttons inside separate pill */
+html body #dock-nav-pill .capsule-nav-btn {
+  width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  min-width: 34px !important;
+  border-radius: 50% !important;
+  display: grid !important;
+  place-items: center !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-main) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition: transform 120ms ease, background-color 150ms ease, color 150ms ease !important;
+}
+
+html body #dock-nav-pill .capsule-nav-btn:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05)) !important;
+}
+
+html body #dock-nav-pill .capsule-nav-btn:active {
+  transform: scale(0.88) !important;
+}
+
+html body #dock-nav-pill .capsule-nav-btn:disabled {
+  opacity: 0.25 !important;
+  pointer-events: none !important;
+}
+
+html body #dock-nav-pill .capsule-nav-btn .material-icons-round {
+  font-size: 20px !important;
+  color: inherit !important;
+}
+
+html body #dock-nav-pill #nav-back .material-icons-round,
+html body #dock-nav-pill #nav-forward .material-icons-round {
+  font-size: 22px !important;
+}
+
+/* Clean, Uncluttered Material 3 Search Bar */
+html body #url-capsule-bar,
+html[data-theme] body #url-capsule-bar {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  border-radius: 26px !important;
+  margin: 0 !important;
+  padding: 0 6px 0 14px !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  color: var(--text-main) !important;
+  pointer-events: auto !important;
+  transition: background-color 200ms ease, box-shadow 200ms ease, transform 200ms ease, width 150ms ease !important;
+}
+
+body.is-home-page #url-capsule-bar,
+body.is-internal-page #url-capsule-bar {
+  flex: 1 1 100% !important;
+  width: 100% !important;
+}
+
+html.is-private-tab body #url-capsule-bar,
+body.is-private-tab #url-capsule-bar {
+  background: #181524 !important;
+  border: 1px solid rgba(168, 85, 247, 0.28) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Leading search icon inside capsule */
+html body #url-capsule-bar .search-leading-icon {
+  font-size: 20px !important;
+  color: var(--text-muted) !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+
+/* Omnibox input field */
+html body #url-capsule-bar .capsule-url-field {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  min-width: 0 !important;
+  height: 100% !important;
+}
+
+html body #url-capsule-bar .capsule-url-input {
+  width: 100% !important;
+  height: 100% !important;
+  font-size: 14.5px !important;
+  font-family: var(--font-sans, system-ui) !important;
+  color: var(--text-main) !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  text-align: left !important;
+  padding: 0 4px !important;
+}
+
+/* Trailing icon buttons in capsule */
+html body #url-capsule-bar :is(.capsule-icon-btn, .capsule-clear-btn) {
+  width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  min-width: 34px !important;
+  border-radius: 50% !important;
+  place-items: center !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-muted) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition: transform 120ms ease, background-color 150ms ease, color 150ms ease !important;
+}
+
+html body #url-capsule-bar :is(.capsule-icon-btn, .capsule-clear-btn):hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.05)) !important;
+  color: var(--text-main) !important;
+}
+
+html body #url-capsule-bar :is(.capsule-icon-btn, .capsule-clear-btn):active {
+  transform: scale(0.88) !important;
+}
+
+html body #url-capsule-bar :is(.capsule-icon-btn, .capsule-clear-btn) .material-icons-round {
+  font-size: 20px !important;
+  color: inherit !important;
+}
+
+/* Mic button: visible on home and web, hidden in search-active mode */
+html body #url-capsule-bar #capsule-mic-btn {
+  display: grid !important;
+}
+body.search-active #url-capsule-bar #capsule-mic-btn {
+  display: none !important;
+}
+
+/* Clear button - strictly hidden unless .visible */
+html body #url-capsule-bar #capsule-clear-btn {
+  display: none !important;
+}
+html body #url-capsule-bar #capsule-clear-btn.visible {
+  display: grid !important;
+}
+
+/* Bookmark button: strictly hidden on home and internal pages */
+html body #url-capsule-bar #capsule-bookmark-btn,
+body.is-home-page #url-capsule-bar #capsule-bookmark-btn,
+body.is-internal-page #url-capsule-bar #capsule-bookmark-btn,
+body.search-active #url-capsule-bar #capsule-bookmark-btn {
+  display: none !important;
+}
+body.is-web-page:not(.search-active) #url-capsule-bar #capsule-bookmark-btn {
+  display: grid !important;
+}
+
+/* Zen Reader button: strictly hidden on home and internal pages */
+html body #url-capsule-bar #capsule-reader-btn,
+body.is-home-page #url-capsule-bar #capsule-reader-btn,
+body.is-internal-page #url-capsule-bar #capsule-reader-btn,
+body.search-active #url-capsule-bar #capsule-reader-btn {
+  display: none !important;
+}
+body.is-web-page:not(.search-active) #url-capsule-bar #capsule-reader-btn.visible {
+  display: grid !important;
+}
+
+/* Download button */
+html body #url-capsule-bar #capsule-download-btn {
+  display: none !important;
+}
+html body #url-capsule-bar #capsule-download-btn.visible {
+  display: grid !important;
+}
+
+/* Bookmarked State */
+html body #url-capsule-bar .capsule-bookmark-btn.is-bookmarked {
+  color: var(--accent-primary) !important;
+}
+
+/* CyberShield M3 Tonal Action Button - strictly hidden on Home & Internal pages */
+html body #url-capsule-bar #capsule-shield-btn,
+body.is-home-page #url-capsule-bar #capsule-shield-btn,
+body.is-internal-page #url-capsule-bar #capsule-shield-btn,
+body.search-active #url-capsule-bar #capsule-shield-btn {
+  display: none !important;
+}
+
+body.is-web-page:not(.search-active) #url-capsule-bar #capsule-shield-btn {
+  display: grid !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  min-width: 36px !important;
+  border-radius: 50% !important;
+  place-items: center !important;
+  background: var(--accent-subtle) !important;
+  color: var(--accent-primary) !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 2px !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition: transform 140ms ease, background-color 200ms ease, color 200ms ease !important;
+}
+
+html body #url-capsule-bar .capsule-shield-btn:active {
+  transform: scale(0.9) !important;
+}
+
+html body #url-capsule-bar .shield-badge-dot {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  display: grid !important;
+  place-items: center !important;
+  background: transparent !important;
+  color: inherit !important;
+}
+
+html body #url-capsule-bar .shield-badge-dot .material-icons-round {
+  font-size: 19px !important;
+  color: inherit !important;
+}
+
+html body #url-capsule-bar .shield-badge-dot.active {
+  background: var(--accent-primary) !important;
+  color: var(--on-accent) !important;
+}
+
+/* Private Mode CyberShield button */
+html.is-private-tab body.is-web-page:not(.search-active) #url-capsule-bar .capsule-shield-btn,
+body.is-private-tab.is-web-page:not(.search-active) #url-capsule-bar .capsule-shield-btn {
+  background: rgba(168, 85, 247, 0.2) !important;
+  color: #c084fc !important;
+}
+html.is-private-tab body #url-capsule-bar .shield-badge-dot.active,
+body.is-private-tab #url-capsule-bar .shield-badge-dot.active {
+  background: #a855f7 !important;
+  color: #ffffff !important;
+}
+
+/* Cancel Button in Search Mode */
+html body #url-capsule-bar .capsule-cancel-btn {
+  display: none !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: var(--accent-primary) !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 10px !important;
+  height: 36px !important;
+  border-radius: 18px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+/* ==========================================================================
+   Search Mode (When Typing) - Zero Glitches, Clean Full-Width Focus
+   ========================================================================== */
+/* STRICTLY HIDE the bottom navigation bar (footer) whenever typing or keyboard is open */
+html body.search-active #bottom-nav-bar,
+html[data-theme] body.search-active #bottom-nav-bar,
+html body.keyboard-open-native #bottom-nav-bar,
+html[data-theme] body.keyboard-open-native #bottom-nav-bar,
+body.search-active #bottom-nav-bar,
+body.keyboard-open-native #bottom-nav-bar {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.search-active #dock-nav-pill,
+html body.search-active #dock-nav-pill {
+  display: none !important;
+}
+
+body.search-active #dock-search-row {
+  margin: 0 12px 8px !important;
+}
+
+body.search-active #url-capsule-bar {
+  flex: 1 1 100% !important;
+  width: 100% !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  margin: 0 !important;
+  border-radius: 28px !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* In Search Mode: HIDE all non-essential capsule buttons */
+body.search-active #url-capsule-bar :is(#capsule-mic-btn, #capsule-shield-btn, #capsule-bookmark-btn, #capsule-reader-btn, #capsule-download-btn) {
+  display: none !important;
+}
+
+/* In Search Mode: SHOW cancel button */
+body.search-active #url-capsule-bar .capsule-cancel-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Material 3 Bottom Navigation Bar - only displayed when not searching and keyboard not open */
+html body:not(.search-active):not(.keyboard-open-native) #bottom-nav-bar,
+html[data-theme] body:not(.search-active):not(.keyboard-open-native) #bottom-nav-bar {
+  background: var(--bg-surface) !important;
+  color: var(--text-main) !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+  padding: 0 4px !important;
+  padding-bottom: max(var(--safe-bottom, 0px), env(safe-area-inset-bottom, 0px)) !important;
+  border: 0 !important;
+  border-top: 1px solid var(--glass-border) !important;
+  box-shadow: none !important;
+  box-sizing: content-box !important;
+  pointer-events: auto !important;
+}
+
+/* Private Browsing Theme for M3 Bottom Nav Bar */
+html.is-private-tab body #bottom-nav-bar,
+body.is-private-tab #bottom-nav-bar {
+  background: #0f0d16 !important;
+  border-top: 1px solid rgba(168, 85, 247, 0.15) !important;
+}
+
+/* Navigation Item Buttons */
+html body #bottom-nav-bar .nav-icon-btn,
+html[data-theme] body #bottom-nav-bar .nav-icon-btn {
+  flex: 1 1 0 !important;
+  max-width: 68px !important;
+  height: 56px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  color: var(--text-muted) !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  position: relative !important;
+}
+
+/* M3 Active Indicator Pill */
+html body #bottom-nav-bar .m3-nav-indicator {
+  width: 56px !important;
+  height: 32px !important;
+  border-radius: 16px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: transparent;
+  color: var(--text-muted);
+  transition: background-color 200ms cubic-bezier(0.2, 0, 0, 1), color 200ms cubic-bezier(0.2, 0, 0, 1), transform 150ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+html body #bottom-nav-bar .m3-nav-indicator .material-icons-round {
+  font-size: 22px !important;
+  line-height: 1 !important;
+  color: inherit !important;
+}
+
+/* Active indicator state */
+html body #bottom-nav-bar .m3-nav-indicator.active,
+html body #bottom-nav-bar .nav-icon-btn.active .m3-nav-indicator,
+html body #bottom-nav-bar .nav-plus-btn .m3-nav-indicator {
+  background: var(--accent-subtle) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* In private mode, accent indicator uses violet */
+html.is-private-tab body #bottom-nav-bar .m3-nav-indicator.active,
+html.is-private-tab body #bottom-nav-bar .nav-plus-btn .m3-nav-indicator,
+body.is-private-tab #bottom-nav-bar .m3-nav-indicator.active,
+body.is-private-tab #bottom-nav-bar .nav-plus-btn .m3-nav-indicator {
+  background: rgba(168, 85, 247, 0.22) !important;
+  color: #c084fc !important;
+}
+
+/* Touch feedback / active press */
+html body #bottom-nav-bar .nav-icon-btn:active .m3-nav-indicator {
+  transform: scale(0.92);
+}
+
+/* Ensure container itself never holds a pill background */
+html body #bottom-nav-bar #nav-new-tab,
+html body .bottom-nav-bar .nav-plus-btn {
+  background: transparent !important;
+  border-radius: 0 !important;
+  color: inherit !important;
+}
+
+/* M3 Tab Counter Badge inside pill */
+html body #bottom-nav-bar .tab-badge,
+html[data-theme] body #bottom-nav-bar .tab-badge {
+  width: 22px !important;
+  height: 22px !important;
+  border: 2px solid currentColor !important;
+  border-radius: 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: var(--font-sans, system-ui) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.02em !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+}
+
+html body #bottom-nav-bar .tab-badge.active {
+  border-color: currentColor !important;
+}
+
+/* M3 Navigation Item Label */
+html body #bottom-nav-bar .material-nav-label {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 14px !important;
+  letter-spacing: 0.1px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  margin-top: 4px !important;
+  color: var(--text-muted) !important;
+  transition: color 200ms ease, font-weight 200ms ease;
+}
+
+html body #bottom-nav-bar .nav-icon-btn:hover .material-nav-label,
+html body #bottom-nav-bar .nav-icon-btn.active .material-nav-label,
+html body #bottom-nav-bar .nav-plus-btn .material-nav-label {
+  color: var(--text-main) !important;
+  font-weight: 600 !important;
+}
+
+html.is-private-tab body #bottom-nav-bar .material-nav-label,
+body.is-private-tab #bottom-nav-bar .material-nav-label {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+html.is-private-tab body #bottom-nav-bar .nav-icon-btn.active .material-nav-label,
+html.is-private-tab body #bottom-nav-bar .nav-plus-btn .material-nav-label,
+body.is-private-tab #bottom-nav-bar .nav-icon-btn.active .material-nav-label,
+body.is-private-tab #bottom-nav-bar .nav-plus-btn .material-nav-label {
+  color: #ffffff !important;
+}
+/* Sheets, dialogs and list surfaces */
+html body .bottom-sheet { border-radius: 28px 28px 0 0; border: 0; box-shadow: 0 -4px 24px #0002; transition: transform 400ms var(--motion-emphasized), opacity 250ms var(--motion-standard); }
+html body :is(.sheet-handle, .sheet-handle-bar)::before { background: var(--handle-color); }
+html body :is(.sheet-title, .subpage-header-title) { font-size: 22px; font-weight: 500; letter-spacing: -.4px; }
+html body .subpage-header { min-height: 72px; border-bottom: 0; }
+html body .subpage-content { padding-bottom: 170px; }
+html body :is(.subpage-section-title, .apple-grouped-header) { color: var(--accent-primary) !important; font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: .2px; }
+html body .apple-grouped-table { border-radius: 24px; overflow: hidden; border: 0; }
+html body .apple-grouped-row { min-height: 64px; padding-top: 12px; padding-bottom: 12px; }
+html body .apple-row-title { font-size: 15px; font-weight: 400; }
+html body .apple-row-subtitle { font-size: 12px; line-height: 1.5; }
+html[data-theme] body:not(.is-private-tab) :is(.subpage-container, .bottom-sheet) .apple-row-icon.mono-item { background: var(--accent-subtle) !important; color: var(--accent-primary) !important; border-radius: 14px; width: 40px; height: 40px; }
+html body :is(.apple-menu-grid-item, .menu-grid-item) { border-radius: 20px; background: var(--bg-elevated); }
+html body :is(.modal-dialog-card, .shield-popover, .dl-quick-popover, .suggestions-dropdown) { border-radius: 28px; background: var(--bg-elevated); border-color: transparent; }
+html body :is(.modal-btn, .subpage-action-btn, .scanner-action-btn, .pill-chip) { min-height: 44px; border-radius: 24px; font-weight: 500; }
+html body .modal-btn.primary { background: var(--accent-primary); color: var(--on-accent); }
+html body :is(.subpage-back-btn, .modal-close-btn) { min-width: 44px; min-height: 44px; border-radius: 50%; }
+html body :is(.history-search-input, .sync-input, .tabs-search-box) { border-radius: 16px; min-height: 52px; }
+html body :is(.history-search-input, .sync-input):focus { outline: 2px solid var(--accent-primary); outline-offset: 1px; }
+/* Material switches retain the existing native checkbox and change handlers. */
+html body .toggle-switch { width: 52px; height: 32px; }
+html body .toggle-slider { background: var(--bg-elevated); border: 2px solid var(--md-sys-color-outline); }
+html body .toggle-slider::before { width: 16px; height: 16px; left: 6px; bottom: 6px; background: var(--md-sys-color-outline); box-shadow: none; transition: transform 200ms var(--motion-standard), width 200ms, height 200ms; }
+html[data-theme] body :is(.subpage-container, .bottom-sheet) input:checked + .toggle-slider { background: var(--accent-primary); border-color: var(--accent-primary); }
+html[data-theme] body :is(.subpage-container, .bottom-sheet) input:checked + .toggle-slider::before { background: var(--on-accent); width: 24px; height: 24px; bottom: 2px; transform: translateX(16px); }
+/* Tab overview segmented controls and cards */
+html body #tabs-tray-sheet .opera-tabs-nav-group { background: var(--bg-elevated); border: 1px solid var(--glass-border); border-radius: 28px; padding: 4px; }
+html body #tabs-tray-sheet .opera-tab-nav-btn { border-radius: 24px; min-height: 44px; }
+html[data-theme] body #tabs-tray-sheet #tab-mode-normal.active { background: var(--accent-subtle) !important; color: var(--accent-primary) !important; }
+html[data-theme] body #tabs-tray-sheet #tab-mode-normal.active :is(.opera-tab-nav-text, .tabs-mode-count, i) { color: var(--accent-primary) !important; }
+html body #tabs-tray-sheet .tab-card { border-radius: 24px; overflow: hidden; }
+html body #tabs-tray-sheet .tab-card.active { outline: 2px solid var(--accent-primary); outline-offset: -2px; }
+html body #tabs-tray-sheet .tab-card-header { min-height: 52px; }
+html body #tabs-tray-sheet .tab-card-close { width: 40px; height: 40px; border-radius: 50%; }
+html body #tabs-tray-sheet .opera-dock-capsule { border-radius: 24px; }
+/* Private browsing keeps its distinct violet identity with the same geometry. */
+html body .private-home-view { justify-content: flex-start; padding-top: 44px; }
+html body .private-home-view .opera-logo-badge { border-radius: 28px 12px 28px 12px; width: 88px; height: 88px; }
+html body .private-home-view .opera-wordmark { font-size: 56px; font-weight: 400; }
+html body .private-home-view .opera-dial-tile { border-radius: 20px; width: 60px; height: 60px; }
+@keyframes material-enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+html body .material-home > *, html body .subpage-content > * { animation: material-enter 450ms var(--motion-emphasized) both; }
+html body .material-home > :nth-child(n+4) { animation-delay: 70ms; }
+html body .material-home > :nth-child(n+7) { animation-delay: 120ms; }
+html body .tab-frame-wrapper.active .subpage-header { animation: material-enter 300ms var(--motion-standard); }
+.fa-spin::before { display: inline-block; animation: material-spin 1s linear infinite; }
+@keyframes material-spin { to { transform: rotate(360deg); } }
+@media (min-width: 768px) {
+  html body .material-home { padding-top: 40px; }
+  .material-hero { padding-top: 48px; }
+  .material-orbit { width: 156px; height: 156px; right: 40px; top: 72px; border-radius: 48px 80px 48px 80px; }
+  .material-orbit span { font-size: 96px; }
+  .material-favorites { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .material-section-heading { margin-top: 36px; }
+}
+@media (max-width: 360px) {
+  html body .material-home { padding-left: 16px; padding-right: 16px; }
+  .material-eyebrow { font-size: 8px; }
+  .material-section-heading > span { display: none; }
+  .material-orbit { right: 0; width: 92px; height: 92px; }
+  .material-quick-card { padding: 16px; }
+  .material-reader .opera-strip-card > .material-icons-round:last-child { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body *, html body *::before, html body *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  md-ripple { display: none; }
+}
+/* Material 3 Dock Large Screen Optimization */
+@media (min-width: 768px) {
+  html body #bottom-dock {
+    max-width: 680px !important;
+    margin: 0 auto !important;
+  }
+}
+.material-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+/* Material 3 Assist Chip */
+.m3-assist-chip,
+md-assist-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 16px 0 12px;
+  border-radius: 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 120ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.m3-assist-chip:hover,
+md-assist-chip:hover {
+  background: var(--accent-subtle);
+  border-color: var(--glass-border);
+}
+
+.m3-assist-chip:active,
+md-assist-chip:active {
+  transform: scale(0.97);
+  background: var(--accent-subtle);
+}
+
+.m3-assist-chip .material-icons-round,
+md-assist-chip .material-icons-round,
+md-assist-chip md-icon {
+  font-size: 19px;
+  width: 19px;
+  height: 19px;
+  line-height: 19px;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.m3-assist-chip span:last-child {
+  white-space: nowrap;
+  line-height: 1;
+}
+
+md-assist-chip {
+  --md-assist-chip-container-shape: 20px;
+  --md-assist-chip-container-height: 40px;
+  --md-assist-chip-outline-color: var(--glass-border);
+  --md-assist-chip-label-text-color: var(--text-main);
+  --md-assist-chip-leading-icon-color: var(--accent-primary);
+  --md-assist-chip-icon-label-space: 8px;
+  --md-assist-chip-leading-space: 12px;
+  --md-assist-chip-trailing-space: 16px;
+  --md-assist-chip-container-color: var(--bg-surface);
+}
+
+html[data-theme] body .accent-option[data-accent="default"] .accent-dot { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }

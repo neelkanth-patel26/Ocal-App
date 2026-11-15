@@ -1,0 +1,687 @@
+/* Internal workspaces: a shared Material shell with page-specific layouts. */
+html body .ip-page { padding-bottom: 0; background: var(--bg-main); scroll-padding-top: 80px; }
+html body .ip-page .subpage-header { height: auto; min-height: 64px; padding: max(8px, var(--safe-top)) 20px 8px; gap: 12px; border: 0; background: var(--bg-main) !important; backdrop-filter: none; }
+html body .ip-page .subpage-header-title { text-align: left; font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--text-muted); }
+.ip-mode-label { display: grid; place-items: center; width: 40px; height: 40px; color: var(--accent-primary); }
+.ip-workspace { display: grid; grid-template-columns: 1fr; width: min(1200px, 100%); margin: 0 auto; padding: 0 20px 160px; gap: 12px; }
+.ip-main { min-width: 0; }
+.ip-navigation { display: flex; overflow-x: auto; gap: 8px; padding: 8px 0 12px; scrollbar-width: none; align-items: center; }
+.ip-nav-heading { display: none; }
+.ip-nav-item { display: flex; align-items: center; gap: 8px; min-height: 44px; flex-shrink: 0; padding: 10px 16px; border-radius: 24px; background: var(--bg-surface); font-size: 13px; font-weight: 500; color: var(--text-muted); transition: background 180ms, color 180ms; }
+.ip-nav-item .material-icons-round { font-size: 20px; }
+.ip-nav-item[aria-current="page"] { background: var(--accent-subtle); color: var(--accent-primary); }
+.ip-intro { display: grid; grid-template-columns: minmax(0, 1fr) 76px; align-items: center; column-gap: 18px; padding: 20px 0 28px; }
+.ip-eyebrow { text-transform: uppercase; letter-spacing: 1.8px; font-size: 10px; font-weight: 500; color: var(--accent-primary); margin-bottom: 12px; }
+.ip-intro h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 400; letter-spacing: -1.4px; line-height: 1.12; margin: 0 0 12px; }
+.ip-intro p { font-size: 14px; color: var(--text-muted); max-width: 460px; line-height: 1.6; }
+.ip-page-symbol { width: 76px; height: 76px; border-radius: 28px 12px 28px 12px; display: grid; place-items: center; background: var(--accent-subtle); color: var(--accent-primary); transform: rotate(8deg); }
+.ip-page-symbol > span { font-size: 36px; transform: rotate(-8deg); }
+.ip-actions { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+.ip-actions:empty { display: none; }
+html body .ip-page .ip-actions .subpage-action-btn { background: var(--accent-subtle); color: var(--accent-primary); padding: 10px 18px; font-size: 13px; min-height: 44px; }
+html body .ip-page .ip-actions .subpage-action-btn.danger { background: transparent; color: var(--danger); border: 1px solid var(--glass-border); }
+html body .ip-page .subpage-content { width: 100%; max-width: none; padding: 0; margin: 0; display: flex; flex-direction: column; align-items: stretch; gap: 20px; }
+html body .ip-page [hidden] { display: none !important; }
+html body .ip-page .subpage-section-title { display: flex; align-items: center; gap: 10px; padding: 0 0 14px; text-transform: none; font-size: 17px; font-weight: 500; color: var(--text-main) !important; letter-spacing: -.2px; }
+html body .ip-page .apple-grouped-table { border: 0; background: var(--bg-surface); border-radius: 24px; box-shadow: none; overflow: hidden; }
+html body .ip-page .apple-grouped-row { min-height: 76px; padding: 16px; gap: 12px; align-items: center; }
+html body .ip-page .apple-row-content { min-width: 0; }
+html body .ip-page .apple-row-title { font-size: 15px; font-weight: 500; line-height: 1.4; }
+html body .ip-page .apple-row-subtitle { line-height: 1.5; font-size: 12px; margin-top: 4px; }
+html body .ip-page .apple-row-icon { flex-shrink: 0; width: 42px; height: 42px; border-radius: 16px; background: var(--accent-subtle) !important; color: var(--accent-primary) !important; }
+html body .ip-page :is(.subpage-empty-state, .private-empty-state) { min-height: 300px; padding: 40px 24px !important; margin: 0; border-radius: 28px; background: var(--bg-surface); display: flex; flex-direction: column; justify-content: center; align-items: center; }
+html body .ip-page .subpage-empty-icon { width: 76px; height: 76px; border-radius: 28px 14px 28px 14px; background: var(--accent-subtle) !important; color: var(--accent-primary) !important; margin-bottom: 22px; box-shadow: none; }
+html body .ip-page .subpage-empty-icon i { color: inherit !important; }
+html body .ip-page .subpage-empty-icon i::before { font-size: 32px; }
+html body .ip-page .subpage-empty-title { font-size: 22px; font-weight: 400; letter-spacing: -.4px; color: var(--text-main); }
+html body .ip-page .subpage-empty-desc { max-width: 360px; color: var(--text-muted); font-size: 14px; line-height: 1.7; margin-top: 10px; }
+html body .ip-page .subpage-empty-state .pill-chip, .ip-filled-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 24px; min-height: 48px; padding: 12px 22px !important; background: var(--accent-primary) !important; color: var(--on-accent) !important; font-size: 14px !important; font-weight: 500 !important; }
+/* Search and collection controls */
+html body .ip-page .history-search-container { margin: 0; padding: 0; }
+html body .ip-page .history-search-bar, .ip-search-field { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 18px; background: var(--bg-elevated); border: 0; border-radius: 28px; color: var(--text-muted); }
+html body .ip-page .history-search-bar > i { position: static; transform: none; flex-shrink: 0; }
+html body .ip-page .history-search-input, .ip-search-field input { min-width: 0; width: 100%; flex: 1; height: 56px; padding: 0 !important; background: transparent; border: 0; color: var(--text-main); font: 400 15px var(--font-sans); outline: none; box-shadow: none; }
+html body .ip-page .history-search-bar:focus-within, .ip-search-field:focus-within { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
+html body .ip-page .history-search-input:focus { outline: none; }
+.ip-list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-muted); font-size: 12px; }
+.ip-list-toolbar label { display: flex; align-items: center; gap: 8px; }
+.ip-list-toolbar select { color: var(--text-main); background: var(--bg-surface); border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px; min-height: 44px; max-width: 150px; font: inherit; }
+html body .ip-page :is(.history-item-row, .pwd-item-row, .password-item-row) { min-height: 84px; gap: 14px; padding: 16px; border-color: var(--glass-border-subtle); background: transparent; }
+html body .ip-page .history-title { font-size: 15px; font-weight: 500; line-height: 1.4; }
+html body .ip-page :is(.history-content, .pwd-content, .dl-item-info) { min-width: 0; flex: 1; }
+html body .ip-page .history-meta { gap: 6px; font-size: 11px; line-height: 1.5; }
+html body .ip-page .history-domain-pill { background: transparent; padding: 0; color: var(--text-muted); }
+html body .ip-page :is(.history-delete-btn, .history-site-delete-btn, .pwd-action-pill, .dl-action-btn) { min-width: 44px; min-height: 44px; border-radius: 16px; flex-shrink: 0; }
+html body .ip-page :is(.history-segmented-control, .dl-tabs-bar) { display: flex; padding: 4px; border: 1px solid var(--glass-border); border-radius: 28px; background: transparent; gap: 4px; }
+html body .ip-page :is(.history-segment-btn, .dl-tab-chip) { flex: 1; min-height: 44px; border-radius: 24px; padding: 10px 12px; color: var(--text-muted); background: transparent; font-size: 13px; }
+html body .ip-page :is(.history-segment-btn, .dl-tab-chip).active { background: var(--accent-subtle) !important; color: var(--accent-primary) !important; box-shadow: none; }
+html body .ip-page .history-site-card { border: 0; border-radius: 24px; overflow: hidden; background: var(--bg-surface); margin-bottom: 12px; }
+html body .ip-page .history-site-header { padding: 16px; min-height: 76px; }
+.ip-no-results { border: 1px dashed var(--glass-border); border-radius: 20px; padding: 24px; text-align: center; color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+/* Settings become a searchable category workspace. */
+.ip-settings-tools { display: flex; flex-direction: column; gap: 16px; }
+.ip-setting-categories { display: flex; gap: 8px; flex-wrap: wrap; }
+.ip-category { display: flex; align-items: center; gap: 7px; min-height: 40px; padding: 9px 13px; border-radius: 12px; border: 1px solid var(--glass-border); color: var(--text-muted); font-size: 12px; }
+.ip-category .material-icons-round { font-size: 18px; }
+.ip-category[aria-pressed="true"] { background: var(--accent-subtle); color: var(--accent-primary); border-color: transparent; }
+.ip-settings-grid { display: grid; grid-template-columns: 1fr; gap: 28px; align-items: start; }
+html body .ip-page .settings-section { min-width: 0; margin: 0; scroll-margin-top: 80px; }
+html body .ip-page .settings-section > .subpage-section-title .material-icons-round { color: var(--accent-primary); font-size: 22px; }
+html body .ip-page .settings-section .apple-grouped-table { margin: 0; }
+html body .ip-page :is(.blur-chip-btn, .pwd-action-pill) { min-height: 40px; border-radius: 14px; font-weight: 500; }
+html body .ip-page .blur-chip-btn.active { background: var(--accent-subtle); color: var(--accent-primary); }
+html body .ip-page .about-browser-details { padding: 20px; }
+html body .ip-page .modal-dialog-card { padding: 8px; border-radius: 28px; border: 0; background: var(--bg-elevated); }
+html body .ip-page .modal-input { min-height: 56px; background: var(--bg-surface); border: 1px solid var(--glass-border); border-radius: 12px; padding: 16px; color: var(--text-main); font-size: 16px; }
+/* Connected devices: instruction cards and distinct pairing work areas. */
+html body :is(.connect-page, .ip-page, .ip-sync) .connect-pairing-layout,
+html body .ip-pairing-workspace,
+html body .connect-pairing-layout {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  grid-template-columns: none !important;
+  width: 100% !important;
+  max-width: 600px !important;
+  margin: 0 auto !important;
+  gap: 16px !important;
+}
+
+html body .ip-page.ip-sync .ip-intro {
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 1. Wi-Fi Connection Note */
+.ip-connection-note {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 20px;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-weight: 400;
+  border: 1px solid var(--glass-border-subtle);
+  box-sizing: border-box;
+}
+.ip-connection-note .material-icons-round {
+  color: var(--accent-primary);
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+/* 2. Pairing Methods (Segmented Control) */
+.ip-pairing-methods {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: 28px;
+  padding: 4px;
+  gap: 4px;
+  box-sizing: border-box;
+}
+.ip-pairing-methods button {
+  flex: 1;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 180ms var(--motion-standard), color 180ms var(--motion-standard);
+}
+.ip-pairing-methods button .material-icons-round {
+  font-size: 20px;
+}
+.ip-pairing-methods button[aria-pressed="true"] {
+  background: var(--accent-subtle) !important;
+  color: var(--accent-primary) !important;
+  font-weight: 600;
+}
+
+/* 3. Scanner Card & Viewfinder */
+html body .ip-page .scanner-card,
+html body .ip-page .connect-manual {
+  width: 100% !important;
+  max-width: 600px !important;
+  margin: 0 auto !important;
+  padding: 28px 24px !important;
+  border-radius: 28px !important;
+  background: var(--bg-surface) !important;
+  border: 0 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+}
+
+/* Strict hiding for non-active pairing method */
+html body .ip-page .scanner-card[hidden],
+html body .ip-page .connect-manual[hidden],
+html body .ip-page .scanner-card.is-hidden,
+html body .ip-page .connect-manual.is-hidden {
+  display: none !important;
+}
+
+html body .ip-page .scanner-card .subpage-section-title,
+html body .ip-page .connect-manual .subpage-section-title {
+  width: 100%;
+  text-align: left;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-main) !important;
+  margin-bottom: 20px;
+  padding: 0;
+}
+
+/* Clean square viewfinder */
+html body .ip-page .scanner-viewfinder {
+  width: 100%;
+  max-width: 270px;
+  height: 270px;
+  aspect-ratio: 1 / 1;
+  border-radius: 28px;
+  background: #000000;
+  border: 2px solid var(--glass-border);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+}
+
+html body .ip-page #qr-scanner-video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: inherit;
+}
+
+html body .ip-page .scanner-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: #ffffff;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+html body .ip-page .scanner-placeholder-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+html body .ip-page .scanner-placeholder-icon .material-icons-round {
+  font-size: 32px;
+}
+html body .ip-page .scanner-placeholder-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+html body .ip-page .scanner-placeholder-desc {
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 200px;
+}
+
+/* Floating controls inside viewfinder */
+html body .ip-page .scanner-floating-controls {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  z-index: 10;
+  pointer-events: auto;
+}
+html body .ip-page .scanner-pill-btn {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+html body .ip-page .scanner-pill-btn.active {
+  background: var(--accent-primary);
+  color: var(--on-accent);
+  border-color: var(--accent-primary);
+}
+
+/* Scanner target corners & laser line */
+html body .ip-page .scanner-overlay-frame {
+  position: absolute;
+  inset: 20px;
+  pointer-events: none;
+}
+html body .ip-page .scanner-corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--accent-primary);
+}
+html body .ip-page .scanner-corner.top-left {
+  top: 0;
+  left: 0;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: 12px;
+}
+html body .ip-page .scanner-corner.top-right {
+  top: 0;
+  right: 0;
+  border-left: none;
+  border-bottom: none;
+  border-top-right-radius: 12px;
+}
+html body .ip-page .scanner-corner.bottom-left {
+  bottom: 0;
+  left: 0;
+  border-right: none;
+  border-top: none;
+  border-bottom-left-radius: 12px;
+}
+html body .ip-page .scanner-corner.bottom-right {
+  bottom: 0;
+  right: 0;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: 12px;
+}
+html body .ip-page .scanner-laser {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  box-shadow: 0 0 12px var(--accent-primary);
+  animation: laserScan 2.4s ease-in-out infinite;
+}
+@keyframes laserScan {
+  0%, 100% { top: 10px; opacity: 0.3; }
+  50% { top: calc(100% - 12px); opacity: 1; }
+}
+
+html body .ip-page .scanner-actions {
+  width: 100%;
+  max-width: 270px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 22px auto 0;
+}
+html body .ip-page .scanner-action-btn.primary,
+html body .ip-page #toggle-camera-btn,
+html body .ip-page #manual-connect-btn {
+  background: var(--accent-primary) !important;
+  color: var(--on-accent) !important;
+  min-height: 48px !important;
+  border-radius: 24px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  width: 100%;
+  cursor: pointer;
+  transition: transform 120ms ease, opacity 150ms ease;
+}
+html body .ip-page .scanner-action-btn.primary:active,
+html body .ip-page #toggle-camera-btn:active,
+html body .ip-page #manual-connect-btn:active {
+  transform: scale(0.98);
+}
+html body .ip-page .scanner-action-btn.secondary,
+html body .ip-page #scan-photo-btn {
+  background: var(--accent-subtle) !important;
+  color: var(--accent-primary) !important;
+  min-height: 48px !important;
+  border-radius: 24px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  width: 100%;
+  cursor: pointer;
+  transition: transform 120ms ease, opacity 150ms ease;
+}
+html body .ip-page .scanner-action-btn.secondary:active,
+html body .ip-page #scan-photo-btn:active {
+  transform: scale(0.98);
+}
+html body .ip-page .scanner-msg {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--accent-primary);
+  text-align: center;
+}
+
+/* 4. Help & Instructions Collapsible Details */
+html body .ip-page .ip-pairing-help {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  border-radius: 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border-subtle);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+html body .ip-page .ip-pairing-help summary {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  gap: 14px !important;
+  padding: 18px 22px !important;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  white-space: nowrap !important;
+}
+html body .ip-page .ip-pairing-help summary::-webkit-details-marker,
+html body .ip-page .ip-pairing-help summary::marker {
+  display: none !important;
+}
+html body .ip-page .ip-pairing-help summary .ip-help-icon,
+html body .ip-page .ip-pairing-help summary .material-icons-round:first-child {
+  color: var(--accent-primary);
+  font-size: 24px;
+  flex: 0 0 24px !important;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+html body .ip-page .ip-pairing-help summary .ip-help-title,
+html body .ip-page .ip-pairing-help summary > span:not(.material-icons-round) {
+  flex: 1 1 auto !important;
+  text-align: left !important;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--text-main);
+  line-height: 1.4;
+  margin: 0;
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html body .ip-page .ip-pairing-help summary .ip-help-chevron,
+html body .ip-page .ip-pairing-help summary .material-icons-round:last-child {
+  color: var(--text-muted);
+  font-size: 24px;
+  flex: 0 0 24px !important;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  margin-left: auto;
+  transition: transform 200ms var(--motion-standard);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+html body .ip-page .ip-pairing-help[open] summary .ip-help-chevron,
+html body .ip-page .ip-pairing-help[open] summary .material-icons-round:last-child {
+  transform: rotate(180deg);
+}
+html body .ip-page .ip-pairing-help .sync-instructions-table {
+  padding: 0 22px 22px !important;
+  background: transparent !important;
+  border: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+html body .ip-page .ip-pairing-help .sync-step-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+}
+html body .ip-page .ip-pairing-help .sync-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+html body .ip-page .ip-pairing-help .sync-step-text {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  text-align: left;
+}
+
+/* 5. Manual PIN Form */
+html body .ip-page .connect-manual {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch !important;
+}
+html body :is(.connect-page, .ip-page) :is(.connect-manual, .sync-manual-table) {
+  padding: 24px 22px !important;
+  background: var(--bg-surface) !important;
+  border-radius: 24px !important;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+html body .ip-page .connect-manual .sync-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  overflow: visible;
+}
+html body .ip-page .connect-manual .sync-input-label {
+  padding-left: 6px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.1px;
+  display: block;
+  overflow: visible;
+  text-align: left;
+}
+html body .ip-page .connect-manual .sync-input {
+  min-height: 52px;
+  height: 52px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 0 16px;
+  color: var(--text-main);
+  font-size: 15px;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+html body .ip-page .connect-manual .sync-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+html body .ip-page .connect-manual .sync-input.pin-input {
+  font-family: var(--font-mono, monospace);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-align: center;
+}
+html body .ip-page .connect-manual #manual-connect-btn {
+  background: var(--accent-primary) !important;
+  color: var(--on-accent) !important;
+  min-height: 48px;
+  border-radius: 24px;
+  font-weight: 600;
+  font-size: 14px;
+  width: 100%;
+  margin-top: 14px;
+  border: 0;
+}
+html body .ip-page .sync-status-card {
+  padding: 24px;
+  border: 0;
+  border-radius: 28px;
+  background: var(--bg-surface);
+  box-shadow: none;
+}
+
+/* Games and document tools */
+.ip-games-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+html body .ip-page .game-hub-card { display: flex; flex-direction: column; align-items: stretch; padding: 0 20px 20px; overflow: hidden; border-radius: 28px; background: var(--bg-surface); border: 0; margin: 0; gap: 18px; }
+.ip-game-art { display: grid; grid-template-columns: repeat(3, 28px); grid-template-rows: repeat(3, 28px); justify-content: center; align-content: center; gap: 6px; height: 180px; margin: 0 -20px; background: var(--accent-subtle); }
+.ip-game-art span { background: var(--accent-primary); border-radius: 9px; opacity: calc(.3 + var(--tile) * .075); }
+.ip-game-art-0 span { border-radius: 50%; }
+.ip-game-art-0 span:nth-child(2), .ip-game-art-0 span:nth-child(4), .ip-game-art-0 span:nth-child(8) { visibility: hidden; }
+.ip-game-art-1 { transform: none; background: var(--bg-elevated); }
+.ip-game-art-1 span:nth-child(1), .ip-game-art-1 span:nth-child(3), .ip-game-art-1 span:nth-child(7) { visibility: hidden; }
+html body .ip-page .game-hub-title { font-size: 22px; font-weight: 500; }
+html body .ip-page .game-hub-desc { font-size: 14px; line-height: 1.6; margin-top: 10px; color: var(--text-muted); }
+html body .ip-page .game-play-btn { min-height: 48px; width: 100%; justify-content: center; border-radius: 24px; background: var(--accent-primary); color: var(--on-accent); }
+.ip-game-stage { display: flex; justify-content: center; padding: 20px; background: var(--bg-surface); border-radius: 28px; }
+.ip-game-stage canvas { max-width: 100%; height: auto; }
+html body :is(.ip-snake, .ip-tetris) .subpage-content { align-items: center; }
+html body .ip-page .pdf-dropzone { width: 100%; min-height: 320px; background: var(--bg-surface); border: 2px dashed var(--glass-border); border-radius: 28px; padding: 32px 24px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
+html body .ip-page .quick-tool-icon { background: var(--accent-subtle) !important; color: var(--accent-primary) !important; width: 72px !important; height: 72px !important; border-radius: 24px !important; }
+.ip-tool-note { display: flex; align-items: flex-start; gap: 12px; color: var(--text-muted); background: var(--bg-surface); border-radius: 20px; padding: 20px; font-size: 13px; line-height: 1.6; }
+html body .ip-page .volume-dial-card { background: var(--bg-surface); border: 0; border-radius: 32px; padding: 32px 24px; width: 100%; }
+html body .ip-page .volume-big-val { font-size: 72px; line-height: 1.3; letter-spacing: -4px; font-weight: 400; color: var(--accent-primary); }
+html body .ip-page .volume-slider { width: 100%; accent-color: var(--accent-primary); min-height: 44px; }
+html body .ip-page .volume-preset-grid { gap: 8px; margin-top: 24px; }
+html body .ip-page .volume-preset-btn { min-height: 48px; border-radius: 16px; background: var(--bg-elevated); border: 1px solid var(--glass-border); color: var(--text-main); }
+html body .ip-page .volume-preset-btn.active { background: var(--accent-subtle); color: var(--accent-primary); border-color: var(--accent-primary); }
+/* Private pages share the same layout with their own tonal roles. */
+html body .ip-page.private-subpage-container { --accent-primary: #cfb5ff; --on-accent: #39205b; --accent-subtle: #352846; --bg-main: #17121f; --bg-surface: #211c2b; --bg-elevated: #2c2536; --text-main: #ece0f6; --text-muted: #cfc2da; --glass-border: #4c405a; }
+html body .ip-page :is(.private-shield-hero-card, .private-session-info-card) { background: var(--bg-surface); border-radius: 28px; border: 0; padding: 28px; }
+html body .ip-page .private-shield-hero-title { font-size: 26px; font-weight: 400; }
+html body .ip-page .private-pillars-grid { gap: 12px; }
+html body .ip-page .private-pillar-card { background: var(--bg-surface); border: 0; border-radius: 20px; }
+html body .ip-page .private-history-tab-item { background: var(--bg-surface); border-radius: 20px; padding: 18px; }
+@media (min-width: 900px) {
+  .ip-workspace { grid-template-columns: 180px minmax(0, 1fr); gap: 40px; padding: 16px 32px 130px; }
+  .ip-navigation { position: sticky; top: 80px; height: max-content; display: flex; flex-direction: column; align-items: stretch; overflow: visible; gap: 6px; }
+  .ip-nav-heading { display: block; padding: 16px; font-size: 10px; letter-spacing: 1.6px; color: var(--text-muted); }
+  .ip-nav-item { background: transparent; }
+  .ip-intro { padding-top: 12px; grid-template-columns: minmax(0, 1fr) 100px; padding-bottom: 32px; }
+  .ip-page-symbol { width: 96px; height: 96px; border-radius: 36px 16px 36px 16px; }
+  .ip-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .ip-settings-grid > .settings-section:only-child { grid-column: 1 / -1; }
+  .ip-games-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ip-pdf .ip-main, .ip-volume .ip-main { max-width: 740px; }
+}
+@media (max-width: 380px) {
+  .ip-workspace { padding-left: 14px; padding-right: 14px; }
+  .ip-intro { grid-template-columns: minmax(0, 1fr) 56px; gap: 12px; }
+  .ip-page-symbol { width: 56px; height: 56px; border-radius: 20px 8px 20px 8px; }
+  .ip-page-symbol > span { font-size: 28px; }
+  .ip-intro h1 { font-size: 30px; }
+  .ip-category { padding: 8px 10px; }
+  html body .ip-page .apple-grouped-row { padding: 14px 12px; gap: 8px; }
+  html body .ip-page .apple-row-icon { width: 34px; height: 34px; }
+  html body .ip-page .history-meta > span:last-child:not(:first-child) { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ip-intro, .ip-settings-grid > section { animation: material-enter 300ms var(--motion-standard) both; }
+}
+html body .ip-page .password-vault-row { padding: 20px; background: var(--bg-surface); border-bottom: 1px solid var(--glass-border-subtle); }
+html body .ip-page .password-row-main { gap: 12px; }
+html body .ip-page .password-field-container { margin: 16px 0 0; padding: 0; background: transparent; }
+html body .ip-page .password-value-box { border-radius: 14px; min-height: 48px; background: var(--bg-elevated); padding: 8px 14px; }
+html body .ip-page .password-actions-bar { flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+html body .ip-page .pwd-action-pill { background: var(--accent-subtle); color: var(--accent-primary); padding: 10px 14px; }
+html body .ip-page .pwd-action-icon-btn { min-width: 44px; min-height: 44px; border-radius: 50%; }
+html body .ip-private-home { --accent-primary: #cfb5ff; --on-accent: #39205b; --accent-subtle: #352846; --bg-surface: #211c2b; --bg-elevated: #2c2536; --text-main: #ece0f6; --text-muted: #cfc2da; }
+.ip-private-badge { padding: 10px 14px; background: var(--accent-subtle); color: var(--accent-primary); border-radius: 24px; font-size: 11px; }
+.ip-private-explainer { margin-top: 24px; padding: 20px; border: 1px solid var(--glass-border); border-radius: 24px; }
+.ip-private-explainer-heading { display: flex; align-items: center; gap: 12px; }
+.ip-private-explainer-heading h2 { font-size: 16px; font-weight: 500; flex: 1; line-height: 1.4; }
+.ip-private-explainer-heading > .material-icons-round { color: var(--accent-primary); }
+.ip-private-explainer p { font-size: 13px; line-height: 1.7; color: var(--text-muted); margin: 12px 0; }
+html body .ip-private-explainer .opera-strip-card { display: inline-flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 24px; background: var(--accent-subtle); color: var(--accent-primary); border: 0; font-size: 13px; }
+html body .ip-private-home .material-quick-card { align-items: flex-start; text-align: left; }
+@media (max-width: 899px) {
+  .ip-setting-categories { flex-wrap: nowrap; overflow-x: auto; padding: 2px 0 6px; }
+  .ip-category { flex-shrink: 0; }
+  .ip-intro { padding-top: 12px; padding-bottom: 20px; }
+  .ip-intro h1 { font-size: 32px; }
+}
+.ip-download-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ip-stat { display: grid; gap: 8px; padding: 18px; border-radius: 22px; background: var(--bg-surface); }
+.ip-stat > .material-icons-round { font-size: 22px; color: var(--accent-primary); }
+.ip-stat strong { font-size: 28px; font-weight: 400; }
+.ip-stat > span:last-child { font-size: 11px; color: var(--text-muted); }
+html body .ip-page .dl-item-row { padding: 20px 16px; min-height: 96px; gap: 12px; background: transparent; }
+html body .ip-page .dl-file-icon { width: 48px; height: 56px; border-radius: 16px 6px 16px 6px; background: var(--accent-subtle); color: var(--accent-primary); }
+html body .ip-page .dl-file-info { min-width: 0; flex: 1; }
+html body .ip-page .dl-filename { font-size: 15px; font-weight: 500; }
+html body .ip-page .dl-meta { color: var(--text-muted); font-size: 11px; }
+html body .ip-page .dl-path-badge { max-width: 100%; font-size: 10px; background: var(--bg-elevated); border-radius: 8px; }
+html body .ip-page .dl-progress-bar { height: 6px; border-radius: 3px; background: var(--bg-elevated); }
+html body .ip-page .dl-progress-fill { background: var(--accent-primary); border-radius: 3px; }
+html body .ip-page :is(.dl-open-btn, .dl-copy-btn) { min-height: 44px; min-width: 44px; border-radius: 16px; background: var(--accent-subtle); color: var(--accent-primary); }
+html body .ip-page .history-view-segmented { display: flex; gap: 4px; border: 1px solid var(--glass-border); border-radius: 28px; background: transparent; padding: 4px; }
+.ip-settings-grid.ip-single-result { grid-template-columns: 1fr; }
+html.is-private-tab body #bottom-dock { --accent-primary: #cfb5ff; --on-accent: #39205b; --accent-subtle: #352846; --bg-surface: #211c2b; --bg-elevated: #2c2536; --text-main: #ece0f6; --text-muted: #cfc2da; }
+@media (max-width: 380px) {
+  .ip-stat { padding: 14px 12px; }
+  html body .ip-page .dl-item-row { flex-wrap: wrap; }
+  html body .ip-page .dl-actions { width: 100%; justify-content: flex-end; flex-direction: row; }
+}

@@ -1,3 +1,4 @@
+import { presentInternalPage } from './InternalPageLayout.js';
 // Ocal Mobile Internal Pages Generator (ocal://)
 import { DownloadsManager } from './DownloadsManager.js';
 import { DataImporter, PasswordManager } from '../utils/DataImporter.js';
@@ -19,30 +20,31 @@ export class InternalPages {
     } else if (clean.startsWith('twitter') || clean.includes('twitter.com') || clean.includes('x.com')) {
       return this.renderTwitter(onNavigate);
     } else if (clean === 'games') {
-      return this.renderGames(onNavigate);
+      return presentInternalPage(this.renderGames(onNavigate), 'games', onNavigate, isIncognito);
     } else if (clean === 'snake') {
-      return this.renderSnake(onNavigate);
+      return presentInternalPage(this.renderSnake(onNavigate), 'snake', onNavigate, isIncognito);
     } else if (clean === 'tetris') {
-      return this.renderTetris(onNavigate);
+      return presentInternalPage(this.renderTetris(onNavigate), 'tetris', onNavigate, isIncognito);
     } else if (clean === 'pdf') {
-      return this.renderPdfViewer(onNavigate);
+      return presentInternalPage(this.renderPdfViewer(onNavigate), 'pdf', onNavigate, isIncognito);
     } else if (clean === 'volume') {
-      return this.renderVolumeBooster(onNavigate);
+      return presentInternalPage(this.renderVolumeBooster(onNavigate), 'volume', onNavigate, isIncognito);
     } else if (clean === 'bookmarks') {
-      return this.renderBookmarks(onNavigate, isIncognito);
+      return presentInternalPage(this.renderBookmarks(onNavigate, isIncognito), 'bookmarks', onNavigate, isIncognito);
     } else if (clean === 'downloads') {
-      return this.renderDownloads(onNavigate);
+      return presentInternalPage(this.renderDownloads(onNavigate), 'downloads', onNavigate, isIncognito);
     } else if (clean === 'sync') {
-      return this.renderSync(onNavigate);
+      return presentInternalPage(this.renderSync(onNavigate), 'sync', onNavigate, isIncognito);
     } else if (clean === 'passwords') {
-      return this.renderPasswords(onNavigate);
+      return presentInternalPage(this.renderPasswords(onNavigate), 'passwords', onNavigate, isIncognito);
     } else if (clean === 'history') {
-      return this.renderHistory(onNavigate, isIncognito);
+      return presentInternalPage(this.renderHistory(onNavigate, isIncognito), 'history', onNavigate, isIncognito);
     } else if (clean === 'settings') {
-      return this.renderSettings(onNavigate, isIncognito);
+      return presentInternalPage(this.renderSettings(onNavigate, isIncognito), 'settings', onNavigate, isIncognito);
     }
 
-    return `
+    const missing = document.createElement('div');
+    missing.innerHTML = `
       <div class="subpage-container">
         <div class="subpage-header">
           <button class="subpage-back-btn" id="error-back-btn"><i class="fas fa-chevron-left"></i></button>
@@ -63,6 +65,11 @@ export class InternalPages {
         </div>
       </div>
     `;
+    const page = missing.firstElementChild;
+    page.querySelector('#error-back-btn').addEventListener('click', () => onNavigate?.('ocal://home'));
+    page.querySelector('#error-home-btn').addEventListener('click', () => onNavigate?.('ocal://home'));
+    return presentInternalPage(page, 'error', onNavigate, isIncognito);
+
   }
 
   // Check if promotional banners on home pages should be shown or are snoozed/permanently dismissed
@@ -113,75 +120,15 @@ export class InternalPages {
     modal.style.zIndex = '999999';
 
     modal.innerHTML = `
-      <div class="modal-dialog-card zen-dismiss-dialog">
-        <div class="modal-header">
-          <div class="modal-title">${escapeHtml(title)}</div>
-          <button class="modal-close-btn" id="promo-dismiss-close-btn" aria-label="Close dialog">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+      <div class="modal-dialog-card m-dismiss-dialog">
+        <div class="m-dialog-topline"><span class="m-dialog-symbol material-icons-round" aria-hidden="true">dashboard_customize</span><button class="modal-close-btn" id="promo-dismiss-close-btn" aria-label="Close dialog"><span class="material-icons-round" aria-hidden="true">close</span></button></div>
+        <div class="m-dialog-heading"><div class="m-eyebrow">YOUR START PAGE</div><h2 class="modal-title">${escapeHtml(title)}</h2><p>${escapeHtml(desc)}</p></div>
+        <div class="promo-dismiss-options">
+          <button class="promo-dismiss-option" data-choice="snooze-7" type="button"><span class="m-option-symbol material-icons-round" aria-hidden="true">schedule</span><span class="dismiss-opt-content"><strong class="dismiss-opt-title">Take a week off</strong><span class="dismiss-opt-desc">Bring this card back in 7 days</span></span><span class="material-icons-round" aria-hidden="true">arrow_forward</span></button>
+          <button class="promo-dismiss-option" data-choice="snooze-30" type="button"><span class="m-option-symbol material-icons-round" aria-hidden="true">event</span><span class="dismiss-opt-content"><strong class="dismiss-opt-title">Give it a month</strong><span class="dismiss-opt-desc">Bring this card back in 30 days</span></span><span class="material-icons-round" aria-hidden="true">arrow_forward</span></button>
+          <button class="promo-dismiss-option danger-opt" data-choice="permanent" type="button"><span class="m-option-symbol material-icons-round" aria-hidden="true">visibility_off</span><span class="dismiss-opt-content"><strong class="dismiss-opt-title">Remove this card</strong><span class="dismiss-opt-desc">You can restore it in Settings</span></span><span class="material-icons-round" aria-hidden="true">arrow_forward</span></button>
         </div>
-        <div class="modal-body" style="padding-bottom: 8px;">
-          <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45;">
-            ${escapeHtml(desc)}
-          </div>
-          <div class="promo-dismiss-options">
-            <button class="promo-dismiss-option" data-choice="snooze-7" type="button">
-              <div class="dismiss-opt-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-              </div>
-              <div class="dismiss-opt-content">
-                <div class="dismiss-opt-title">Remind me in 7 days</div>
-                <div class="dismiss-opt-desc">Temporarily hide from Start Page for 1 week</div>
-              </div>
-              <div class="dismiss-opt-arrow">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-              </div>
-            </button>
-
-            <button class="promo-dismiss-option" data-choice="snooze-30" type="button">
-              <div class="dismiss-opt-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-              </div>
-              <div class="dismiss-opt-content">
-                <div class="dismiss-opt-title">Remind me in 30 days</div>
-                <div class="dismiss-opt-desc">Hide this card for 1 month</div>
-              </div>
-              <div class="dismiss-opt-arrow">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-              </div>
-            </button>
-
-            <button class="promo-dismiss-option danger-opt" data-choice="permanent" type="button">
-              <div class="dismiss-opt-icon danger-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
-                </svg>
-              </div>
-              <div class="dismiss-opt-content">
-                <div class="dismiss-opt-title">Permanently remove</div>
-                <div class="dismiss-opt-desc">Never show again (can restore anytime in Settings)</div>
-              </div>
-              <div class="dismiss-opt-arrow">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-              </div>
-            </button>
-          </div>
-        </div>
-        <div class="modal-footer" style="justify-content: center; border-top: none; padding-top: 4px; padding-bottom: 16px;">
-          <button class="modal-btn secondary" id="promo-dismiss-cancel-btn" type="button" style="width: 100%; height: 42px; border-radius: 12px; font-weight: 600;">Cancel</button>
-        </div>
+        <footer class="modal-footer"><button class="modal-btn secondary" id="promo-dismiss-cancel-btn" type="button">Keep it here</button></footer>
       </div>
     `;
 
@@ -232,101 +179,29 @@ export class InternalPages {
     const showPrivatePromo = this.shouldShowPrivatePromo();
 
     container.innerHTML = `
-      <div class="opera-home-view private-home-view">
-        <!-- Minimal Brand Hero in Stealth Obsidian & Violet -->
-        <div class="opera-hero-container">
-          <div class="opera-logo-badge private-logo-badge">
-            <i class="fas fa-user-secret private-hero-mask-icon"></i>
-          </div>
-          <h1 class="opera-wordmark private-wordmark">Ocal</h1>
-          <div class="private-mode-pill">
-            <span class="private-dot"></span>
-            <span>Private Browsing</span>
-          </div>
+      <div class="material-home ip-private-home">
+        <header class="material-home-header"><span class="material-brand"><span class="material-icons-round" aria-hidden="true">visibility_off</span> Ocal</span><span class="ip-private-badge">Private browsing</span></header>
+        <section class="material-hero"><div class="material-eyebrow">A LITTLE SPACE FOR YOURSELF</div><h1>Just for<br><em>now.</em></h1><div class="material-orbit" aria-hidden="true"><span class="material-icons-round">nightlight_round</span></div><p>A separate space for your next search.</p></section>
+        <button class="material-search" aria-label="Search privately"><span class="material-icons-round" aria-hidden="true">search</span><span>Search privately</span><span class="material-icons-round" aria-hidden="true">north_east</span></button>
+        <div class="material-section-heading"><h2>Your private space</h2></div>
+        <div class="material-quick-grid">
+          <button class="material-quick-card opera-dial-item" data-url="ocal://bookmarks"><span class="material-icons-round" aria-hidden="true">bookmarks</span><strong>Private collection</strong><span>Your separately saved places</span><span class="material-icons-round card-arrow" aria-hidden="true">arrow_forward</span></button>
+          <button class="material-quick-card opera-dial-item" data-url="ocal://history"><span class="material-icons-round" aria-hidden="true">tab</span><strong>This session</strong><span>Return to an open private tab</span><span class="material-icons-round card-arrow" aria-hidden="true">arrow_forward</span></button>
         </div>
-
-        <!-- Section: Favorites (Squircle Monochrome Grid in Plum & Milk) -->
-        <div class="opera-section-header">
-          <div class="opera-section-label">Favorites</div>
+        <div class="material-shortcuts" aria-label="Private tools">
+          <button type="button" class="m3-assist-chip opera-dial-item" data-url="https://duckduckgo.com">
+            <span class="material-icons-round" aria-hidden="true">search</span>
+            <span>DuckDuckGo</span>
+          </button>
+          <button type="button" class="m3-assist-chip opera-dial-item" data-url="ocal://settings">
+            <span class="material-icons-round" aria-hidden="true">tune</span>
+            <span>Private settings</span>
+          </button>
         </div>
-        <div class="opera-speed-dial">
-          <div class="opera-dial-item" data-url="https://dineinstyle.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            </div>
-            <span class="opera-dial-title">Dine Style</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://duckduckgo.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
-            </div>
-            <span class="opera-dial-title">DuckDuckGo</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://twitter.com">
-            <div class="opera-dial-tile">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-            </div>
-            <span class="opera-dial-title">X / Twitter</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://reddit.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.56 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.56 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
-            </div>
-            <span class="opera-dial-title">Reddit</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://discord.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-            </div>
-            <span class="opera-dial-title">Discord</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://github.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-            </div>
-            <span class="opera-dial-title">GitHub</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://en.m.wikipedia.org">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.09 13.119c-.936 1.932-2.217 4.548-2.853 5.728-.616 1.074-1.127.931-1.532.029-1.406-3.321-4.293-9.144-5.651-12.409-.251-.601-.441-.987-.619-1.139-.181-.15-.554-.24-1.122-.271C.103 5.033 0 4.982 0 4.898v-.455l.052-.045c.924-.005 5.401 0 5.401 0l.051.045v.434c0 .119-.075.176-.225.176l-.564.031c-.485.029-.727.164-.727.436 0 .135.053.33.166.601 1.082 2.646 4.818 10.521 4.818 10.521l.136.046 2.411-4.81-.482-1.067-1.658-3.264s-.318-.654-.428-.872c-.728-1.443-.712-1.518-1.447-1.617-.207-.023-.313-.05-.313-.149v-.468l.06-.045h4.292l.113.037v.451c0 .105-.076.15-.227.15l-.308.047c-.792.061-.661.381-.136 1.422l1.582 3.252 1.758-3.504c.293-.64.233-.801.111-.947-.07-.084-.305-.22-.812-.24l-.201-.021c-.052 0-.098-.015-.145-.051-.045-.031-.067-.076-.067-.129v-.427l.061-.045c1.247-.008 4.043 0 4.043 0l.059.045v.436c0 .121-.059.178-.193.178-.646.03-.782.095-1.023.439-.12.186-.375.589-.646 1.039l-2.301 4.273-.065.135 2.792 5.712.17.048 4.396-10.438c.154-.422.129-.722-.064-.895-.197-.172-.346-.273-.857-.295l-.42-.016c-.061 0-.105-.014-.152-.045-.043-.029-.072-.075-.072-.119v-.436l.059-.045h4.961l.041.045v.437c0 .119-.074.18-.209.18-.648.03-1.127.18-1.443.421-.314.255-.557.616-.736 1.067 0 0-4.043 9.258-5.426 12.339-.525 1.007-1.053.917-1.503-.031-.571-1.171-1.773-3.786-2.646-5.71l.053-.036z"/></svg>
-            </div>
-            <span class="opera-dial-title">Wikipedia</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://youtube.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-            </div>
-            <span class="opera-dial-title">YouTube</span>
-          </div>
-        </div>
-
-        ${showPrivatePromo ? `
-        <!-- Section: Minimalist Focus Quick Cards in Plum & Milk -->
-        <div class="opera-feature-strip" id="private-feature-strip">
-          <div class="opera-strip-card" data-action="private-search">
-            <div class="strip-icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-            </div>
-            <div class="strip-info">
-              <div class="strip-title">Private &amp; Untracked</div>
-              <div class="strip-desc">History, cookies, and search queries are never saved</div>
-            </div>
-            <div class="strip-actions">
-              <span class="strip-pill">Protected</span>
-              <button class="strip-dismiss-btn" id="private-strip-dismiss-btn" type="button" aria-label="Remove banner" title="Remove banner">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        ` : ''}
+        ${showPrivatePromo ? `<section class="ip-private-explainer" id="private-feature-strip"><div class="ip-private-explainer-heading"><span class="material-icons-round" aria-hidden="true">info</span><h2>A separate browsing session</h2><button id="private-strip-dismiss-btn" class="material-icon-button" aria-label="Dismiss private browsing information"><span class="material-icons-round" aria-hidden="true">close</span></button></div><p>Private tabs keep their browsing history separate from your regular tabs. Downloads and saved bookmarks can remain on your device.</p><button class="opera-strip-card" data-action="private-search">Explore with DuckDuckGo <span class="material-icons-round" aria-hidden="true">arrow_forward</span></button></section>` : ''}
       </div>
     `;
+    container.querySelector('.material-search').addEventListener('click', () => document.getElementById('omnibox-input')?.focus());
 
     // Bind clicks with subtle haptic response
     container.querySelectorAll('.opera-dial-item').forEach(item => {
@@ -344,7 +219,7 @@ export class InternalPages {
         if (onNavigate) onNavigate('https://duckduckgo.com');
       });
 
-      const dismissBtn = privCard.querySelector('#private-strip-dismiss-btn');
+      const dismissBtn = container.querySelector('#private-strip-dismiss-btn');
       if (dismissBtn) {
         dismissBtn.addEventListener('click', (e) => {
           e.preventDefault();
@@ -387,100 +262,61 @@ export class InternalPages {
     container.className = 'internal-page-container home-page-container';
     const showZenPromo = this.shouldShowZenPromo();
 
+    const favorites = [
+      ['Dine Style', 'https://dineinstyle.com', 'restaurant'],
+      ['DuckDuckGo', 'https://duckduckgo.com', 'shield'],
+      ['X / Twitter', 'https://twitter.com', 'chat_bubble_outline'],
+      ['Reddit', 'https://reddit.com', 'forum'],
+      ['Discord', 'https://discord.com', 'headset_mic'],
+      ['GitHub', 'https://github.com', 'code'],
+      ['Wikipedia', 'https://en.m.wikipedia.org', 'auto_stories'],
+      ['YouTube', 'https://youtube.com', 'smart_display'],
+    ];
     container.innerHTML = `
-      <div class="opera-home-view">
-        <!-- Minimal Monochrome Brand Hero -->
-        <div class="opera-hero-container">
-          <div class="opera-logo-badge">
-            <img src="/assets/Light.png" alt="Ocal Logo" class="opera-brand-logo-img light-logo" />
-            <img src="/assets/Dark.png" alt="Ocal Logo" class="opera-brand-logo-img dark-logo" />
-          </div>
-          <h1 class="opera-wordmark">Ocal</h1>
+      <div class="material-home">
+        <header class="material-home-header">
+          <span class="material-brand"><span class="material-icons-round" aria-hidden="true">explore</span> Ocal</span>
+          <button class="material-icon-button" data-url="ocal://settings" aria-label="Settings"><span class="material-icons-round" aria-hidden="true">tune</span></button>
+        </header>
+        <section class="material-hero">
+          <div class="material-eyebrow">A LITTLE CURIOSITY GOES A LONG WAY</div>
+          <h1>Where to<br><em>next?</em></h1>
+          <div class="material-orbit" aria-hidden="true"><span class="material-icons-round">explore</span></div>
+          <p>Your space to explore. At your own pace.</p>
+        </section>
+        <button class="material-search" aria-label="Search or enter address">
+          <span class="material-icons-round" aria-hidden="true">search</span>
+          <span>Search or enter address</span>
+          <span class="material-icons-round" aria-hidden="true">north_east</span>
+        </button>
+        <div class="material-shortcuts" aria-label="Browser tools">
+          <button type="button" class="m3-assist-chip" data-url="ocal://downloads">
+            <span class="material-icons-round" aria-hidden="true">download</span>
+            <span>Downloads</span>
+          </button>
+          <button type="button" class="m3-assist-chip" data-url="ocal://sync">
+            <span class="material-icons-round" aria-hidden="true">devices</span>
+            <span>Connect devices</span>
+          </button>
         </div>
-
-        <!-- Section: Favorites (Squircle Monochrome Grid) -->
-        <div class="opera-section-header">
-          <div class="opera-section-label">Favorites</div>
+        <div class="material-section-heading"><h2>Your favorites</h2><span>THE EVERYDAY ESSENTIALS</span></div>
+        <div class="material-favorites">
+          ${favorites.map(([label, url, icon]) => `<button class="opera-dial-item material-favorite" data-url="${url}"><span class="material-favorite-icon"><span class="material-icons-round" aria-hidden="true">${icon}</span></span><span>${label}</span></button>`).join('')}
         </div>
-        <div class="opera-speed-dial">
-          <div class="opera-dial-item" data-url="https://dineinstyle.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            </div>
-            <span class="opera-dial-title">Dine Style</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://duckduckgo.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
-            </div>
-            <span class="opera-dial-title">DuckDuckGo</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://twitter.com">
-            <div class="opera-dial-tile">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-            </div>
-            <span class="opera-dial-title">X / Twitter</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://reddit.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.56 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.56 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
-            </div>
-            <span class="opera-dial-title">Reddit</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://discord.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-            </div>
-            <span class="opera-dial-title">Discord</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://github.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-            </div>
-            <span class="opera-dial-title">GitHub</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://en.m.wikipedia.org">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.09 13.119c-.936 1.932-2.217 4.548-2.853 5.728-.616 1.074-1.127.931-1.532.029-1.406-3.321-4.293-9.144-5.651-12.409-.251-.601-.441-.987-.619-1.139-.181-.15-.554-.24-1.122-.271C.103 5.033 0 4.982 0 4.898v-.455l.052-.045c.924-.005 5.401 0 5.401 0l.051.045v.434c0 .119-.075.176-.225.176l-.564.031c-.485.029-.727.164-.727.436 0 .135.053.33.166.601 1.082 2.646 4.818 10.521 4.818 10.521l.136.046 2.411-4.81-.482-1.067-1.658-3.264s-.318-.654-.428-.872c-.728-1.443-.712-1.518-1.447-1.617-.207-.023-.313-.05-.313-.149v-.468l.06-.045h4.292l.113.037v.451c0 .105-.076.15-.227.15l-.308.047c-.792.061-.661.381-.136 1.422l1.582 3.252 1.758-3.504c.293-.64.233-.801.111-.947-.07-.084-.305-.22-.812-.24l-.201-.021c-.052 0-.098-.015-.145-.051-.045-.031-.067-.076-.067-.129v-.427l.061-.045c1.247-.008 4.043 0 4.043 0l.059.045v.436c0 .121-.059.178-.193.178-.646.03-.782.095-1.023.439-.12.186-.375.589-.646 1.039l-2.301 4.273-.065.135 2.792 5.712.17.048 4.396-10.438c.154-.422.129-.722-.064-.895-.197-.172-.346-.273-.857-.295l-.42-.016c-.061 0-.105-.014-.152-.045-.043-.029-.072-.075-.072-.119v-.436l.059-.045h4.961l.041.045v.437c0 .119-.074.18-.209.18-.648.03-1.127.18-1.443.421-.314.255-.557.616-.736 1.067 0 0-4.043 9.258-5.426 12.339-.525 1.007-1.053.917-1.503-.031-.571-1.171-1.773-3.786-2.646-5.71l.053-.036z"/></svg>
-            </div>
-            <span class="opera-dial-title">Wikipedia</span>
-          </div>
-          <div class="opera-dial-item" data-url="https://youtube.com">
-            <div class="opera-dial-tile">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-            </div>
-            <span class="opera-dial-title">YouTube</span>
-          </div>
+        <div class="material-section-heading"><h2>A little more Ocal</h2></div>
+        <div class="material-quick-grid">
+          <button class="material-quick-card" data-url="ocal://bookmarks"><span class="material-icons-round" aria-hidden="true">bookmarks</span><strong>Saved for later</strong><span>Good finds, kept close</span><span class="material-icons-round card-arrow" aria-hidden="true">arrow_forward</span></button>
+          <button class="material-quick-card" data-url="ocal://history"><span class="material-icons-round" aria-hidden="true">history</span><strong>Pick up again</strong><span>Retrace your steps</span><span class="material-icons-round card-arrow" aria-hidden="true">arrow_forward</span></button>
         </div>
-
-        ${showZenPromo ? `
-        <!-- Section: Minimalist Focus Quick Cards -->
-        <div class="opera-feature-strip" id="zen-feature-strip">
-          <div class="opera-strip-card" data-action="zen-guide">
-            <div class="strip-icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-              </svg>
-            </div>
-            <div class="strip-info">
-              <div class="strip-title">Zen Reader &amp; Audio Voice</div>
-              <div class="strip-desc">Read articles without ads or listen hands-free</div>
-            </div>
-            <div class="strip-actions">
-              <span class="strip-pill">New</span>
-              <button class="strip-dismiss-btn" id="zen-strip-dismiss-btn" type="button" aria-label="Remove banner" title="Remove banner">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        ` : ''}
+        ${showZenPromo ? `<div class="material-reader" id="zen-feature-strip">
+          <button class="opera-strip-card" data-action="zen-guide"><span class="material-icons-round" aria-hidden="true">auto_stories</span><span><strong>A quieter way to read</strong><span>Discover an article. Make time for a thought.</span></span><span class="material-icons-round" aria-hidden="true">arrow_forward</span></button>
+          <button id="zen-strip-dismiss-btn" class="material-icon-button" aria-label="Dismiss reading suggestion"><span class="material-icons-round" aria-hidden="true">close</span></button>
+        </div>` : ''}
+        <footer class="material-home-footer"><span class="material-icons-round" aria-hidden="true">explore</span> A browser that gives you room.</footer>
       </div>
     `;
+    container.querySelector('.material-search').addEventListener('click', () => document.getElementById('omnibox-input')?.focus());
+    container.querySelectorAll('[data-url]:not(.opera-dial-item)').forEach(button => button.addEventListener('click', () => onNavigate?.(button.dataset.url)));
 
     // Bind clicks with subtle haptic response
     container.querySelectorAll('.opera-dial-item').forEach(item => {
@@ -498,7 +334,7 @@ export class InternalPages {
         if (onNavigate) onNavigate('https://en.m.wikipedia.org/wiki/Special:Random');
       });
 
-      const dismissBtn = zenCard.querySelector('#zen-strip-dismiss-btn');
+      const dismissBtn = container.querySelector('#zen-strip-dismiss-btn');
       if (dismissBtn) {
         dismissBtn.addEventListener('click', (e) => {
           e.preventDefault();
@@ -623,7 +459,7 @@ export class InternalPages {
               <div class="game-hub-title">Cyber Snake</div>
               <span class="game-tag">OFFLINE</span>
             </div>
-            <div class="game-hub-desc">Classic retro arcade snake with on-screen glass D-pad.</div>
+            <div class="game-hub-desc">A familiar favorite. Keep moving, collect food, and beat your best.</div>
             <div class="game-features-row">
               <span>Instant Play</span>
               <span class="history-separator">•</span>
@@ -830,7 +666,7 @@ export class InternalPages {
           <div class="volume-big-val" id="boost-display">100%</div>
           <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">Audio amplification beyond standard limits.</p>
 
-          <input type="range" class="volume-slider" id="boost-slider" min="100" max="600" value="100" step="25">
+          <input aria-label="Volume amplification" type="range" class="volume-slider" id="boost-slider" min="100" max="600" value="100" step="25">
           
           <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-subtle); margin-top:6px; font-family:var(--font-mono);">
             <span>100%</span>
@@ -889,13 +725,13 @@ export class InternalPages {
       <div class="subpage-content">
         <input type="file" id="pdf-file-input" accept="application/pdf" style="display:none;">
         
-        <div class="pdf-dropzone" id="pdf-trigger-dropzone">
+        <button type="button" class="pdf-dropzone" id="pdf-trigger-dropzone">
           <div class="quick-tool-icon" style="width:52px; height:52px; font-size:24px; margin:0 auto 12px; color:#ef4444; background:rgba(239, 68, 68, 0.15);">
             <i class="fas fa-file-pdf"></i>
           </div>
           <div style="font-size:15px; font-weight:700; color:var(--text-main);">Choose a PDF Document</div>
-          <p style="color:var(--text-muted); font-size:12.5px; margin-top:4px;">Open and read local PDF files offline with continuous scroll.</p>
-        </div>
+          <p style="color:var(--text-muted); font-size:12.5px; margin-top:4px;">Open a PDF from your device to read it here.</p>
+        </button>
 
         <div id="pdf-render-area" style="display:none; background:var(--sheet-card-bg); border:1px solid var(--sheet-card-border); border-radius:18px; overflow:hidden;">
         </div>
@@ -938,7 +774,7 @@ export class InternalPages {
           <div class="subpage-empty-icon bookmarks">
             <i class="fas fa-bookmark"></i>
           </div>
-          <div class="subpage-empty-title">No Bookmarks Saved</div>
+          <div class="subpage-empty-title">Your next great find belongs here</div>
           <p class="subpage-empty-desc">Tap the heart icon in the address bar to bookmark any page, or import your bookmarks from another browser.</p>
           <button class="pill-chip" id="empty-import-bm-btn" style="background:#ffffff; color:#000000; border:none; border-radius:9999px; margin:16px auto 0; padding:10px 22px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">
             <i class="fa-solid fa-file-import"></i>
@@ -1123,7 +959,7 @@ export class InternalPages {
           <div class="subpage-empty-icon private-empty-icon">
             <i class="fas fa-user-secret"></i>
           </div>
-          <div class="subpage-empty-title private-empty-title">Private Vault is Empty</div>
+          <div class="subpage-empty-title private-empty-title">A collection just for this space</div>
           <p class="subpage-empty-desc private-empty-desc">
             Bookmarks saved while browsing in Private Mode stay in this private vault. They are never visible in standard mode.
           </p>
@@ -1275,7 +1111,7 @@ export class InternalPages {
           <div class="subpage-empty-icon" style="background:rgba(255,255,255,0.06); color:#ffffff;">
             <i class="fa-solid fa-key" style="font-size:24px;"></i>
           </div>
-          <div class="subpage-empty-title">No Saved Logins</div>
+          <div class="subpage-empty-title">Keep your logins close</div>
           <p class="subpage-empty-desc">Import your passwords directly from Chrome, Firefox, Safari, Edge, or password manager CSV files.</p>
           <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:280px; margin:20px auto 0;">
             <button class="pill-chip" id="empty-import-pwd-btn" style="background:#ffffff; color:#000000; border:none; border-radius:9999px; padding:12px 20px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px;">
@@ -2214,6 +2050,9 @@ export class InternalPages {
       if (!listEl) return;
 
       const downloads = DownloadsManager.getDownloads();
+      const counts = { all: downloads.length, active: downloads.filter(item => item.status === 'downloading').length, completed: downloads.filter(item => item.status === 'completed').length };
+      container.querySelectorAll('[data-download-count]').forEach(counter => { counter.textContent = counts[counter.dataset.downloadCount]; });
+
       let filtered = downloads;
       if (currentFilter === 'active') {
         filtered = downloads.filter(d => d.status === 'downloading');
@@ -2232,51 +2071,12 @@ export class InternalPages {
             <div class="subpage-empty-icon" style="background-color: var(--bg-hover); color: var(--text-muted);">
               <i class="fas fa-arrow-down-to-bracket"></i>
             </div>
-            <div class="subpage-empty-title">${downloads.length === 0 ? 'No Downloads Yet' : 'No Matching Downloads'}</div>
+            <div class="subpage-empty-title">${downloads.length === 0 ? 'Nothing downloaded yet' : 'No Matching Downloads'}</div>
             <p class="subpage-empty-desc">${downloads.length === 0 ? 'Files downloaded from the web will appear here with real-time progress and storage location.' : 'Try changing your search query or filter.'}</p>
-            ${downloads.length === 0 ? `
-              <button class="pill-chip" id="demo-download-btn" style="background:var(--text-main); color:var(--bg-main); border:none; margin:16px auto 0; padding:9px 22px; font-weight:700; cursor:pointer; font-size:12.5px; border-radius: 9999px;">
-                Download Sample PDF
-              </button>
-            ` : ''}
+            ${downloads.length === 0 ? '<button class="pill-chip" id="downloads-explore-btn">Explore the web <span class="material-icons-round" aria-hidden="true">arrow_forward</span></button>' : ''}
           </div>
         `;
-
-        listEl.querySelector('#demo-download-btn')?.addEventListener('click', () => {
-          const sample = DownloadsManager.addDownload({
-            filename: 'Ocal_Browser_Guide.pdf',
-            url: 'https://ocal.net/docs/guide.pdf',
-            filePath: '/storage/emulated/0/Download/Ocal_Browser_Guide.pdf',
-            totalBytes: 5242880,
-            downloadedBytes: 524288,
-            progress: 10,
-            status: 'downloading',
-            mimetype: 'application/pdf'
-          });
-
-          // Simulate live progress
-          let currentProg = 10;
-          const interval = setInterval(() => {
-            currentProg += 18;
-            if (currentProg >= 100) {
-              clearInterval(interval);
-              DownloadsManager.updateDownload(sample.id, {
-                downloadedBytes: 5242880,
-                progress: 100,
-                status: 'completed'
-              });
-              if (window.ocalApp && typeof window.ocalApp.showToast === 'function') {
-                window.ocalApp.showToast('Downloaded Ocal_Browser_Guide.pdf', 'check');
-              }
-            } else {
-              DownloadsManager.updateDownload(sample.id, {
-                downloadedBytes: Math.round(5242880 * (currentProg / 100)),
-                progress: currentProg,
-                status: 'downloading'
-              });
-            }
-          }, 650);
-        });
+        listEl.querySelector('#downloads-explore-btn')?.addEventListener('click', () => onNavigate?.('ocal://home'));
         return;
       }
 
@@ -3570,6 +3370,9 @@ export class InternalPages {
         container.querySelectorAll('.accent-option').forEach(option => {
           option.setAttribute('aria-pressed', String(option.dataset.accent === choice));
         });
+        if (window.ocalApp?.updateStatusBarTheme) {
+          window.ocalApp.updateStatusBarTheme();
+        }
       });
     });
 
@@ -3577,6 +3380,7 @@ export class InternalPages {
       const t = e.target.checked ? 'dark' : 'light';
       localStorage.setItem('ocal-theme', t);
       document.documentElement.setAttribute('data-theme', t);
+      applyAccent();
       if (window.ocalApp?.updateStatusBarTheme) {
         window.ocalApp.updateStatusBarTheme(t === 'dark');
       }
@@ -3758,16 +3562,11 @@ export class InternalPages {
     overlay.style.zIndex = '999999';
 
     overlay.innerHTML = `
-      <div class="modal-dialog-card" style="max-width:340px; text-align:center; padding:22px 18px 18px;">
-        <div style="width:48px; height:48px; border-radius:50%; background:${confirmDanger ? 'rgba(255, 59, 48, 0.12)' : 'rgba(255, 255, 255, 0.1)'}; color:${confirmDanger ? '#ff3b30' : 'var(--text-main)'}; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; font-size:20px;">
-          <i class="fa-solid ${confirmDanger ? 'fa-triangle-exclamation' : 'fa-circle-question'}"></i>
-        </div>
-        <div style="font-size:17px; font-weight:700; color:var(--text-main); margin-bottom:8px;">${escapeHtml(title)}</div>
-        <p style="font-size:13px; color:var(--text-muted); line-height:1.45; margin:0 0 20px;">${escapeHtml(message)}</p>
-        <div style="display:flex; gap:10px; width:100%;">
-          <button class="modal-btn secondary" id="modal-cancel-action" style="flex:1; border-radius:12px; padding:11px 0; font-size:14px; font-weight:600; cursor:pointer;">${escapeHtml(cancelText)}</button>
-          <button class="modal-btn primary" id="modal-confirm-action" style="flex:1; border-radius:12px; padding:11px 0; font-size:14px; font-weight:700; ${confirmDanger ? 'background:#ff3b30 !important; color:#fff !important; border:none !important;' : ''} cursor:pointer;">${escapeHtml(confirmText)}</button>
-        </div>
+      <div class="modal-dialog-card m-confirm-dialog ${confirmDanger ? 'm-danger-dialog' : ''}">
+        <span class="m-dialog-symbol material-icons-round" aria-hidden="true">${confirmDanger ? 'delete_outline' : 'help_outline'}</span>
+        <h2 class="modal-title">${escapeHtml(title)}</h2>
+        <p class="m-dialog-description">${escapeHtml(message)}</p>
+        <div class="modal-footer"><button class="modal-btn secondary" id="modal-cancel-action">${escapeHtml(cancelText)}</button><button class="modal-btn primary" id="modal-confirm-action">${escapeHtml(confirmText)}</button></div>
       </div>
     `;
 
